@@ -99,7 +99,7 @@ const API = {
       orders: read_(SH.orders, 2, 25),
       extras: read_(SH.extras, 2, 5), modules: read_(SH.modules, 2, 5), tasks: read_(SH.tasks, 2, 5), lib: read_(SH.lib, 2, 2),
       shifts: read_(SH.shifts, 2, 10), marks: read_(SH.marks, 2, 12).filter(r => r[11] !== 'да'),
-      plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [], time: sh_(SH.time) ? read_(SH.time, 2, 6) : [] };
+      plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [], time: sh_(SH.time) ? read_(SH.time, 2, 7) : [] };
   },
   /* ---- смена ---- */
   shiftStart(me, b){
@@ -122,6 +122,13 @@ const API = {
   /* ---- счётчик времени: одна активная операция на человека ---- */
   workStart(me, b){ stopWork_(me.id); append_(SH.time, [now_(), me.id, b.order, b.op, '', '']); return {}; },
   workStop(me){ stopWork_(me.id); return {}; },
+  timeAdd(me, b){ const m = Math.round(+b.minutes || 0); if (!(m > 0)) throw new Error('Впиши время');
+    const t = today_(), sh = read_(SH.shifts, 2, 10).filter(r => String(r[0]).slice(0, 10) === t && String(r[1]) === me.id).pop();
+    if (!sh) throw new Error('Ручное время — только в свою смену сегодня');
+    const shiftMin = (sh[3] ? toMin_(sh[3]) : toMin_(hm_())) - toMin_(sh[2]), nowMs = Date.now();
+    const used = read_(SH.time, 2, 6).filter(r => String(r[1]) === me.id && String(r[0]).slice(0, 10) === t).reduce((a, r) => a + (r[4] ? +r[5] || 0 : (nowMs - utcMs_(r[0])) / 6e4), 0);
+    if (m > shiftMin - used + 1) throw new Error('Можно добавить не больше ' + Math.max(0, Math.floor(shiftMin - used)) + ' мин — столько осталось от твоей смены');
+    append_(SH.time, [now_(), me.id, b.order, b.op, now_(), m, 'вручную']); return {}; },
   shiftLate(me){ // «работаю дальше» — вечерняя смена, больше не напоминать
     const t = today_(), r = read_(SH.shifts, 2, 11).reverse().find(x => String(x[0]).slice(0, 10) === t && String(x[1]) === me.id && !x[3]);
     if (r) sh_(SH.shifts).getRange(r[11], 11).setValue('да'); return {};
@@ -139,6 +146,8 @@ const API = {
   },
   take(me, b){ append_(SH.takes, [now_(), me.id, b.order, b.op, 'взял']); return {}; },
   untake(me, b){ append_(SH.takes, [now_(), me.id, b.order, b.op, 'отменил']); return {}; },
+  unjoin(me, b){ append_(SH.takes, [now_(), b.who, b.order, b.op, 'отключён ' + me.id]); return {}; },
+  join(me, b){ if (!b.who || b.who === me.id) throw new Error('Выбери сотрудника'); append_(SH.takes, [now_(), b.who, b.order, b.op, 'подключён ' + me.id]); return {}; },
   /* ---- план выхода ---- */
   planSet(me, b){
     const d = b.date; if (!canEditPlan_(d) && !me.boss) throw new Error('Этот день уже не меняется');
