@@ -8,7 +8,7 @@
 const APP_URL = 'https://akrixsoft.github.io/akrix-job/';   // адрес мини-приложения (GitHub Pages)
 const TZ = 'Asia/Tbilisi';
 const SH = { params:'Параметры', staff:'Сотрудники', orders:'Заказы', extras:'Доп. обработки', modules:'Модули', tasks:'Задачи',
-  ops:'Операции', lib:'Библиотека монтажа', shifts:'Смены', marks:'Отметки', plans:'Планы', takes:'Взятые задачи', kit:'Комплект', notes:'Заметки монтажа', buy:'Закупка', buyCat:'Справочник закупки' };
+  ops:'Операции', lib:'Библиотека монтажа', shifts:'Смены', marks:'Отметки', plans:'Планы', takes:'Взятые задачи', kit:'Комплект', notes:'Заметки монтажа', buy:'Закупка', buyCat:'Справочник закупки', time:'Время' };
 const ORD = { id:0, client:1, product:2, sys:3, kind:4, cost:5, term:6, ship:7, ceh:8, done:9, team:10, status:11, mat0:12, matN:21, off:21, mountAt:22, prisManual:23, master:24 };
 const BOSS_ROLES = ['руководитель', 'администратор'];   // полный доступ: заказы, фонд, люди, закупка
 
@@ -99,7 +99,7 @@ const API = {
       orders: read_(SH.orders, 2, 25),
       extras: read_(SH.extras, 2, 5), modules: read_(SH.modules, 2, 5), tasks: read_(SH.tasks, 2, 5), lib: read_(SH.lib, 2, 2),
       shifts: read_(SH.shifts, 2, 10), marks: read_(SH.marks, 2, 12).filter(r => r[11] !== 'да'),
-      plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [] };
+      plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [], time: sh_(SH.time) ? read_(SH.time, 2, 6) : [] };
   },
   /* ---- смена ---- */
   shiftStart(me, b){
@@ -116,9 +116,12 @@ const API = {
     if (t !== today_() && !/^\d\d:\d\d$/.test(String(b.at || ''))) throw new Error('Укажи, во сколько ушёл');
     const at = t !== today_() ? b.at : hm_(); let mins = toMin_(at) - toMin_(r[2]); if (mins < 0) mins += 1440;   // ушёл после полуночи
     const h = Math.round(mins / 60 * 100) / 100;
-    const s = sh_(SH.shifts); s.getRange(r[10], 4, 1, 2).setValues([["'" + at, h]]); s.getRange(r[10], 9, 1, 2).setValues([[b.geo || '', b.misc || '']]);
+    stopWork_(me.id); const s = sh_(SH.shifts); s.getRange(r[10], 4, 1, 2).setValues([["'" + at, h]]); s.getRange(r[10], 9, 1, 2).setValues([[b.geo || '', b.misc || '']]);
     return { at, hours: h };
   },
+  /* ---- счётчик времени: одна активная операция на человека ---- */
+  workStart(me, b){ stopWork_(me.id); append_(SH.time, [now_(), me.id, b.order, b.op, '', '']); return {}; },
+  workStop(me){ stopWork_(me.id); return {}; },
   shiftLate(me){ // «работаю дальше» — вечерняя смена, больше не напоминать
     const t = today_(), r = read_(SH.shifts, 2, 11).reverse().find(x => String(x[0]).slice(0, 10) === t && String(x[1]) === me.id && !x[3]);
     if (r) sh_(SH.shifts).getRange(r[11], 11).setValue('да'); return {};
@@ -197,6 +200,9 @@ function latestPlan_(who, date){
 }
 function canEditPlan_(d){ const p = params_(), t = today_();
   const diff = dayDiff_(d, t); return diff > 1 || (diff === 1 && toMin_(hm_()) < toMin_(p.planTo)); }
+function stopWork_(who){ const s = sh_(SH.time); if (!s) return; const now = new Date();
+  read_(SH.time, 2, 6).forEach(r => { if (String(r[1]) === who && !r[4]){ const st = utcMs_(r[0]); s.getRange(r[6], 5, 1, 2).setValues([[now_(), Math.max(0, Math.round((now - st) / 6e4))]]); } }); }
+function utcMs_(s){ const p = String(s).split(/[- :]/).map(Number); return Date.UTC(p[0], p[1] - 1, p[2], p[3] || 0, p[4] || 0) - 4 * 3600e3; }   // время таблицы — Тбилиси (UTC+4)
 function canAssign_(me, order){ if (me.boss) return;
   const m = sh_(SH.orders).getRange(findOrderRow_(order), ORD.master + 1).getDisplayValue().trim();
   if (m !== me.id) throw new Error('Назначать задачи может руководитель или мастер заказа'); }
@@ -219,7 +225,8 @@ function send_(chatId, text, btn){ // btn: 'Текст' или [['Текст', '
   if (list.length) p.reply_markup = { inline_keyboard: list.map(x => [{ text: x[0], web_app: { url: appUrl_() + (x[1] ? '&go=' + x[1] : '') } }]) };
   return tg_('sendMessage', p);
 }
-function staffTg_(){ return read_(SH.staff, 2, 7).filter(r => r[3] && String(r[6]).trim() !== 'нет').map(r => ({ id: String(r[0]), tg: String(r[3]), boss: String(r[4]).trim() === 'руководитель' })); }
+function staffTg_(){ // кому бот пишет: есть Telegram ID, активен, уведомления не выключены (колонка H)
+  return read_(SH.staff, 2, 8).filter(r => r[3] && String(r[6]).trim() !== 'нет' && String(r[7]).trim() !== 'нет').map(r => ({ id: String(r[0]), tg: String(r[3]), boss: String(r[4]).trim() === 'руководитель' })); }
 const DAYS_ = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
 function isWorkday_(iso){ const off = params_().dayOff.toLowerCase(); return off.indexOf(DAYS_[utc_(iso).getUTCDay()]) < 0; }
 
