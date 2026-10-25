@@ -437,7 +437,7 @@ function build(D){
   const rp=String(P.remindPlan||'').split(',').map(s=>s.trim()).filter(Boolean); PLAN.remind=rp.length?toMin(rp[rp.length-1]):PLAN.to-30;
   TODAY=fromIso(D.today);
   PEOPLE={}; ROLE={}; D.staff.forEach(s=>{ PEOPLE[s.id]=s.name||s.id; ROLE[s.id]=s.role; });
-  WORKERS=D.staff.filter(s=>s.active&&s.role!=='руководитель').map(s=>s.id);
+  WORKERS=D.staff.filter(s=>s.active).map(s=>s.id);   // руководитель тоже работает: в командах, напарниках, учёте
   // каталог операций
   CAT_M2={}; CAT_PCT={};
   D.ops.forEach(r=>{ const [sys,grp,gname,rate,code,name,share]=r; if(!grp||!code) return;
@@ -818,7 +818,7 @@ function planChip(pl){ return !pl?'':pl.off?'вых':pl.at; }
 function weekStart(){ return addD(TODAY, -((TODAY.getDay()+6)%7)); }
 function shiftsSince(from){ const f=iso(from); return SHIFTS.filter(r=>d10(r[0])>=f); }
 function vBossTomorrow(){
-  const n=nowMin(), t=iso(addD(TODAY,1)), we=!isWorkday(addD(TODAY,1)), people=Object.keys(PEOPLE).filter(p=>ROLE[p]!=='руководитель');
+  const n=nowMin(), t=iso(addD(TODAY,1)), we=!isWorkday(addD(TODAY,1)), people=WORKERS.slice();
   const today=iso(TODAY);
   const rows=people.map(p=>{ const pl=(CAL[p]||{})[t];
     const st = pl ? (pl.off?['bad','не выходит']:['ok',pl.at]) : we?['n','выходной'] : (n>=PLAN.to?['bad','не указал']:['warn','ждём до '+hm(PLAN.to)]);
@@ -851,7 +851,7 @@ function vBossFund(){
 }
 function vBossStaff(){
   const from=weekStart(), e=earnedBy(from), hh=hoursBy(from), wk=shiftsSince(from);
-  return UI.h('Сотрудники · неделя')+Object.keys(PEOPLE).filter(p=>ROLE[p]!=='руководитель').map(p=>{ const ea=e[p]||0, h=hh[p]||0, perH=h?ea/h:0, tone=perH>=RATE_H?'good':perH>=RATE_H*0.6?'warn':'low';
+  return UI.h('Сотрудники · неделя')+WORKERS.map(p=>{ const ea=e[p]||0, h=hh[p]||0, perH=h?ea/h:0, tone=perH>=RATE_H?'good':perH>=RATE_H*0.6?'warn':'low';
     const late=wk.filter(r=>String(r[1])===p&&num(r[6])>5).length;
     return UI.sec(esc(PEOPLE[p]), `<div class="grid2">${UI.kpi('₾/ч', h?fmt(perH):'—', `норма ${RATE_H}`, h?tone:'', true)}${UI.kpi('заработал', fmt0(ea)+' ₾', `мог ${fmt0(h*RATE_H)} · ${fmt(h)} ч`, '', true)}</div>
       <div class="bar"><i class="${perH<RATE_H*0.6?'late':''}" style="width:${Math.min(100,perH/RATE_H*100)}%"></i></div>
