@@ -371,6 +371,15 @@ details[open]>summary .chev{color:var(--acc-text)}
 .uin{border-color:var(--acc)}
 @media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s}}
 @media (prefers-reduced-motion:reduce){.chev{transition:none}}
+/* ====== ЗАСТАВКА ====== */
+.splash{position:fixed;inset:0;z-index:50;background:var(--ink);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:32px 24px calc(32px + env(safe-area-inset-bottom,0px));text-align:center}
+.splash .sb{font-weight:800;font-size:20px;letter-spacing:-.01em}
+.splash .sb span{color:var(--acc)}
+.splash .st{font-weight:800;font-size:30px;line-height:1.15;letter-spacing:-.02em;max-width:340px}
+.splash .st em{font-style:normal;color:var(--acc)}
+.splash button{border:0;background:var(--acc);color:var(--acc-ink);font-weight:800;font-size:19px;padding:16px 56px;border-radius:14px;min-height:56px;box-shadow:0 6px 0 #9c7600}
+.splash button:active{transform:translateY(4px);box-shadow:0 2px 0 #9c7600}
+.splash.out{opacity:0;transition:opacity .25s}
 .who{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
 </style></head><body>
 <div class="app">
@@ -428,7 +437,7 @@ function build(D){
   const rp=String(P.remindPlan||'').split(',').map(s=>s.trim()).filter(Boolean); PLAN.remind=rp.length?toMin(rp[rp.length-1]):PLAN.to-30;
   TODAY=fromIso(D.today);
   PEOPLE={}; ROLE={}; D.staff.forEach(s=>{ PEOPLE[s.id]=s.name||s.id; ROLE[s.id]=s.role; });
-  WORKERS=D.staff.filter(s=>s.active&&s.role!=='руководитель').map(s=>s.id);
+  WORKERS=D.staff.filter(s=>s.active).map(s=>s.id);   // руководитель тоже работает: в командах, напарниках, учёте
   // каталог операций
   CAT_M2={}; CAT_PCT={};
   D.ops.forEach(r=>{ const [sys,grp,gname,rate,code,name,share]=r; if(!grp||!code) return;
@@ -809,7 +818,7 @@ function planChip(pl){ return !pl?'':pl.off?'вых':pl.at; }
 function weekStart(){ return addD(TODAY, -((TODAY.getDay()+6)%7)); }
 function shiftsSince(from){ const f=iso(from); return SHIFTS.filter(r=>d10(r[0])>=f); }
 function vBossTomorrow(){
-  const n=nowMin(), t=iso(addD(TODAY,1)), we=!isWorkday(addD(TODAY,1)), people=Object.keys(PEOPLE).filter(p=>ROLE[p]!=='руководитель');
+  const n=nowMin(), t=iso(addD(TODAY,1)), we=!isWorkday(addD(TODAY,1)), people=WORKERS.slice();
   const today=iso(TODAY);
   const rows=people.map(p=>{ const pl=(CAL[p]||{})[t];
     const st = pl ? (pl.off?['bad','не выходит']:['ok',pl.at]) : we?['n','выходной'] : (n>=PLAN.to?['bad','не указал']:['warn','ждём до '+hm(PLAN.to)]);
@@ -842,7 +851,7 @@ function vBossFund(){
 }
 function vBossStaff(){
   const from=weekStart(), e=earnedBy(from), hh=hoursBy(from), wk=shiftsSince(from);
-  return UI.h('Сотрудники · неделя')+Object.keys(PEOPLE).filter(p=>ROLE[p]!=='руководитель').map(p=>{ const ea=e[p]||0, h=hh[p]||0, perH=h?ea/h:0, tone=perH>=RATE_H?'good':perH>=RATE_H*0.6?'warn':'low';
+  return UI.h('Сотрудники · неделя')+WORKERS.map(p=>{ const ea=e[p]||0, h=hh[p]||0, perH=h?ea/h:0, tone=perH>=RATE_H?'good':perH>=RATE_H*0.6?'warn':'low';
     const late=wk.filter(r=>String(r[1])===p&&num(r[6])>5).length;
     return UI.sec(esc(PEOPLE[p]), `<div class="grid2">${UI.kpi('₾/ч', h?fmt(perH):'—', `норма ${RATE_H}`, h?tone:'', true)}${UI.kpi('заработал', fmt0(ea)+' ₾', `мог ${fmt0(h*RATE_H)} · ${fmt(h)} ч`, '', true)}</div>
       <div class="bar"><i class="${perH<RATE_H*0.6?'late':''}" style="width:${Math.min(100,perH/RATE_H*100)}%"></i></div>
@@ -1051,6 +1060,14 @@ document.addEventListener('toggle',e=>{ const d=e.target; if(!d.matches) return;
   if(vv) vv.addEventListener('resize', lift); else window.addEventListener('resize', lift);
 })();
 
+/* ============ BLOCK: ЗАСТАВКА (раз в сутки: первое открытие после 06:00; данные грузятся за ней) ============ */
+function splash(){ const d=new Date(Date.now()-6*3600e3), key=iso(d);   // «сутки» начинаются в 06:00
+  try{ if(localStorage.getItem('akrixSplash')===key) return; localStorage.setItem('akrixSplash',key); }catch(e){}
+  const el=document.createElement('div'); el.className='splash';
+  el.innerHTML=`<div class="sb">Akrix <span>Job</span></div><div class="st">Пиздюли за&nbsp;каждую <em>испорченную</em> деталь</div><button type="button">Получить</button>`;
+  el.querySelector('button').onclick=()=>{ try{ TG&&TG.HapticFeedback&&TG.HapticFeedback.impactOccurred('heavy'); }catch(e){} el.classList.add('out'); setTimeout(()=>el.remove(),260); };
+  document.body.appendChild(el); }
+
 /* ============ BLOCK: ЗАГРУЗКА И ОБНОВЛЕНИЕ ============ */
 let loading=false;
 function busy(){ const a=document.activeElement; return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); }
@@ -1062,7 +1079,7 @@ function start(){
   if(TG){ try{ TG.ready(); TG.expand(); TG.setHeaderColor && TG.setHeaderColor('#eef0f3'); }catch(e){} }
   if(!API_URL||(!(TG&&TG.initData) && !window.DEV_INIT)){ document.getElementById('view').innerHTML=UI.sec('Akrix Job', UI.note(`Откройте приложение через бота <b>@${BOT}</b> в Telegram — кнопка «Akrix Job» внизу чата.`)); return; }
   document.getElementById('view').innerHTML=UI.sec('', UI.note('Загрузка…'));
-  reload();
+  splash(); reload();
   setInterval(()=>{ if(!busy()&&!S.closing&&document.visibilityState==='visible') reload(); }, 60000);
   document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&!busy()) reload(); });
 }
