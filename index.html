@@ -427,7 +427,7 @@ function payParts(amount, op, mode){ // присадка: по выгрузке 
 }
 
 /* ============ BLOCK: DATA (строится из таблицы в build()) ============ */
-let BUY=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[];
+let BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[];
 let TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const SEC={furn:'Фурнитура',tools:'Инструменты',other:'Прочее'}, SEC_BACK={'Фурнитура':'furn','Инструменты':'tools','Прочее':'other'};
 const num = v => typeof v==='number' ? v : parseFloat(String(v).replace(/\s/g,'').replace(',','.'));
@@ -485,6 +485,7 @@ function build(D){
   // задачи: назначенные руководителем + взятые самим
   TAKEN={};
   ASSIGN={}; D.tasks.forEach(r=>{ const o=ord(r[0]); if(!o||!r[1]||!String(r[2]).trim()) return; (ASSIGN[o.id+'|'+String(r[1]).trim()]=ASSIGN[o.id+'|'+String(r[1]).trim()]||[]).push({who:String(r[2]).trim(), due:d10(r[3]), row:r[5]}); });
+  BUYCAT=(D.buyCat||[]).map(r=>String(r[0]).trim()).filter(Boolean);
   BUY=(D.buy||[]).map(r=>({at:String(r[0]), by:String(r[1]), order:String(r[2]||'').trim(), name:String(r[3]), qty:String(r[4]||''), status:String(r[5]||'нужно'), upd:String(r[6]||''), row:r[8]}));
   D.tasks.forEach(r=>{ const o=ord(r[0]); if(!o||!r[1]) return; const who=String(r[2]).trim();
     if(who===ME) o.tasks.push({op:String(r[1]).trim(), dueDate:d10(r[3]), due:r[3]?dayDiff(d10(r[3])):null});
@@ -743,7 +744,7 @@ function vOrders(){ const mine=ORDERS.filter(o=>o.team.includes(ME)); return UI.
 
 /* ============ BLOCK: ROUTER ============ */
 const TABS = { emp:[['today','Сегодня'],['mount','Монтаж'],['cal','Календарь'],['orders','Заказы'],['buy','Закупка']],
-  boss:[['borders','Заказы'],['buy','Закупка'],['tomorrow','План'],['fund','Фонд'],['staff','Люди'],['norms','Нормы']] };
+  boss:[['borders','Заказы'],['tomorrow','План'],['fund','Фонд'],['staff','Люди'],['norms','Нормы'],['buy','Закупка']] };
 function render(){
   const seg=document.getElementById('roleseg'); seg.hidden=!IS_BOSS;
   document.getElementById('role-emp').setAttribute('aria-pressed',S.role==='emp');
@@ -972,7 +973,13 @@ function vBuy(){
     return UI.row(`${esc(x.name)}${x.qty?` <span class="mute num">× ${esc(x.qty)}</span>`:''}`, `${x.order?esc(x.order)+' · ':''}${esc(PEOPLE[x.by]||x.by)} · ${x.at.slice(8,10)}.${x.at.slice(5,7)}`+acts, chip(BUY_ST[x.status]||'n', x.status)); };
   const act=BUY.filter(x=>x.status==='нужно'||x.status==='заказано').sort((a,b)=>a.status===b.status?(a.at<b.at?1:-1):a.status==='нужно'?-1:1);
   const done=BUY.filter(x=>x.status==='получено').sort((a,b)=>a.upd<b.upd?1:-1).slice(0,20);
-  return UI.h('Закупка')+UI.sec('Добавить', `<div class="cadd"><input id="buy-n" type="text" placeholder="что купить"><input id="buy-q" type="text" inputmode="numeric" placeholder="кол." style="max-width:70px"></div>
+  // подсказки: справочник (правится в таблице) + всё, что уже покупали; частые — чипами
+  const freq={}; BUY.forEach(x=>{ const k=x.name.trim(); freq[k]=(freq[k]||0)+1; });
+  const names=[...new Set(BUYCAT.concat(Object.keys(freq)))].sort((a,b)=>a.localeCompare(b,'ru'));
+  const top=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>x[0]);
+  return UI.h('Закупка')+UI.sec('Добавить', `<datalist id="buy-list">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+      ${top.length?`<div class="kb" style="flex-wrap:wrap;gap:6px;margin-bottom:4px">${top.map(n=>`<button class="btn ghost small" data-act="buyPick" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div>`:''}
+      <div class="cadd"><input id="buy-n" type="text" list="buy-list" autocomplete="off" placeholder="что купить — выбрать или новое"><input id="buy-q" type="text" inputmode="numeric" placeholder="кол." style="max-width:70px"></div>
       <div class="cadd"><select id="buy-o"><option value="">для цеха (без заказа)</option>${ORDERS.map(o=>`<option value="${esc(o.id)}">${esc(o.id)} · ${esc(o.client)}</option>`).join('')}</select><button class="btn small" data-act="buyAdd">Добавить</button></div>`)+
     UI.sec('Нужно купить', act.length?UI.list(act.map(row).join('')):UI.note('Список пуст'), chip(act.length?'warn':'ok', String(act.length)))+
     (done.length?UI.sec('', UI.fold('Получено', UI.list(done.map(row).join('')), false, done.length)):'');
@@ -1036,8 +1043,9 @@ document.addEventListener('click',e=>{
   if(a==='take'){ const o=ORDERS[+b.dataset.o]; if(!takenBy(o,b.dataset.op)){ o.tasks.push({op:b.dataset.op, due:null, self:true}); api('take',{order:o.id, op:b.dataset.op}).catch(fail); const {op}=findOp(o,b.dataset.op); toast('Взял: '+op[1]); } S.workOpen=true; S.openWork=o.id; }
   if(a==='fundPer'){ S.fundPer=b.dataset.v; }
   if(a==='buyAdd'){ const n=document.getElementById('buy-n').value.trim(), q=document.getElementById('buy-q').value.trim(), ord=document.getElementById('buy-o').value; if(!n){ toast('Впиши, что купить'); return; }
-    const x={at:iso(TODAY)+' '+hm(nowMin()), by:ME, order:ord, name:n, qty:q, status:'нужно', upd:''}; BUY.push(x);
+    const x={at:iso(TODAY)+' '+hm(nowMin()), by:ME, order:ord, name:n, qty:q, status:'нужно', upd:''}; BUY.push(x); if(!BUYCAT.some(c=>c.toLowerCase()===n.toLowerCase())) BUYCAT.push(n);
     api('buyAdd',{name:n, qty:q, order:ord}).then(r=>{ x.row=r.row; }).catch(fail); toast('Добавлено в закупку'); }
+  if(a==='buyPick'){ const el=document.getElementById('buy-n'); el.value=b.dataset.n; document.getElementById('buy-q').focus(); return; }
   if(a==='buySet'){ const x=BUY.find(y=>String(y.row)===b.dataset.row); if(x){ x.status=b.dataset.v; x.upd=iso(TODAY)+' '+hm(nowMin()); api('buySet',{row:x.row, status:b.dataset.v}).catch(fail); toast(b.dataset.v); } }
   if(a==='assignOpen'){ S.assignOpen = S.assignOpen===b.dataset.k ? null : b.dataset.k; }
   if(a==='assign'){ const o=ORDERS[+b.dataset.o], who=document.getElementById('as-who').value, due=document.getElementById('as-due').value; S.assignOpen=null;
@@ -1108,11 +1116,16 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
   return api('boot').then(D=>{ const y=window.scrollY, first=!ORDERS.length&&!ME; build(D); if(first&&IS_BOSS){ S.role='boss'; S.tab='borders'; } render(); if(!first) window.scrollTo(0,y); })
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
+/* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
+const BUILD='1792959724';
+function checkUpdate(){ fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
+  if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
+
 function start(){
   if(TG){ try{ TG.ready(); TG.expand(); TG.setHeaderColor && TG.setHeaderColor('#eef0f3'); }catch(e){} }
   if(!API_URL||(!(TG&&TG.initData) && !window.DEV_INIT)){ document.getElementById('view').innerHTML=UI.sec('Akrix Job', UI.note(`Откройте приложение через бота <b>@${BOT}</b> в Telegram — кнопка «Akrix Job» внизу чата.`)); return; }
   document.getElementById('view').innerHTML=UI.sec('', UI.note('Загрузка…'));
-  splash(); reload();
+  splash(); reload(); checkUpdate();
   setInterval(()=>{ if(!busy()&&!S.closing&&document.visibilityState==='visible') reload(); }, 60000);
   document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&!busy()) reload(); });
 }
