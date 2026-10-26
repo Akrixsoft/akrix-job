@@ -804,7 +804,7 @@ function taskRow(o,line,op,t,boss){
       ${open?vJoin(o,oi,k,Object.assign({},t,{boss})):''}</div>`; }
 function vJoin(o,oi,k,t){ // всплывающий список: время и доля суммы каждого; жёлтым — кто в задаче; тап по другому — подключить / отключить
   const ppl=PART[o.id+'|'+k]||new Set(), {line,op}=findOp(o,k), sum=payParts(opAmount(o,line,op),op,prisPct(o,line,op)).fix;
-  const mins=opMinutes(o.id,k), tot=Object.values(mins).reduce((a,b)=>a+b,0), sh=shares(o.id,k,ME,'');
+  const mins=opMinutes(o.id,k), tot=Object.values(mins).reduce((a,b)=>a+b,0), sh=shares(o.id,k,ME,'',t.boss?'boss':'');
   const man={}; TIMEJ.forEach(t=>{ if(t.manual&&t.order===o.id&&t.op===k) man[t.who]=(man[t.who]||0)+t.min/60; });
   const row=p=>{ const on=ppl.has(p)||(p===ME&&!t.boss), h=(mins[p]||0)/60, v=sum*(sh[p]||0);
     const body=`<span class="tpn">${esc(PEOPLE[p]||p)}${p===ME?' (я)':''}</span><span class="tpv num">${h?fmt(h)+' ч'+(man[p]?` <span class="tpm">✎ ${fmt(man[p])} вручную</span>`:'')+' · ':''}${on?fmt0(v)+' ₾':''}</span>`;
@@ -1536,7 +1536,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793004214';
+const BUILD='1793005467';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
