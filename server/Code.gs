@@ -8,7 +8,7 @@
 const APP_URL = 'https://akrixsoft.github.io/akrix-job/';   // адрес мини-приложения (GitHub Pages)
 const TZ = 'Asia/Tbilisi';
 const SH = { params:'Параметры', staff:'Сотрудники', orders:'Заказы', extras:'Доп. обработки', modules:'Модули', tasks:'Задачи',
-  ops:'Операции', lib:'Библиотека монтажа', shifts:'Смены', marks:'Отметки', plans:'Планы', takes:'Взятые задачи', kit:'Комплект', notes:'Заметки монтажа', buy:'Закупка', buyCat:'Справочник закупки', time:'Время' };
+  ops:'Операции', lib:'Библиотека монтажа', shifts:'Смены', marks:'Отметки', plans:'Планы', takes:'Взятые задачи', kit:'Комплект', notes:'Заметки монтажа', buy:'Закупка', buyCat:'Справочник закупки', time:'Время', skills:'Навыки' };
 const ORD = { id:0, client:1, product:2, sys:3, kind:4, cost:5, term:6, ship:7, ceh:8, done:9, team:10, status:11, mat0:12, matN:21, off:21, mountAt:22, prisManual:23, master:24 };
 const BOSS_ROLES = ['руководитель', 'администратор'];   // полный доступ: заказы, фонд, люди, закупка
 
@@ -99,7 +99,7 @@ const API = {
       orders: read_(SH.orders, 2, 25),
       extras: read_(SH.extras, 2, 5), modules: read_(SH.modules, 2, 5), tasks: read_(SH.tasks, 2, 5), lib: read_(SH.lib, 2, 2),
       shifts: read_(SH.shifts, 2, 10), marks: read_(SH.marks, 2, 12).filter(r => r[11] !== 'да'),
-      plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [], time: sh_(SH.time) ? read_(SH.time, 2, 7) : [] };
+      plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [], time: sh_(SH.time) ? read_(SH.time, 2, 7) : [], skills: skills_() };
   },
   /* ---- смена ---- */
   shiftStart(me, b){
@@ -197,11 +197,28 @@ const API = {
   /* ---- назначение задач: руководитель, администратор или мастер заказа ---- */
   taskAssign(me, b){ canAssign_(me, b.order); return { row: append_(SH.tasks, [b.order, b.op, b.who, b.due || '', 'назначил ' + me.id]) }; },
   taskUnassign(me, b){ const s = sh_(SH.tasks), ord = s.getRange(b.row, 1).getDisplayValue(); canAssign_(me, ord); s.getRange(b.row, 1, 1, 5).clearContent(); return {}; },
+  /* ---- карта навыков: руководитель выставляет уровни 0–3 прямо из приложения ---- */
+  skillSet: bossOnly_(function(me, b){
+    const lv = b.level === '' || b.level == null ? '' : +b.level; if (lv !== '' && !(lv >= 0 && lv <= 3)) throw new Error('Уровень 0–3');
+    const s = sh_(SH.skills); if (!s) throw new Error('Нет листа «Навыки»');
+    const k = skills_(), r = k.rows.find(x => x.code === b.code); if (!r) throw new Error('Нет навыка ' + b.code);
+    let c = k.ids.indexOf(String(b.who));
+    if (c < 0){ const st = read_(SH.staff, 2, 2).find(x => String(x[0]) === String(b.who)); if (!st) throw new Error('Нет сотрудника ' + b.who);
+      c = k.ids.length; s.getRange(1, c + 3).setValue(st[1] + ' ' + b.who); }
+    const cell = s.getRange(r.row, c + 3); cell.setValue(lv); cell.setBackground(lv === '' ? '#fcf2cc' : '#d1e6fa'); return {}; }),
   extraAdd: bossOnly_(function(me, b){ return { row: append_(SH.extras, [b.order, b.grp, b.name, b.pct === null || b.pct === '' ? '' : +b.pct, '']) }; }),
   extraDel: bossOnly_(function(me, b){ sh_(SH.extras).getRange(b.row, 1, 1, 5).clearContent(); return {}; })
 };
 
 /* ============ BLOCK: DOMAIN HELPERS ============ */
+// лист «Навыки»: колонки C… — сотрудники («Имя ID»), строки — навыки с кодом в колонке B
+function skills_(){ const s = sh_(SH.skills); if (!s) return null;
+  const lr = s.getLastRow(), lc = s.getLastColumn(); if (lr < 1 || lc < 3) return { ids: [], rows: [] };
+  const v = s.getRange(1, 1, lr, lc).getValues();
+  const ids = v[0].slice(2).map(h => (String(h).trim().match(/(\S+)$/) || ['', ''])[1]);
+  const rows = []; for (let i = 1; i < v.length; i++){ const code = String(v[i][1]).trim();
+    if (/^[a-z_]+$/.test(code)) rows.push({ name: String(v[i][0]), code, vals: v[i].slice(2).map(x => x === '' || x === null ? '' : +x), row: i + 1 }); }
+  return { ids, rows }; }
 function toMin_(s){ const p = String(s).split(':').map(Number); return p[0] * 60 + (p[1] || 0); }
 function latestPlan_(who, date){
   let best = null; read_(SH.plans, 2, 6).forEach(r => { if (String(r[0]).slice(0, 10) === date && String(r[1]) === who) best = r; });
