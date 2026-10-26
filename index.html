@@ -535,7 +535,7 @@ function payParts(amount, op, pct){
 }
 
 /* ============ BLOCK: DATA (строится из таблицы в build()) ============ */
-let TIMEJ=[], FACT={}, PART={}, BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[], SKILLS=null, PLANS=[], PLANNED={}, PAYS=[], PAYMODE={}, CLOSED=new Set(), ONAME={};
+let TIMEJ=[], FACT={}, PART={}, BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[], SKILLS=null, PLANS=[], PLANNED={}, PAYS=[], PAYMODE={}, CLOSED=new Set(), ONAME={}, DONE=[];
 let TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const SEC={furn:'Фурнитура',tools:'Инструменты',other:'Прочее'}, SEC_BACK={'Фурнитура':'furn','Инструменты':'tools','Прочее':'other'};
 const num = v => typeof v==='number' ? v : parseFloat(String(v).replace(/\s/g,'').replace(',','.'));
@@ -549,7 +549,8 @@ function build(D){
   WORKERS=D.staff.filter(s=>s.active).map(s=>s.id);
   SKILLS=D.skills||null;
   // деньги: закрытые заказы, выплаты, режим лимита аванса
-  CLOSED=new Set(); ONAME={}; D.orders.forEach(r=>{ const id=String(r[0]).trim(); if(!id) return; ONAME[id]=String(r[1])+' · '+String(r[2]); if(String(r[11]).trim()==='сдан') CLOSED.add(id); });
+  CLOSED=new Set(); ONAME={}; DONE=[]; D.orders.forEach(r=>{ const id=String(r[0]).trim(); if(!id||id.startsWith('пример')) return; ONAME[id]=String(r[1])+' · '+String(r[2]);
+    if(String(r[11]).trim()==='сдан'){ CLOSED.add(id); DONE.push({id, client:String(r[1]), product:String(r[2]), cost:num(r[5])||0, date:d10(r[9])||d10(r[7])}); } });
   PAYMODE={}; D.staff.forEach(s=>{ PAYMODE[s.id]=s.payMode||'earned'; });
   PAYS=(D.pays||[]).map(r=>({at:String(r[0]), who:String(r[1]), type:String(r[2]), amt:num(r[3])||0, st:String(r[4]), by:String(r[5]||''), dec:String(r[6]||''), note:String(r[7]||''), row:r[8]}));   // руководитель тоже работает: в командах, напарниках, учёте
   // каталог операций
@@ -973,7 +974,16 @@ const oCode = o => `<span class="ocode num">${esc(o.id)}</span>`;
 const oById = id => ORDERS.find(o=>o.id===String(id).trim());
 const oLabel = id => { const o=oById(id); return o?`${esc(o.client)} · ${esc(o.product)}`:esc(id); };
 const byShip=(a,b)=>(a.shipIn??999)-(b.shipIn??999);
-function vBossOrders(){ return UI.h('Заказы')+(ORDERS.length?`<div class="olist">${[...ORDERS].sort(byShip).map(o=>orderCard(o,true)).join('')}</div>`:UI.sec('',UI.note('Заказов в работе нет. Добавь строку в лист «Заказы» (№ заказа обязателен).'))); }
+function vBossOrders(){ return UI.h('Заказы')+(ORDERS.length?`<div class="olist">${[...ORDERS].sort(byShip).map(o=>orderCard(o,true)).join('')}</div>`:UI.sec('',UI.note('Заказов в работе нет. Добавь строку в лист «Заказы» (№ заказа обязателен).')))+vDoneOrders(); }
+/* выполненные (статус «сдан»): свёрнуто одной шапкой; внутри — кто сколько заработал */
+function vDoneOrders(){ if(!DONE.length) return '';
+  const by={}; MARKS.forEach(m=>{ const oid=String(m[2]).trim(); if(!CLOSED.has(oid)) return; const sh=shares(oid, m[3]+'.'+m[4], String(m[1]), String(m[9]||''), String(m[10]||'')), a=num(m[7])||0;
+    Object.entries(sh).forEach(([p,k])=>{ (by[oid]=by[oid]||{})[p]=(by[oid][p]||0)+a*k; }); });
+  const paidTo=p=>PAYS.filter(x=>x.who===p&&x.st==='выдано').reduce((a,x)=>a+x.amt,0);
+  const list=[...DONE].sort((a,b)=>a.date<b.date?1:-1).map(d=>{ const ppl=Object.entries(by[d.id]||{}).sort((a,b)=>b[1]-a[1]), fund=ppl.reduce((a,x)=>a+x[1],0);
+    const rows=ppl.map(([p,v])=>UI.row(esc(PEOPLE[p]||p), '', `<b class="num">${fmt0(v)} ₾</b>`)).join('');
+    return UI.fold(`<b>${esc(d.client)}</b> · ${esc(d.product)}`, `<div class="small mute num" style="margin-bottom:4px">${esc(d.id)} · сдан ${d.date?dShort(d.date):'—'} · стоимость ${fmt0(d.cost)} ₾ · фонд ${fmt0(fund)} ₾${d.cost?` (${fmt(fund/d.cost*100)}%)`:''}</div>${rows?UI.list(rows):UI.note('Начислений нет')}`, false, `<span class="num small">${d.date?dShort(d.date):''}</span>`); }).join('');
+  return UI.sec('', UI.fold('Выполненные', list+UI.note('Выплачено и остаток к выплате — в «Людях».'), false, `<span class="num">${DONE.length}</span>`)); }
 function vOrders(){ const mine=ORDERS.filter(o=>o.team.includes(ME)); return UI.h('Мои заказы')+(mine.length?`<div class="olist">${mine.sort(byShip).map(o=>orderCard(o,false)).join('')}</div>`:UI.sec('',UI.note('Заказов нет'))); }
 
 /* ============ BLOCK: ROUTER ============ */
@@ -1536,7 +1546,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793005467';
+const BUILD='1793010069';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
