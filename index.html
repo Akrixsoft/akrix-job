@@ -674,8 +674,12 @@ const catL = l => l.sys==='pct'?CAT_PCT:CAT_M2;
 function opsOf(order, line){ // стандартные операции группы (кроме отключённых руководителем) + доп. обработки заказа
   const cat = catL(line)[line.cat];
   const base=(cat.ops||[]).filter(o=>!line.only||line.only.includes(o[0]));
-  const sp=order.shopPct??100, ops=sp>=100?base:base.flatMap(o=>o[0]!=='sborka'?[o]:   // сборка транспортируемых: в цеху — % заказа, остаток — «Сборка на объекте»
-    (sp>0?[[o[0],o[1],o[2]*sp/100]]:[]).concat([['sborka_obj','Сборка на объекте',o[2]*(100-sp)/100]]));
+  const sp=order.shopPct??100, sb=base.find(o=>o[0]==='sborka');   // сборка транспортируемых: в цеху — % заказа, остаток — «Сборка на объекте»
+  let ops=base;
+  if(sb&&sp<100){ const obj=['sborka_obj','Сборка на объекте',sb[2]*(100-sp)/100];
+    ops=base.flatMap(o=>o[0]==='sborka'?(sp>0?[[o[0],o[1],o[2]*sp/100]]:[]):[o]);
+    const at=ops.findIndex(o=>o[0]==='kompl'), at2=at>=0?at+1:ops.findIndex(o=>o[0]==='mont');   // порядок: сборка в цеху → комплектовка → сборка на объекте → монтаж
+    ops.splice(at2>=0?at2:ops.length, 0, obj); }
   return ops.concat((line.extra||[]).map(x=>[x.id,x.name,x.pct||0,true]));
 }
 const isMontOp = c => c==='mont'||c==='sborka_obj';   // работы на объекте — не в цеховом сроке
@@ -1569,7 +1573,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793027138';
+const BUILD='1793027494';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
