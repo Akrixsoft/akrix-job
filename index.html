@@ -456,6 +456,32 @@ details.wo.urg-warn>summary{box-shadow:inset 3px 0 0 var(--warn)}
 .skc.l2{background:#cfe3fb;color:#14457a}
 .skc.l3{background:#bfe7c8;color:#155c27}
 .sklg{font-size:11px;color:var(--mute);margin-top:8px;line-height:1.4}
+
+/* ---- план на завтра: задачи ---- */
+.pbox{margin:10px 0;padding:10px;border-radius:12px;background:var(--bg)}
+.pbh{display:flex;justify-content:space-between;align-items:baseline;font-size:14px}
+.pbh .bad{color:var(--bad);font-weight:700}
+.pbox .bar{margin:6px 0 4px}
+.prow{display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--line)}
+.prow .pn{flex:1;min-width:0;font-size:13px;line-height:1.25}
+.prow .ps{display:block;font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .ph{font-size:12px;color:var(--mute);white-space:nowrap}
+.pbox>.btn{margin-top:8px;width:100%}
+.ppick{margin-top:8px}
+.pkg{margin-top:6px}
+.pkh{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 0}
+.pboss{margin:-4px 0 6px}
+.pboss .pbox{margin:0 0 4px;background:var(--tile);border:1px solid var(--line)}
+.pkh .pkn{flex:1;min-width:0}
+.pmini{margin:0 0 6px}
+.hsbox{box-shadow:inset 0 0 0 1.5px var(--acc)}
+.hsbox .hst{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}
+/* ---- полноэкранный режим Telegram: отступ под кнопки Telegram сверху и системные полосы ---- */
+body{padding-top:calc(6px + var(--tg-safe-area-inset-top,0px) + var(--tg-content-safe-area-inset-top,0px));
+  padding-bottom:calc(66px + max(env(safe-area-inset-bottom,0px),var(--tg-safe-area-inset-bottom,0px)))}
+.tabs{padding-bottom:calc(3px + max(env(safe-area-inset-bottom,0px),var(--tg-safe-area-inset-bottom,0px)))}
+.toast{bottom:calc(60px + max(env(safe-area-inset-bottom,0px),var(--tg-safe-area-inset-bottom,0px)))}
+.warnbtn{background:var(--bad-soft)!important;color:var(--bad)!important}
 .who{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
 </style></head><body>
 <div class="app">
@@ -476,8 +502,9 @@ details.wo.urg-warn>summary{box-shadow:inset 3px 0 0 var(--warn)}
    ===================================================================== */
 
 /* ============ BLOCK: CONFIG ============ */
+const API_DEFAULT = 'https://script.google.com/macros/s/AKfycbzBsEFoQZgEeBymc72HM36xPsMtc-0Atob6ePsnacI3SPxcTkZ4MdluzBvpOsqqOhP6/exec';   // сервер по умолчанию: запуск с иконки / Main App без ?api=
 const API_URL = (()=>{ // адрес веб-приложения Apps Script (…/exec): приходит из кнопки бота (?api=…), запоминается на устройстве
-  const q=new URLSearchParams(location.search).get('api'); try{ if(q) localStorage.setItem('akrixApi',q); return q||localStorage.getItem('akrixApi')||''; }catch(e){ return q||''; } })();
+  const q=new URLSearchParams(location.search).get('api'); try{ if(q) localStorage.setItem('akrixApi',q); return q||localStorage.getItem('akrixApi')||API_DEFAULT; }catch(e){ return q||API_DEFAULT; } })();
 const BOT = 'AkrixJob_bot';
 const TG = window.Telegram && Telegram.WebApp;
 
@@ -508,7 +535,7 @@ function payParts(amount, op, pct){
 }
 
 /* ============ BLOCK: DATA (строится из таблицы в build()) ============ */
-let TIMEJ=[], FACT={}, PART={}, BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[], SKILLS=null;
+let TIMEJ=[], FACT={}, PART={}, BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[], SKILLS=null, PLANS=[], PLANNED={}, PAYS=[], PAYMODE={}, CLOSED=new Set(), ONAME={};
 let TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const SEC={furn:'Фурнитура',tools:'Инструменты',other:'Прочее'}, SEC_BACK={'Фурнитура':'furn','Инструменты':'tools','Прочее':'other'};
 const num = v => typeof v==='number' ? v : parseFloat(String(v).replace(/\s/g,'').replace(',','.'));
@@ -520,7 +547,11 @@ function build(D){
   TODAY=fromIso(D.today);
   PEOPLE={}; ROLE={}; D.staff.forEach(s=>{ PEOPLE[s.id]=s.name||s.id; ROLE[s.id]=s.role; });
   WORKERS=D.staff.filter(s=>s.active).map(s=>s.id);
-  SKILLS=D.skills||null;   // руководитель тоже работает: в командах, напарниках, учёте
+  SKILLS=D.skills||null;
+  // деньги: закрытые заказы, выплаты, режим лимита аванса
+  CLOSED=new Set(); ONAME={}; D.orders.forEach(r=>{ const id=String(r[0]).trim(); if(!id) return; ONAME[id]=String(r[1])+' · '+String(r[2]); if(String(r[11]).trim()==='сдан') CLOSED.add(id); });
+  PAYMODE={}; D.staff.forEach(s=>{ PAYMODE[s.id]=s.payMode||'earned'; });
+  PAYS=(D.pays||[]).map(r=>({at:String(r[0]), who:String(r[1]), type:String(r[2]), amt:num(r[3])||0, st:String(r[4]), by:String(r[5]||''), dec:String(r[6]||''), note:String(r[7]||''), row:r[8]}));   // руководитель тоже работает: в командах, напарниках, учёте
   // каталог операций
   CAT_M2={}; CAT_PCT={};
   D.ops.forEach(r=>{ const [sys,grp,gname,rate,code,name,share]=r; if(!grp||!code) return;
@@ -557,8 +588,8 @@ function build(D){
   TIMEJ=(D.time||[]).map(r=>({start:String(r[0]), who:String(r[1]), order:String(r[2]).trim(), op:String(r[3]), end:String(r[4]||''), min:num(r[5])||0, manual:r[6]==='вручную', row:r[7]}));
   const act0=TIMEJ.filter(t=>t.who===ME&&!t.end).pop(); S.active=act0?{order:act0.order, op:act0.op, start:act0.start}:null;
   // участники операций: назначенные + взявшие + подключённые (нужно до отметок — для деления суммы)
-  PART={}; const addP=(oid,op,who)=>{ const o=ord(oid); if(o&&op&&who) (PART[o.id+'|'+op]=PART[o.id+'|'+op]||new Set()).add(String(who).trim()); };
-  D.tasks.forEach(r=>addP(r[0],String(r[1]).trim(),String(r[2]).trim()));
+  PART={}; const addP=(oid,op,who)=>{ const o=ord(oid), id=o?o.id:String(oid).trim(); if(id&&op&&who) (PART[id+'|'+op]=PART[id+'|'+op]||new Set()).add(String(who).trim()); };   // и для закрытых заказов — для расчёта долей
+  D.tasks.forEach(r=>{ if(String(r[4]||'').indexOf('план')===0&&d10(r[3])>D.today) return; addP(r[0],String(r[1]).trim(),String(r[2]).trim()); });   // план на будущий день — ещё не участник
   { const last={}; D.takes.forEach(r=>{ last[String(r[2]).trim()+'|'+r[3]+'|'+r[1]]=String(r[4]); });
     Object.entries(last).forEach(([k,act])=>{ const [oid,op,who]=k.split('|'); if(act==='взял'||act.startsWith('подключ')) addP(oid,op,who); }); }
   // отметки → прогресс и «сделано сегодня»
@@ -578,9 +609,12 @@ function build(D){
   ASSIGN={}; D.tasks.forEach(r=>{ const o=ord(r[0]); if(!o||!r[1]||!String(r[2]).trim()) return; (ASSIGN[o.id+'|'+String(r[1]).trim()]=ASSIGN[o.id+'|'+String(r[1]).trim()]||[]).push({who:String(r[2]).trim(), due:d10(r[3]), row:r[5]}); });
   BUYCAT=(D.buyCat||[]).map(r=>String(r[0]).trim()).filter(Boolean);
   BUY=(D.buy||[]).map(r=>({at:String(r[0]), by:String(r[1]), order:String(r[2]||'').trim(), name:String(r[3]), qty:String(r[4]||''), status:String(r[5]||'нужно'), upd:String(r[6]||''), row:r[8]}));
-  D.tasks.forEach(r=>{ const o=ord(r[0]); if(!o||!r[1]) return; const who=String(r[2]).trim();
-    if(who===ME) o.tasks.push({op:String(r[1]).trim(), dueDate:d10(r[3]), due:r[3]?dayDiff(d10(r[3])):null});
-    else if(who) TAKEN[o.id+'|'+String(r[1]).trim()]=who; });
+  PLANS=[]; PLANNED={};
+  D.tasks.forEach(r=>{ const o=ord(r[0]); if(!o||!r[1]) return; const who=String(r[2]).trim(), op=String(r[1]).trim(), due=d10(r[3]);
+    if(String(r[4]||'').indexOf('план')===0&&who){ PLANS.push({o, op, who, date:due, row:r[5], by:String(r[4]).slice(5).trim()});   // план на день: до этого дня — бронь, в этот день — обычная задача
+      if(due>D.today){ if(!PLANNED[o.id+'|'+op]) PLANNED[o.id+'|'+op]={who, date:due}; return; } }
+    if(who===ME){ if(!o.tasks.some(t=>t.op===op)) o.tasks.push({op, dueDate:due, due:r[3]?dayDiff(due):null}); }
+    else if(who) TAKEN[o.id+'|'+op]=who; });
   const tk={}; D.takes.forEach(r=>{ tk[String(r[2]).trim()+'|'+r[3]+'|'+r[1]]=String(r[4]); });
   Object.entries(tk).forEach(([k,act])=>{ const joined=act.startsWith('подключ'); if(act!=='взял'&&!joined) return; const [oid,op,who]=k.split('|'), o=ord(oid); if(!o) return;
     if(who===ME){ if(!o.tasks.some(t=>t.op===op)) o.tasks.push({op, self:!joined, joined, due:null}); } else if(!joined&&!TAKEN[o.id+'|'+op]) TAKEN[o.id+'|'+op]=who; });
@@ -591,11 +625,12 @@ function build(D){
     if(r[4]==='очищено'){ delete CAL[who][d]; return; }
     CAL[who][d]={at:String(r[2]||''), off:r[3]==='да', reason:String(r[4]||''), setAt:String(r[5]||'').slice(5,16).replace(/^(\d\d)-(\d\d)/,'$2.$1')}; });
   // смена сегодня
-  SHIFTS=D.shifts; const mine=D.shifts.filter(r=>d10(r[0])===D.today&&String(r[1])===ME).pop();
-  S.onShift=!!(mine&&!mine[3]); S.shiftDone=!!(mine&&mine[3]); S.startAt=mine?String(mine[2]):''; S.leftAt=mine&&mine[3]?String(mine[3]):'';
+  SHIFTS=D.shifts; const segs=D.shifts.filter(r=>d10(r[0])===D.today&&String(r[1])===ME), mine=segs[segs.length-1], first=segs[0];   // смена = один или несколько отрезков за день
+  S.segs=segs.flatMap(segsOf);
+  S.onShift=!!(mine&&!mine[3]); S.shiftDone=!!(mine&&mine[3]); S.startAt=first?String(first[2]):''; S.leftAt=mine&&mine[3]?String(mine[3]):'';
   const past=D.shifts.filter(r=>d10(r[0])<D.today&&String(r[1])===ME&&!r[3]).pop(); S.pastOpen=past?{date:d10(past[0]), start:String(past[2])}:null;
   S.late=!!(mine&&mine[10]==='да');
-  S.arrLate=mine?num(mine[6])||0:0; S.arrNote=mine&&mine[5]&&mine[5]!=='не указан'?'план':'';
+  S.arrLate=first?num(first[6])||0:0; S.arrNote=first&&first[5]&&first[5]!=='не указан'?'план':'';
   // комплект, библиотека, заметки
   LIB={furn:[],tools:[]}; D.lib.forEach(r=>{ const s=SEC_BACK[String(r[0]).trim()]; if(s&&LIB[s]&&r[1]&&!LIB[s].includes(String(r[1]))) LIB[s].push(String(r[1])); });
   D.kit.forEach(r=>{ const o=ord(r[0]), s=SEC_BACK[String(r[1]).trim()]||'other'; if(!o) return;
@@ -654,8 +689,13 @@ function findOp(order, key){ const [cat,id]=key.split('.'); const line=order.lin
   const op=line?opsOf(order,line).find(o=>o[0]===id):null; return {line,op}; }
 
 /* ============ BLOCK: STATE ============ */
-const S = { role:'emp', tab:'today', onShift:false, todayEarned:0, todayLines:[], closing:false, showPctAlt:{}, fundPer:'week' };
-function hoursOnShift(){ if(!S.startAt) return 0; const end=S.onShift?nowMin():toMin(S.leftAt||hm(nowMin())); return Math.max(0,(end-toMin(S.startAt))/60); }
+const S = { segs:[], role:'emp', tab:'today', onShift:false, todayEarned:0, todayLines:[], closing:false, showPctAlt:{}, fundPer:'week' };
+function segsOf(r){ const L=String(r[11]||'').trim();   // колонка L «Отрезки»: 08:10–12:00, 13:00–
+  if(L) return L.split(',').map(x=>{ const p=x.trim().split('–'); return {s:p[0], e:p[1]||''}; });
+  return [{s:String(r[2]), e:r[3]?String(r[3]):''}]; }
+function segMin(){ return (S.segs||[]).reduce((a,g)=>a+Math.max(0,(g.e?toMin(g.e):nowMin())-toMin(g.s)),0); }   // минуты на смене сегодня, перерывы не считаются
+function hoursOnShift(){ return segMin()/60; }
+const segTxt = gs => gs.map(g=>g.s+'–'+(g.e||'…')).join(' · ');
 function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>el.hidden=true,2400); }
 const meName = () => PEOPLE[ME]||ME;
 
@@ -695,19 +735,34 @@ const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"
 const partnersOpts = () => WORKERS.concat(Object.keys(ROLE).filter(p=>ROLE[p]==='помощник'&&!WORKERS.includes(p))).filter(p=>p!==ME);
 
 /* ============ BLOCK: VIEW — СОТРУДНИК / СЕГОДНЯ ============ */
+/* ============ BLOCK: ЯРЛЫК НА ЭКРАН (иконка открывает приложение в Telegram) ============ */
+const HS_KEY='akrixHomeHide';
+function hsInit(){
+  const demo=!TG&&window.MOCK_API, ok=TG&&TG.isVersionAtLeast&&TG.isVersionAtLeast('8.0')&&TG.checkHomeScreenStatus;
+  let hide=0; try{ hide=+localStorage.getItem(HS_KEY)||0; }catch(e){}
+  if(hide>Date.now()) return;
+  if(demo){ S.hs='missed'; return; }
+  if(!ok) return;
+  TG.onEvent&&TG.onEvent('homeScreenAdded',()=>{ S.hs='added'; toast('Иконка добавлена на экран'); render(); });
+  TG.checkHomeScreenStatus(st=>{ S.hs=st; if(st==='missed'||st==='unknown') render(); });
+}
+function vHomeShortcut(){ if(S.hs!=='missed'&&S.hs!=='unknown') return '';
+  return `<div class="tile w hsbox"><div class="hst"><b>Akrix Job на экран телефона</b><span class="small mute">Иконка сразу открывает приложение в Telegram — без поиска бота</span></div>
+    <div class="grid2"><button class="btn ghost small" data-act="hsLater">Не сейчас</button><button class="btn small" data-act="hsAdd">Добавить</button></div></div>`; }
 function vToday(){
   const h=hoursOnShift(), could=h*RATE_H, earned=S.todayEarned;
   const eTone = (earned===0&&could<0.5) ? 'grey' : earned>=could ? 'good' : 'low';
   const pt=(CAL[ME]||{})[iso(TODAY)], planTxt=pt?(pt.off?'не выхожу':pt.at):'не указан';
-  let html='';
+  let html=vHomeShortcut();
   if(S.pastOpen) html+=`<div class="tile w" style="box-shadow:inset 0 0 0 1.5px var(--warn)"><div class="th"><h2 style="color:var(--warn)">Смена ${dLabel(S.pastOpen.date)} не закрыта</h2></div>
     <div class="small mute">Начата в ${S.pastOpen.start}. Укажи, во сколько ушёл.</div>
     <div class="grid2" style="margin-top:6px"><label for="past-at">Ушёл в<input id="past-at" type="time" value="18:00"></label><button class="btn" data-act="closePast" style="align-self:end">Закрыть смену</button></div></div>`;
   const late=S.arrLate>5?`опоздание ${S.arrLate} мин`:S.arrNote?'вовремя':'';
   if(S.shiftDone) html+=`<div class="tile sq shift"><div class="sl"><span class="sd"></span><b>Смена закрыта</b></div>
-      <div class="sbig num">${S.startAt}–${S.leftAt}</div></div>`;
+      ${S.segs.length>1?`<div class="num small">${S.segs.map(g=>g.s+'–'+g.e).join('<br>')}</div><div class="num small mute">${fmt(hoursOnShift())} ч</div>`:`<div class="sbig num">${S.startAt}–${S.leftAt}</div>`}
+      <button class="btn small" data-act="shift" style="margin-top:auto">Вернулся</button></div>`;
   else if(S.onShift) html+=`<div class="tile sq shift on"><div class="sl"><span class="sd"></span><b>На смене</b></div>
-      <div class="sbig num">с ${S.startAt}</div>${S.late?'<span class="chip n" style="align-self:flex-start">вечерняя смена</span>':''}
+      <div class="sbig num">с ${S.segs.length?S.segs[S.segs.length-1].s:S.startAt}</div>${S.segs.length>1?`<div class="num small mute">ранее ${segTxt(S.segs.slice(0,-1))}</div>`:''}${S.late?'<span class="chip n" style="align-self:flex-start">вечерняя смена</span>':''}
       ${late?`<span class="chip ${S.arrLate>5?'warn':'ok'}" style="align-self:flex-start">${late}</span>`:''}</div>`;
   else html+=`<div class="tile sq act"><button class="btn start" data-act="shift">Начать<br>смену</button>
       <div class="sub num">план: ${planTxt}</div></div>`;
@@ -729,8 +784,9 @@ function vToday(){
   if(mtasks.length){ const mo=mtasks.map(x=>x.o).filter((x,i,a)=>a.indexOf(x)===i);
     html+=`<button type="button" class="tile w tlink" data-tab="mount"><span class="l">Подготовка и монтаж<span class="go">›</span></span><span class="v num">${mtasks.length}</span><span class="s">${mo.map(o=>esc(o.client)+(o.mountAt?' · на монтаже':'')).join(', ')}</span></button>`; }
   if(S.todayLines.length) html+=UI.sec('Сделано сегодня', vLines(S.todayLines), `<b class="num">${fmt0(S.todayEarned)} ₾</b>`);
-  const p=planParts();
-  html+=UI.tileFold(`План на завтра`, p.big, p.mine?p.chipTxt:'не указан', p.body, (p.chipCls==='bad'?'low':p.chipCls==='warn'?'warn':'')+(p.bigMid?' mid':''), p.editing, (p.needsInput?'need ':'')+'w');
+  html+=vMoneyTile();
+  const p=planParts(), pt2=planLoad(ME,p.t);
+  html+=UI.tileFold(`План на завтра`, p.big, (p.mine?p.chipTxt:'время не указано')+(pt2.n?` · задач ${pt2.n}, ${fmt(pt2.h)} из ${PLAN.hoursPerDay} ч`:' · задачи не выбраны'), p.body, (p.chipCls==='bad'?'low':p.chipCls==='warn'?'warn':'')+(p.bigMid?' mid':''), p.editing||S.planOpen, (p.needsInput?'need ':'')+'w');
   if(S.closing) html+=vClosePanel();
   else if(S.onShift) html+=`<div class="tile w endbar"><button class="btn end" data-act="shift">Закрыть смену</button></div>`;
   return html;
@@ -828,7 +884,7 @@ function bindUnits(){
 }
 
 // сколько часов ещё можно вписать вручную: длина сегодняшней смены минус уже учтённое время за сегодня
-function manualLeftH(){ if(!S.startAt) return 0; const shiftMin=Math.max(0,(S.onShift?nowMin():toMin(S.leftAt||'00:00'))-toMin(S.startAt)), t0=iso(TODAY);
+function manualLeftH(){ if(!S.startAt) return 0; const shiftMin=segMin(), t0=iso(TODAY);
   const used=TIMEJ.filter(t=>t.who===ME&&String(t.start).slice(0,10)===t0).reduce((a,t)=>a+(t.end?t.min:Math.max(0,(Date.now()-tsMs(t.start))/6e4)),0);
   return Math.max(0,(shiftMin-used)/60); }
 function stopWork(silent){ if(!S.active) return; const now=iso(new Date())+' '+hm(nowMin());
@@ -908,6 +964,7 @@ function orderCard(o, boss){
       ${boss?vCompose(o):''}
       ${boss?UI.fold('Монтаж: список и заметки', `<div class="small mute">${o.mountAt?'Монтаж начат '+o.mountAt:'Монтаж не начат'}</div>${vKitList(o,ORDERS.indexOf(o),true)}<div class="wgh" style="padding-top:6px">Заметки</div>${vNotes(o,ORDERS.indexOf(o),false)}`, false, `<span class="num">${kitTotals(o).n} поз. · ${o.notes.length} зам.</span>`):''}
       ${boss?vFundSystem(o):''}
+      ${boss?`<button class="btn ghost small ${S.closeAsk===o.id?'warnbtn':''}" data-act="orderClose" data-o="${ORDERS.indexOf(o)}" style="margin-top:10px;width:100%">${S.closeAsk===o.id?'Точно закрыть? Нажми ещё раз':'Закрыть заказ — сдан, открыть к выплате'}</button>`:''}
     </div>
   </details>`;
 }
@@ -964,9 +1021,41 @@ function planParts(){
   else if(we && !open) body=UI.note('Завтра выходной. Если выходишь — согласуй с руководителем.');
   else if(open) body=UI.note(we?'Завтра выходной — укажи время, только если выходишь.':'Укажи до '+hm(PLAN.to))+planForm('p',t)+(tasks?UI.fold('Что висит на завтра', UI.list(tasks)):'');
   else body=`<div class="alert"><b>План на завтра не указан</b><span class="small">Срок ${hm(PLAN.to)} пропущен — отмечено руководителю. Время выхода согласуй с ним.</span></div>`;
+  if(!(mine&&mine.off)) body+=vPlanTasks(ME, t);
   body+=`<button class="btn ghost" data-tab="cal">Календарь на месяц</button>`;
   return {t, mine, open, we, chipCls, chipTxt, big, body, tasks, needsInput: !mine && open && !we, editing: !!S.planEdit, bigMid: !mine};
 }
+/* ---- задачи на день плана: выбор из работ по срочности, загрузка в часах ---- */
+function opLeftH(o,k){ const f=findOp(o,k); if(!f||!f.op) return 0; const p=f.line.prog[f.op[0]]||0; return payParts(opAmount(o,f.line,f.op)*(1-p/100),f.op,prisPct(o,f.line,f.op)).fix/RATE_H; }
+// переходящие: уже в работе у человека (назначено, взял, подключён), не закончено — сами идут в план следующего дня
+function carryOf(who,date){ const r=[]; ORDERS.forEach(o=>o.lines.forEach(l=>opsOf(o,l).forEach(op=>{ const k=l.cat+'.'+op[0];
+    if((l.prog[op[0]]||0)>=100||!(PART[o.id+'|'+k]||new Set()).has(who)) return;
+    if(PLANS.some(x=>x.o===o&&x.op===k&&x.who===who&&x.date===date)) return; r.push({o, op:k, who, carry:true}); }))); return r; }
+function planLoad(who,date){ const l=PLANS.filter(x=>x.who===who&&x.date===date), c=carryOf(who,date), all=c.concat(l);
+  return {list:l, carry:c, n:all.length, h:all.reduce((a,x)=>a+opLeftH(x.o,x.op),0)}; }
+function vPlanTasks(who, date, boss){
+  const L=planLoad(who,date), cap=PLAN.hoursPerDay, over=L.h>cap+0.05;
+  const crow=L.carry.map(x=>{ const f=findOp(x.o,x.op);
+    return `<div class="prow"><span class="pn">${esc(f.op?f.op[1]:x.op)}<span class="ps">${oName(x.o)} · в работе, переходит</span></span><span class="num ph">${fmt(opLeftH(x.o,x.op))} ч</span></div>`; }).join('');
+  const rows=crow+L.list.map(x=>{ const f=findOp(x.o,x.op), canDel=boss||IS_BOSS||x.by===ME;
+    return `<div class="prow"><span class="pn">${esc(f.op?f.op[1]:x.op)}<span class="ps">${oName(x.o)}${x.by&&x.by!==x.who?' · поставил '+esc(PEOPLE[x.by]||x.by):''}</span></span><span class="num ph">${fmt(opLeftH(x.o,x.op))} ч</span>${canDel?`<button class="btn small undo" data-act="planUntask" data-row="${x.row}" aria-label="Убрать">✕</button>`:''}</div>`; }).join('');
+  const key=who+'|'+date, open=S.planPick===key;
+  if(boss&&!L.n&&!open) return `<button class="btn small ghost pmini" data-act="planPick" data-k="${esc(key)}">+ Задачи на ${dShort(date)}</button>`;
+  return `<div class="pbox"><div class="pbh"><b>Задачи на ${dShort(date)}</b><span class="num ${over?'bad':''}">${fmt(L.h)} из ${cap} ч</span></div>
+    <div class="bar"><i class="${over?'late':''}" style="width:${Math.min(100,L.h/cap*100)}%"></i></div>
+    ${rows||'<div class="small mute" style="padding:4px 0">Пока пусто</div>'}
+    <button class="btn small ${open?'':'ghost'}" data-act="planPick" data-k="${esc(key)}">${open?'Готово':'+ Добавить задачу'}</button>
+    ${open?vPlanPick(who,date):''}</div>`; }
+function vPlanPick(who,date){
+  const list=ORDERS.filter(o=>o.team.includes(who)).map(o=>({o,u:urgency(o)})).sort((a,b)=>a.u.rank-b.u.rank).map(({o,u})=>{
+    const ops=o.lines.flatMap(l=>opsOf(o,l).map(op=>({l,op,k:l.cat+'.'+op[0]}))).filter(({l,op,k})=>{ if((l.prog[op[0]]||0)>=100||op[0]==='mont') return false;
+      const pl=PLANNED[o.id+'|'+k], tk=TAKEN[o.id+'|'+k], mine=o.tasks.some(t=>t.op===k);
+      if(PLANS.some(x=>x.o===o&&x.op===k&&x.who===who&&x.date===date)) return false;
+      return (!pl||pl.who===who) && (!tk||tk===who) && !(who!==ME&&mine&&!tk); });
+    if(!ops.length) return '';
+    return `<div class="pkg"><div class="pkh"><span class="pkn">${oName(o)}</span>${chip(u.cls,u.txt)}</div>${ops.map(({l,op,k})=>{ const tk=TAKEN[o.id+'|'+k]===who||(who===ME&&o.tasks.some(t=>t.op===k));
+      return `<div class="prow"><span class="pn">${esc(op[1])}<span class="ps">${esc(catL(l)[l.cat].name)}${tk?' · уже в работе':''}</span></span><span class="num ph">${fmt(opLeftH(o,k))} ч</span><button class="btn small" data-act="planAdd" data-o="${ORDERS.indexOf(o)}" data-op="${k}" data-who="${esc(who)}" data-d="${date}">+</button></div>`; }).join('')}</div>`; }).join('');
+  return `<div class="ppick">${list||UI.note('Свободных работ нет')}</div>`; }
 function planForm(pfx, date){ const cur=(CAL[ME]||{})[date]||{};
   return `<div class="grid2"><label for="${pfx}-at">Выйду в<input id="${pfx}-at" type="time" value="${cur.at||'09:00'}" ${cur.off?'disabled':''}></label>
     <label for="${pfx}-off" class="chk" style="align-self:end;padding-bottom:10px"><input id="${pfx}-off" type="checkbox" ${cur.off?'checked':''}> не выйду</label></div>
@@ -1030,7 +1119,9 @@ function vBossTomorrow(){
   const today=iso(TODAY);
   const rows=people.map(p=>{ const pl=(CAL[p]||{})[t];
     const st = pl ? (pl.off?['bad','не выходит']:['ok',pl.at]) : we?['n','выходной'] : (n>=PLAN.to?['bad','не указал']:['warn','ждём до '+hm(PLAN.to)]);
-    return UI.row(esc(PEOPLE[p]), pl?(pl.off?'Причина: '+esc(pl.reason):'указано: '+pl.setAt):we?'выходной день':'план не указан', chip(st[0]+' num big',st[1])); }).join('');
+    const L=planLoad(p,t);
+    return UI.row(esc(PEOPLE[p]), (pl?(pl.off?'Причина: '+esc(pl.reason):'указано: '+pl.setAt):we?'выходной день':'время не указано'), chip(st[0]+' num big',st[1]))+
+      (pl&&pl.off?'':`<div class="pboss">${vPlanTasks(p,t,true)}</div>`); }).join('');
   const now=people.map(p=>{ const s=SHIFTS.filter(r=>d10(r[0])===today&&String(r[1])===p).pop(), pl=(CAL[p]||{})[today];
     const st=s?(s[3]?['n',`${s[2]}–${s[3]}`]:['ok','на смене с '+s[2]]):pl&&!pl.off?['warn','план '+pl.at]:['n','нет'];
     return UI.row(esc(PEOPLE[p]), s&&num(s[6])>5?`опоздание ${s[6]} мин`:'', chip(st[0]+' num',st[1])); }).join('');
@@ -1046,8 +1137,9 @@ function vBossTomorrow(){
 function earnedBy(from){ // по отметкам: сумма делится по времени участников на операции
   const f=iso(from), r={}; MARKS.forEach(m=>{ if(d10(m[0])<f) return; const a=num(m[7])||0, sh=shares(String(m[2]).trim(), m[3]+'.'+m[4], String(m[1]), String(m[9]||''), String(m[10]||''));
     Object.entries(sh).forEach(([p,k])=>{ r[p]=(r[p]||0)+a*k; }); }); return r; }
-function hoursBy(from){ const r={}; shiftsSince(from).forEach(s=>{ const p=String(s[1]); let h=num(s[4]);
-    if(!(h>=0)&&!s[3]&&d10(s[0])===iso(TODAY)) h=Math.max(0,(nowMin()-toMin(s[2]))/60); r[p]=(r[p]||0)+(h||0); }); return r; }
+function hoursBy(from){ const r={}, t0=iso(TODAY); shiftsSince(from).forEach(s=>{ const p=String(s[1]); let h=num(s[4]);
+    if(!s[3]&&d10(s[0])===t0) h=segsOf(s).reduce((a,g)=>a+Math.max(0,(g.e?toMin(g.e):nowMin())-toMin(g.s)),0)/60;   // открытая сегодня: закрытые отрезки + текущий
+    r[p]=(r[p]||0)+(h||0); }); return r; }
 function vBossFund(){
   const from=S.fundPer==='week'?weekStart():new Date(TODAY.getFullYear(),TODAY.getMonth(),1), e=earnedBy(from), f=iso(from);
   const byOrder={}; MARKS.forEach(m=>{ if(d10(m[0])<f) return; const k=String(m[2]).trim(); byOrder[k]=(byOrder[k]||0)+(num(m[7])||0); });
@@ -1073,14 +1165,47 @@ function vSkills(){
       return `<td><button class="skc l${v===''?'x':v}" data-act="sk" data-code="${esc(r.code)}" data-who="${esc(id)}">${v===''?'·':v}</button></td>`; }).join('')}</tr>`).join('')}</tbody></table>`;
   return UI.h('Навыки')+back+UI.sec('', chips+grid+`<div class="sklg">${SK_LV.join(' · ')}<br>Нажатие: · → 0 → 1 → 2 → 3 → ·. Пишется сразу в лист «Навыки». До 5 человек.</div>`);
 }
+/* ============ BLOCK: ДЕНЬГИ (заработано по отметкам; к выплате — по закрытым заказам; авансы) ============ */
+function money(p){ let closed=0, open=0; const byO={};
+  MARKS.forEach(m=>{ const oid=String(m[2]).trim(), sh=shares(oid, m[3]+'.'+m[4], String(m[1]), String(m[9]||''), String(m[10]||'')), v=(num(m[7])||0)*(sh[p]||0);
+    if(!v) return; byO[oid]=(byO[oid]||0)+v; if(CLOSED.has(oid)) closed+=v; else open+=v; });
+  const mine=PAYS.filter(x=>x.who===p), paid=mine.filter(x=>x.st==='выдано').reduce((a,x)=>a+x.amt,0), pend=mine.filter(x=>x.st==='запрос'), pendSum=pend.reduce((a,x)=>a+x.amt,0);
+  const mode=PAYMODE[p]||'earned';
+  return {closed, open, paid, byO, pend, pendSum, mode, toPay:Math.max(0,closed-paid), adv:Math.max(0,paid-closed), avail:mode==='free'?null:Math.max(0,closed+open-paid-pendSum)}; }
+const ddmm = s => String(s).slice(8,10)+'.'+String(s).slice(5,7);
+function payHist(p, n){ return PAYS.filter(x=>x.who===p&&x.st!=='отменён').sort((a,b)=>a.at<b.at?1:-1).slice(0,n).map(x=>UI.row(`${x.type} <b class="num">${fmt0(x.amt)} ₾</b>`, ddmm(x.at)+(x.note?' · '+esc(x.note):''),
+    x.st==='запрос'?chip('warn','ждёт решения')+(p===ME?`<button class="btn small undo" data-act="payCancel" data-row="${x.row}" aria-label="Отменить запрос">✕</button>`:''):chip(x.st==='выдано'?'ok':'n', x.st))).join(''); }
+function vMoneyTile(){ const m=money(ME);
+  const ords=Object.entries(m.byO).sort((a,b)=>(CLOSED.has(b[0])-CLOSED.has(a[0]))||b[1]-a[1]).map(([id,v])=>UI.row(esc(ONAME[id]||id), CLOSED.has(id)?'заказ закрыт':'заказ в работе', `<b class="num">${fmt0(v)} ₾</b>`)).join('');
+  const form=m.pend.length?UI.note(`Запрос аванса ${fmt0(m.pendSum)} ₾ ждёт решения руководителя.`):
+    `<div class="pbox"><div class="pbh"><b>Попросить аванс</b><span class="small mute num">${m.avail==null?'без лимита':'доступно до '+fmt0(m.avail)+' ₾'}</span></div>
+      <div class="grid2"><label for="adv-a">Сумма, ₾<input id="adv-a" type="number" min="1" step="10" inputmode="numeric"></label><label for="adv-n">Зачем (необязательно)<input id="adv-n" type="text" placeholder="одной строкой"></label></div>
+      <button class="btn small" data-act="payRequest">Отправить запрос</button></div>`;
+  const body=`<div class="grid2">${UI.kpi('к выплате', fmt0(m.toPay)+' ₾', 'по закрытым заказам', m.toPay>0?'good':'', true)}${UI.kpi('в работе', fmt0(m.open)+' ₾', 'по открытым заказам', '', true)}</div>
+    ${m.adv?`<div class="flag warn">Аванс в счёт будущих: ${fmt0(m.adv)} ₾ — спишется при закрытии заказов</div>`:''}
+    ${form}${ords?UI.fold('По заказам', UI.list(ords)):''}${PAYS.some(x=>x.who===ME)?UI.fold('Выплаты и авансы', UI.list(payHist(ME,15)), true):''}`;
+  return UI.tileFold('Деньги', fmt0(m.toPay)+' ₾', `к выплате · в работе ${fmt0(m.open)} ₾${m.pend.length?' · аванс ждёт решения':''}`, body, m.toPay>0?'good':'', S.moneyOpen, 'w'); }
+function vPayBoss(p){ const m=money(p), open=S.payOpen===p;
+  const line=`<div class="small" style="margin:6px 0 2px">К выплате <b class="num">${fmt0(m.toPay)} ₾</b> · в работе <span class="num">${fmt0(m.open)} ₾</span>${m.adv?` · аванс в счёт будущих <span class="num">${fmt0(m.adv)} ₾</span>`:''}</div>`;
+  const mode=`<button class="btn small ghost" data-act="payMode" data-who="${esc(p)}">Лимит аванса: ${m.mode==='free'?'без лимита':'до заработанного'}</button>`;
+  const form=open?`<div class="pbox"><div class="grid2"><label for="pay-a">Сумма, ₾<input id="pay-a" type="number" min="1" step="10" inputmode="numeric" value="${Math.round(m.toPay)||''}"></label>
+      <label for="pay-t">Тип<select id="pay-t"><option value="зарплата">зарплата</option><option value="аванс">аванс</option></select></label></div>
+      <label for="pay-n">Комментарий<input id="pay-n" type="text" placeholder="необязательно"></label>
+      <div class="grid2"><button class="btn small ghost" data-act="payOpen" data-who="${esc(p)}">Отмена</button><button class="btn small" data-act="payAdd" data-who="${esc(p)}">Выдано</button></div></div>`:
+    `<div class="grid2">${mode}<button class="btn small" data-act="payOpen" data-who="${esc(p)}">Выплата</button></div>`;
+  return line+form+(PAYS.some(x=>x.who===p)?UI.fold('История выплат', UI.list(payHist(p,10))):''); }
+function vPayRequests(){ const req=PAYS.filter(x=>x.st==='запрос'); if(!req.length) return '';
+  return UI.sec('Запросы аванса', UI.list(req.map(x=>{ const m=money(x.who);
+    return UI.row(`${esc(PEOPLE[x.who]||x.who)} · <b class="num">${fmt0(x.amt)} ₾</b>`, `${ddmm(x.at)}${x.note?' · '+esc(x.note):''} · ${m.mode==='free'?'без лимита':'доступно '+fmt0(m.closed+m.open-m.paid)+' ₾'}`+
+      `<div class="kb" style="margin-top:4px"><button class="btn small undo" data-act="payDecide" data-row="${x.row}" data-v="отклонено">Отклонить</button><button class="btn small" data-act="payDecide" data-row="${x.row}" data-v="выдано">Выдать</button></div>`); }).join('')), chip('warn', String(req.length))); }
 function vBossStaff(){
   if(S.skills) return vSkills();
   const from=weekStart(), e=earnedBy(from), hh=hoursBy(from), wk=shiftsSince(from);
-  return UI.h('Сотрудники · неделя')+`<button class="btn small" data-act="skOpen" style="margin-bottom:10px">Карта навыков</button>`+WORKERS.map(p=>{ const ea=e[p]||0, h=hh[p]||0, perH=h?ea/h:0, tone=perH>=RATE_H?'good':perH>=RATE_H*0.6?'warn':'low';
+  return UI.h('Сотрудники · неделя')+vPayRequests()+`<button class="btn small" data-act="skOpen" style="margin-bottom:10px">Карта навыков</button>`+WORKERS.map(p=>{ const ea=e[p]||0, h=hh[p]||0, perH=h?ea/h:0, tone=perH>=RATE_H?'good':perH>=RATE_H*0.6?'warn':'low';
     const late=wk.filter(r=>String(r[1])===p&&num(r[6])>5).length;
     return UI.sec(esc(PEOPLE[p]), `<div class="grid2">${UI.kpi('₾/ч', h?fmt(perH):'—', `норма ${RATE_H}`, h?tone:'', true)}${UI.kpi('заработал', fmt0(ea)+' ₾', `мог ${fmt0(h*RATE_H)} · ${fmt(h)} ч`, '', true)}</div>
       <div class="bar"><i class="${perH<RATE_H*0.6?'late':''}" style="width:${Math.min(100,perH/RATE_H*100)}%"></i></div>
-      ${late?`<div class="flag warn">Опозданий за неделю: ${late}</div>`:''}`,
+      ${late?`<div class="flag warn">Опозданий за неделю: ${late}</div>`:''}${vPayBoss(p)}`,
       h?chip(perH>=RATE_H?'ok':perH>=RATE_H*0.6?'warn':'bad', `${fmt(perH)} ₾/ч`):chip('n','нет смен')); }).join('');
 }
 function vBossNorms(){
@@ -1220,11 +1345,13 @@ function vAllWork(){
   let free=0, totalH=0, myH=0;
   const body=mine.map(({o,u})=>{ totalH+=u.need; const groups=o.lines.map(l=>{ const c=catL(l)[l.cat], ops=opsOf(o,l);
       const rows=ops.map(op=>{ const k=l.cat+'.'+op[0], p=l.prog[op[0]]||0, st=opStatus(p), who=takenBy(o,k);
-        if(p<100&&!who) free++;
+        if(p<100&&!who&&!PLANNED[o.id+'|'+k]) free++;
         if(p<100&&who===ME) myH+=payParts(opAmount(o,l,op)*(1-p/100),op,prisPct(o,l,op)).fix/RATE_H;
         const wait=l.cat==='korpus'&&PRIS_AFTER.includes(op[0])&&p<100&&(l.prog.pris||0)<100&&ops.some(x=>x[0]==='pris')?'<span class="chip n" style="margin-left:4px">после присадки</span>':'';
         const self=o.tasks.find(t=>t.op===k&&t.self), cancel=self?`<button class="btn small undo" data-act="untake" data-o="${ORDERS.indexOf(o)}" data-op="${k}" title="Отменить взятое">✕</button>`:'';
+        const pl=PLANNED[o.id+'|'+k];
         const act = p>=100 ? '' : who===ME ? chip('ok','моя')+cancel
+          : !who&&pl ? `<span class="wtk">${pl.who===ME?'моя':esc(PEOPLE[pl.who]||pl.who)} · ${dayDiff(pl.date)===1?'завтра':dShort(pl.date)}</span>`
           : who ? `<span class="wtk">${esc(PEOPLE[who]||who)}</span>` : `<button class="btn small take" data-act="take" data-o="${ORDERS.indexOf(o)}" data-op="${k}">Беру</button>`;
         return `<div class="wrow ${p>=100?'done':''}"><span class="on">${esc(op[1])}<span class="oc2 num">${opCost(o,l,op)}${wait}</span></span><span class="ost ${st[0]}">${st[1]}</span>${act}</div>`; }).join('');
       return `<div class="wg"><div class="wgh">${esc(c.name)}</div>${rows}</div>`; }).join('');
@@ -1251,11 +1378,12 @@ document.addEventListener('click',e=>{
   const a=b.dataset.act;
   if(a==='shift'){
     if(!S.onShift){ b.disabled=true; toast('Начинаю смену…');
-      geo().then(g=>api('shiftStart',{geo:g})).then(r=>{ S.onShift=true; S.startAt=r.at; S.arrLate=+r.late||0; S.arrNote=r.plan?'план':''; toast('Смена начата'); render(); }).catch(fail); return; }
+      geo().then(g=>api('shiftStart',{geo:g})).then(r=>{ const again=S.segs&&S.segs.length; S.segs=(S.segs||[]).concat([{s:r.at,e:''}]); S.onShift=true; S.shiftDone=false;
+        if(!again){ S.startAt=r.at; S.arrLate=+r.late||0; S.arrNote=r.plan?'план':''; } toast(again?'С возвращением — смена продолжается':'Смена начата'); render(); }).catch(fail); return; }
     else { S.closing=true; }
   }
   if(a==='submitClose'){ const misc=(document.getElementById('c-misc')||{}).value||''; b.disabled=true;
-    stopWork(true); geo().then(g=>api('shiftEnd',{misc, geo:g})).then(r=>{ S.onShift=false; S.shiftDone=true; S.leftAt=r.at; S.closing=false; toast('Смена закрыта'); render(); }).catch(fail); return; }
+    stopWork(true); geo().then(g=>api('shiftEnd',{misc, geo:g})).then(r=>{ S.onShift=false; S.shiftDone=true; S.leftAt=r.at; S.closing=false; const g=(S.segs||[])[S.segs.length-1]; if(g) g.e=r.at; toast('Смена закрыта'); render(); }).catch(fail); return; }
   if(a==='cancelClose'){ S.closing=false; }
   if(a==='workStart'){ const o=ORDERS[+b.dataset.o]; if(!S.onShift){ toast('Сначала начни смену'); return; } const now=iso(new Date())+' '+hm(nowMin());
     TIMEJ.forEach(t=>{ if(t.who===ME&&!t.end){ t.end=now; t.min=Math.max(0,(Date.now()-tsMs(t.start))/6e4); } });
@@ -1267,6 +1395,29 @@ document.addEventListener('click',e=>{
     if(h>free+0.01){ toast('Можно добавить не больше '+fmt(free)+' ч — столько осталось от твоей смены'); return; }
     const now=iso(new Date())+' '+hm(nowMin()); TIMEJ.push({start:now, who:ME, order:o.id, op:b.dataset.op, end:now, min:h*60, manual:true});
     api('timeAdd',{order:o.id, op:b.dataset.op, minutes:Math.round(h*60)}).catch(fail); toast('Добавлено '+fmt(h)+' ч — руководитель увидит пометку «вручную»'); }
+  if(a==='planPick'){ S.planPick = S.planPick===b.dataset.k ? null : b.dataset.k; S.planOpen=true; }
+  if(a==='planAdd'){ const o=ORDERS[+b.dataset.o], k=b.dataset.op, who=b.dataset.who, d=b.dataset.d, x={o, op:k, who, date:d, row:0, by:ME};
+    PLANS.push(x); if(!PLANNED[o.id+'|'+k]) PLANNED[o.id+'|'+k]={who, date:d}; S.planOpen=true;
+    api('planTask',{order:o.id, op:k, date:d, who}).then(r=>{ x.row=r.row; }).catch(fail); toast('В план: '+findOp(o,k).op[1]); }
+  if(a==='planUntask'){ const i=PLANS.findIndex(x=>String(x.row)===b.dataset.row); if(i>=0){ const x=PLANS.splice(i,1)[0], pk=x.o.id+'|'+x.op;
+      if(PLANNED[pk]&&PLANNED[pk].who===x.who&&!PLANS.some(y=>y.o===x.o&&y.op===x.op)) delete PLANNED[pk];
+      api('planUntask',{row:x.row}).catch(fail); toast('Убрано из плана'); } S.planOpen=true; }
+  if(a==='hsAdd'){ if(TG&&TG.addToHomeScreen){ TG.addToHomeScreen(); } else toast('Макет: здесь Telegram предложит добавить иконку');
+    S.hs='asked'; try{ localStorage.setItem(HS_KEY, String(Date.now()+30*864e5)); }catch(e){} }   // не спрашивать месяц: iOS не всегда сообщает, добавлено ли
+  if(a==='hsLater'){ S.hs='later'; try{ localStorage.setItem(HS_KEY, String(Date.now()+7*864e5)); }catch(e){} }
+  if(a==='payRequest'){ const v=Math.round(+document.getElementById('adv-a').value||0), n=document.getElementById('adv-n').value.trim(), m=money(ME); S.moneyOpen=true;
+    if(!(v>0)){ toast('Впиши сумму'); return; } if(m.avail!=null&&v>m.avail+0.5){ toast('Можно попросить до '+fmt0(m.avail)+' ₾'); return; }
+    const x={at:iso(TODAY)+' '+hm(nowMin()), who:ME, type:'аванс', amt:v, st:'запрос', note:n, row:0}; PAYS.push(x);
+    api('payRequest',{amount:v, note:n}).then(r=>{ x.row=r.row; }).catch(fail); toast('Запрос отправлен руководителю'); }
+  if(a==='payCancel'){ const x=PAYS.find(y=>String(y.row)===b.dataset.row); S.moneyOpen=true; if(x){ x.st='отменён'; api('payCancel',{row:x.row}).catch(fail); toast('Запрос отменён'); } }
+  if(a==='payDecide'){ const x=PAYS.find(y=>String(y.row)===b.dataset.row); if(x){ x.st=b.dataset.v; api('payDecide',{row:x.row, status:b.dataset.v}).catch(fail); toast(b.dataset.v==='выдано'?'Аванс выдан':'Отклонено'); } }
+  if(a==='payOpen'){ S.payOpen = S.payOpen===b.dataset.who ? null : b.dataset.who; }
+  if(a==='payAdd'){ const who=b.dataset.who, v=Math.round(+document.getElementById('pay-a').value||0), t=document.getElementById('pay-t').value, n=document.getElementById('pay-n').value.trim();
+    if(!(v>0)){ toast('Впиши сумму'); return; } const x={at:iso(TODAY)+' '+hm(nowMin()), who, type:t, amt:v, st:'выдано', note:n, row:0}; PAYS.push(x); S.payOpen=null;
+    api('payAdd',{who, type:t, amount:v, note:n}).then(r=>{ x.row=r.row; }).catch(fail); toast(`${t==='аванс'?'Аванс':'Зарплата'} ${fmt0(v)} ₾ — ${PEOPLE[who]||who}`); }
+  if(a==='payMode'){ const w=b.dataset.who, nm=(PAYMODE[w]||'earned')==='free'?'earned':'free'; PAYMODE[w]=nm; api('payMode',{who:w, mode:nm}).catch(fail); toast('Лимит аванса: '+(nm==='free'?'без лимита':'до заработанного')); }
+  if(a==='orderClose'){ const o=ORDERS[+b.dataset.o]; if(S.closeAsk!==o.id){ S.closeAsk=o.id; S.openOrd=o.id; render(); return; }
+    S.closeAsk=null; CLOSED.add(o.id); api('orderSet',{order:o.id, col:12, value:'сдан'}).then(()=>{ toast('Заказ закрыт — заработанное открыто к выплате'); reload(); }).catch(fail); return; }
   if(a==='skOpen'){ S.skills=true; window.scrollTo(0,0); }
   if(a==='skClose'){ S.skills=false; }
   if(a==='skPick'){ const p=skPick().slice(), w=b.dataset.who, i=p.indexOf(w); if(i>=0) p.splice(i,1); else { if(p.length>=5){ toast('Не больше 5 человек — сними кого-нибудь'); return; } p.push(w); }
@@ -1385,7 +1536,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1792991434';
+const BUILD='1793004214';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
@@ -1393,7 +1544,7 @@ function start(){
   if(TG){ try{ TG.ready(); TG.expand(); TG.setHeaderColor && TG.setHeaderColor('#eef0f3'); }catch(e){} }
   if(!window.MOCK_API&&(!API_URL||(!(TG&&TG.initData) && !window.DEV_INIT))){ document.getElementById('view').innerHTML=UI.sec('Akrix Job', UI.note(`Откройте приложение через бота <b>@${BOT}</b> в Telegram — кнопка «Akrix Job» внизу чата.`)); return; }
   document.getElementById('view').innerHTML=UI.sec('', UI.note('Загрузка…'));
-  splash(); reload(); checkUpdate();
+  splash(); reload(); checkUpdate(); hsInit();
   setInterval(()=>{ if(!busy()&&!S.closing&&document.visibilityState==='visible') reload(); }, 60000);
   document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&!busy()) reload(); });
 }
