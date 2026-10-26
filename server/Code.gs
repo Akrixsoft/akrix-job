@@ -94,7 +94,7 @@ const API = {
     const o = sh_(SH.orders);
     return { me, params: params_(), today: today_(), now: hm_(),
       staff: read_(SH.staff, 2, 9).map(r => ({ id: String(r[0]), name: String(r[1]), role: String(r[4]).trim(), helperRate: r[5], active: String(r[6]).trim() !== 'нет', tg: !!r[3], payMode: String(r[8] || '').trim() === 'без лимита' ? 'free' : 'earned' })),
-      pays: sh_(SH.pays) ? read_(SH.pays, 2, 8) : [],
+      pays: sh_(SH.pays) ? read_(SH.pays, 2, 9) : [],
       ops: read_(SH.ops, 2, 9),
       orderHead: o.getRange(1, 1, 1, 26).getValues()[0],
       orders: read_(SH.orders, 2, 26),
@@ -217,8 +217,12 @@ const API = {
     notifyOne_(String(r[1]), b.status === 'выдано' ? 'Аванс ' + r[3] + ' ₾ выдан.' : 'Запрос аванса ' + r[3] + ' ₾ отклонён.'); return {}; }),
   payAdd: bossOnly_(function(me, b){ const a = Math.round(+b.amount || 0); if (!(a > 0)) throw new Error('Впиши сумму');
     const type = b.type === 'аванс' ? 'аванс' : 'зарплата';
-    const row = append_(SH.pays, [now_(), b.who, type, a, 'выдано', me.id, now_(), String(b.note || '')]);
+    const row = append_(SH.pays, [now_(), b.who, type, a, 'выдано', me.id, now_(), String(b.note || ''), b.order ? "'" + b.order : '']);
     notifyOne_(String(b.who), (type === 'аванс' ? 'Выдан аванс ' : 'Выплачена зарплата ') + a + ' ₾.'); return { row }; }),
+  /* премия по заказу — отдельная отметка «премия»: входит в заработок по этому заказу */
+  bonusAdd: bossOnly_(function(me, b){ const a = Math.round(+b.amount || 0); if (!(a > 0)) throw new Error('Впиши сумму');
+    const row = append_(SH.marks, [now_(), b.who, "'" + b.order, 'korpus', 'premia', 'премия', 100, a, 0, '', '', '']);
+    notifyOne_(String(b.who), 'Премия ' + a + ' ₾ по заказу ' + b.order + '.'); return { row }; }),
   payMode: bossOnly_(function(me, b){ const r = read_(SH.staff, 2, 1).find(x => String(x[0]) === String(b.who)); if (!r) throw new Error('Нет сотрудника');
     sh_(SH.staff).getRange(r[1], 9).setValue(b.mode === 'free' ? 'без лимита' : 'до заработанного'); return {}; }),
   /* ---- карта навыков: руководитель выставляет уровни 0–3 прямо из приложения ---- */
