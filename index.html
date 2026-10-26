@@ -482,6 +482,9 @@ body{padding-top:calc(6px + var(--tg-safe-area-inset-top,0px) + var(--tg-content
 .tabs{padding-bottom:calc(3px + max(env(safe-area-inset-bottom,0px),var(--tg-safe-area-inset-bottom,0px)))}
 .toast{bottom:calc(60px + max(env(safe-area-inset-bottom,0px),var(--tg-safe-area-inset-bottom,0px)))}
 .warnbtn{background:var(--bad-soft)!important;color:var(--bad)!important}
+.dpf{display:flex;gap:6px;align-items:center;margin-top:4px}
+.dpf input{width:90px;min-height:32px;padding:4px 8px}
+.row .kb{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
 .who{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
 </style></head><body>
 <div class="app">
@@ -552,7 +555,7 @@ function build(D){
   CLOSED=new Set(); ONAME={}; DONE=[]; D.orders.forEach(r=>{ const id=String(r[0]).trim(); if(!id||id.startsWith('пример')) return; ONAME[id]=String(r[1])+' · '+String(r[2]);
     if(String(r[11]).trim()==='сдан'){ CLOSED.add(id); DONE.push({id, client:String(r[1]), product:String(r[2]), cost:num(r[5])||0, date:d10(r[9])||d10(r[7])}); } });
   PAYMODE={}; D.staff.forEach(s=>{ PAYMODE[s.id]=s.payMode||'earned'; });
-  PAYS=(D.pays||[]).map(r=>({at:String(r[0]), who:String(r[1]), type:String(r[2]), amt:num(r[3])||0, st:String(r[4]), by:String(r[5]||''), dec:String(r[6]||''), note:String(r[7]||''), row:r[8]}));   // руководитель тоже работает: в командах, напарниках, учёте
+  PAYS=(D.pays||[]).map(r=>({at:String(r[0]), who:String(r[1]), type:String(r[2]), amt:num(r[3])||0, st:String(r[4]), by:String(r[5]||''), dec:String(r[6]||''), note:String(r[7]||''), order:String(r[8]||'').trim(), row:r[9]}));   // руководитель тоже работает: в командах, напарниках, учёте
   // каталог операций
   CAT_M2={}; CAT_PCT={};
   D.ops.forEach(r=>{ const [sys,grp,gname,rate,code,name,share]=r; if(!grp||!code) return;
@@ -570,7 +573,7 @@ function build(D){
   D.orders.forEach(r=>{ if(!String(r[0]).trim()) return; if(String(r[11]).trim()==='сдан') return;
     const o={id:String(r[0]).trim(), client:String(r[1]), product:String(r[2]), sys:r[3]==='%'?'pct':'m2', kind:r[4]||'Кухни, комоды', cost:num(r[5])||null,
       hard:r[6]==='жёсткий', ship:d10(r[7]), ceh:d10(r[8]), done:d10(r[9]), team:String(r[10]||'').split(/[,\s]+/).filter(Boolean),
-      mountAt:r[22]?String(r[22]):null, prisBonus:num(r[23])||0, master:String(r[24]||'').trim(), lines:[], tasks:[], kit:{furn:[],tools:[],other:[]}, notes:[], matCols};
+      mountAt:r[22]?String(r[22]):null, prisBonus:num(r[23])||0, master:String(r[24]||'').trim(), shopPctRaw:String(r[25]??'').trim(), shopPct:String(r[25]??'').trim()===''?(P.shopDefault??50):Math.max(0,Math.min(100,num(r[25])||0)), lines:[], tasks:[], kit:{furn:[],tools:[],other:[]}, notes:[], matCols};
     if(!o.team.length) o.team=WORKERS.slice();
     const off=String(r[21]||'').split(/[,\s]+/).filter(Boolean); o.offRaw=off;
     matCols.forEach(mc=>{ const v=num(r[mc.col]); if(!(v>0)||!mc.code) return;
@@ -670,8 +673,12 @@ const unitArea=(o,l,u)=> l.sys==='m2' ? u.a/l.units.reduce((s,x)=>s+x.a,0)*l.qty
 const catL = l => l.sys==='pct'?CAT_PCT:CAT_M2;
 function opsOf(order, line){ // стандартные операции группы (кроме отключённых руководителем) + доп. обработки заказа
   const cat = catL(line)[line.cat];
-  return (cat.ops||[]).filter(o=>!line.only||line.only.includes(o[0])).concat((line.extra||[]).map(x=>[x.id,x.name,x.pct||0,true]));
+  const base=(cat.ops||[]).filter(o=>!line.only||line.only.includes(o[0]));
+  const sp=order.shopPct??100, ops=sp>=100?base:base.flatMap(o=>o[0]!=='sborka'?[o]:   // сборка транспортируемых: в цеху — % заказа, остаток — «Сборка на объекте»
+    (sp>0?[[o[0],o[1],o[2]*sp/100]]:[]).concat([['sborka_obj','Сборка на объекте',o[2]*(100-sp)/100]]));
+  return ops.concat((line.extra||[]).map(x=>[x.id,x.name,x.pct||0,true]));
 }
+const isMontOp = c => c==='mont'||c==='sborka_obj';   // работы на объекте — не в цеховом сроке
 function lineRate(order, line){ // ₾ за 100% строки
   if(line.sys==='m2'){ const c=CAT_M2[line.cat]; return ((c.rates?(c.rates[line.kind]||c.rates['Кухни, комоды']):c.rate)||0)*line.qty; }
   return line.base;
@@ -680,7 +687,7 @@ function opAmount(order,line,op){ return lineRate(order,line)*(op[2]||0)/100; }
 function orderStats(order){
   let fund=0, done=0, cehFund=0, cehDone=0;
   order.lines.forEach(l=>opsOf(order,l).forEach(op=>{
-    const a=opAmount(order,l,op), p=(l.prog[op[0]]||0)/100, mont=op[0]==='mont';
+    const a=opAmount(order,l,op), p=(l.prog[op[0]]||0)/100, mont=isMontOp(op[0]);
     fund+=a; done+=a*p; if(!mont){cehFund+=a; cehDone+=a*p;}
   }));
   const plan = order.cehDays ? order.cehElapsed/order.cehDays*100 : 0, fact = cehFund?cehDone/cehFund*100:0;
@@ -773,7 +780,7 @@ function vToday(){
       <div class="s num">₾ · ${fmt(h)} ч × ${RATE_H}</div>
     </div>`;
   html+=vAllWork();
-  const isMountOp=k=>/\.(kompl|mont)$/.test(k);
+  const isMountOp=k=>/\.(kompl|mont|sborka_obj)$/.test(k);
   const taskRows=list=>list.length?`<div class="tlist">${list.map(({o,t},ti)=>{ const {line,op}=findOp(o,t.op);
       const head = ti===0||list[ti-1].o!==o ? `<div class="tgh ${ti?'sep':''}"><span class="won">${oName(o)} ${oCode(o)}</span></div>` : '';
       return head+taskRow(o,line,op,t,false); }).join('')}</div>`:UI.note('Задач нет. Возьми работу в «Все работы».');
@@ -981,9 +988,14 @@ function vDoneOrders(){ if(!DONE.length) return '';
     Object.entries(sh).forEach(([p,k])=>{ (by[oid]=by[oid]||{})[p]=(by[oid][p]||0)+a*k; }); });
   const paidTo=p=>PAYS.filter(x=>x.who===p&&x.st==='выдано').reduce((a,x)=>a+x.amt,0);
   const list=[...DONE].sort((a,b)=>a.date<b.date?1:-1).map(d=>{ const ppl=Object.entries(by[d.id]||{}).sort((a,b)=>b[1]-a[1]), fund=ppl.reduce((a,x)=>a+x[1],0);
-    const rows=ppl.map(([p,v])=>UI.row(esc(PEOPLE[p]||p), '', `<b class="num">${fmt0(v)} ₾</b>`)).join('');
-    return UI.fold(`<b>${esc(d.client)}</b> · ${esc(d.product)}`, `<div class="small mute num" style="margin-bottom:4px">${esc(d.id)} · сдан ${d.date?dShort(d.date):'—'} · стоимость ${fmt0(d.cost)} ₾ · фонд ${fmt0(fund)} ₾${d.cost?` (${fmt(fund/d.cost*100)}%)`:''}</div>${rows?UI.list(rows):UI.note('Начислений нет')}`, false, `<span class="num small">${d.date?dShort(d.date):''}</span>`); }).join('');
-  return UI.sec('', UI.fold('Выполненные', list+UI.note('Выплачено и остаток к выплате — в «Людях».'), false, `<span class="num">${DONE.length}</span>`)); }
+    const rows=ppl.map(([p,v])=>{ const paid=PAYS.filter(x=>x.who===p&&x.st==='выдано'&&x.order===d.id).reduce((a,x)=>a+x.amt,0), rem=v-paid, tp=money(p).toPay, k=d.id+'|'+p;
+      const due=Math.round(Math.min(rem,tp)), st=rem<=0.5?chip('ok','выплачено'):tp<=0.5?chip('n','покрыто авансом'):'';
+      const act=S.dpay===k+'|pay'?`<div class="kb dpf"><input id="dp-a" type="number" min="1" inputmode="numeric" value="${due}"><button class="btn small" data-act="dPay" data-o="${esc(d.id)}" data-who="${esc(p)}">Выдано</button><button class="btn small undo" data-act="dOpen" data-k="">✕</button></div>`
+        :S.dpay===k+'|bonus'?`<div class="kb dpf"><input id="dp-b" type="number" min="1" inputmode="numeric" placeholder="₾"><button class="btn small" data-act="dBonus" data-o="${esc(d.id)}" data-who="${esc(p)}">Премия</button><button class="btn small undo" data-act="dOpen" data-k="">✕</button></div>`
+        :`<div class="kb">${st||`<button class="btn small" data-act="dOpen" data-k="${esc(k)}|pay">Выплатить ${fmt0(due)} ₾</button>`}<button class="btn small ghost" data-act="dOpen" data-k="${esc(k)}|bonus">+ премия</button></div>`;
+      return UI.row(esc(PEOPLE[p]||p), `${paid?'выплачено '+fmt0(paid)+' ₾':''}${paid&&rem>0.5?' · остаток '+fmt0(rem)+' ₾':''}`+act, `<b class="num">${fmt0(v)} ₾</b>`); }).join('');
+    return UI.fold(`<b>${esc(d.client)}</b> · ${esc(d.product)}`, `<div class="small mute num" style="margin-bottom:4px">${esc(d.id)} · сдан ${d.date?dShort(d.date):'—'} · стоимость ${fmt0(d.cost)} ₾ · фонд ${fmt0(fund)} ₾${d.cost?` (${fmt(fund/d.cost*100)}%)`:''}</div>${rows?UI.list(rows):UI.note('Начислений нет')}`, S.doneOrd===d.id, `<span class="num small">${d.date?dShort(d.date):''}</span>`); }).join('');
+  return UI.sec('', UI.fold('Выполненные', list+UI.note('Выплата по заказу учитывает авансы человека: если они уже покрывают заработанное — «покрыто авансом». Итоги по людям — в «Людях».'), S.doneOpen, `<span class="num">${DONE.length}</span>`)); }
 function vOrders(){ const mine=ORDERS.filter(o=>o.team.includes(ME)); return UI.h('Мои заказы')+(mine.length?`<div class="olist">${mine.sort(byShip).map(o=>orderCard(o,false)).join('')}</div>`:UI.sec('',UI.note('Заказов нет'))); }
 
 /* ============ BLOCK: ROUTER ============ */
@@ -1013,7 +1025,7 @@ const dayDiff = s => Math.round((fromIso(s)-TODAY)/864e5);
 const WD=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'], MON=['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
 const dShort = s => { const d=fromIso(s); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0'); };
 // часы заказа: выполнено / всего (по нормам, ₾ / ставка), без монтажа для цеха
-function orderHours(o, scope){ let tot=0, done=0; o.lines.forEach(l=>opsOf(o,l).forEach(op=>{ if(scope==='ceh'&&op[0]==='mont') return; const h=opAmount(o,l,op)/RATE_H; tot+=h; done+=h*(l.prog[op[0]]||0)/100; })); return {tot, done}; }
+function orderHours(o, scope){ let tot=0, done=0; o.lines.forEach(l=>opsOf(o,l).forEach(op=>{ if(scope==='ceh'&&isMontOp(op[0])) return; const h=opAmount(o,l,op)/RATE_H; tot+=h; done+=h*(l.prog[op[0]]||0)/100; })); return {tot, done}; }
 const hoursFrac = (o, scope) => { const h=orderHours(o, scope); return `<span class="num">${fmt0(h.done)} / ${fmt0(h.tot)} ч</span>`; };
 const dlLine = (need, date, o, scope) => o ? hoursFrac(o, scope) : `работа ${fmt0(need)} ч`;
 const dLabel = s => { const d=fromIso(s); return `${WD[d.getDay()]}, ${d.getDate()} ${MON[d.getMonth()]}`; };
@@ -1095,7 +1107,7 @@ function vCal(){
       `<div class="grid2"><label for="k-bulk">Время выхода<input id="k-bulk" type="time" value="09:00"></label><button class="btn ghost" data-act="bulk" style="align-self:end">Заполнить</button></div>`)+
     UI.fold('Мои дедлайны', (all?UI.list(all):UI.note('Нет дедлайнов'))+UI.note(`Ставит руководитель. «Работа» — оставшиеся операции по нормам (₾ / ${RATE_H}). «Запас» или «дефицит» — часы людей по их календарю (${PLAN.hoursPerDay} ч в день выхода) минус работа; часы раздаются заказам по очереди сроков.`), false, Object.values(dls).flat().length));
 }
-function needHours(o, scope){ let left=0; o.lines.forEach(l=>opsOf(o,l).forEach(op=>{ if(scope==='ceh'&&op[0]==='mont') return;
+function needHours(o, scope){ let left=0; o.lines.forEach(l=>opsOf(o,l).forEach(op=>{ if(scope==='ceh'&&isMontOp(op[0])) return;
   left+=opAmount(o,l,op)*(1-(l.prog[op[0]]||0)/100); })); return left/RATE_H; }
 /* ---- распределение часов команды между заказами: раньше срок — раньше получает часы (жёсткий срок — вперёд) ---- */
 let ALLOC={};
@@ -1198,7 +1210,8 @@ function vMoneyTile(){ const m=money(ME);
 function vPayBoss(p){ const m=money(p), open=S.payOpen===p;
   const line=`<div class="small" style="margin:6px 0 2px">К выплате <b class="num">${fmt0(m.toPay)} ₾</b> · в работе <span class="num">${fmt0(m.open)} ₾</span>${m.adv?` · аванс в счёт будущих <span class="num">${fmt0(m.adv)} ₾</span>`:''}</div>`;
   const mode=`<button class="btn small ghost" data-act="payMode" data-who="${esc(p)}">Лимит аванса: ${m.mode==='free'?'без лимита':'до заработанного'}</button>`;
-  const form=open?`<div class="pbox"><div class="grid2"><label for="pay-a">Сумма, ₾<input id="pay-a" type="number" min="1" step="10" inputmode="numeric" value="${Math.round(m.toPay)||''}"></label>
+  const form=`<div class="grid2">${mode}<span class="small mute" style="align-self:center">выплаты — в выполненных заказах</span></div>`;
+  const _old=open?`<div class="pbox"><div class="grid2"><label for="pay-a">Сумма, ₾<input id="pay-a" type="number" min="1" step="10" inputmode="numeric" value="${Math.round(m.toPay)||''}"></label>
       <label for="pay-t">Тип<select id="pay-t"><option value="зарплата">зарплата</option><option value="аванс">аванс</option></select></label></div>
       <label for="pay-n">Комментарий<input id="pay-n" type="text" placeholder="необязательно"></label>
       <div class="grid2"><button class="btn small ghost" data-act="payOpen" data-who="${esc(p)}">Отмена</button><button class="btn small" data-act="payAdd" data-who="${esc(p)}">Выдано</button></div></div>`:
@@ -1259,6 +1272,7 @@ function vCompose(o){
   const hasPris=o.lines.some(l=>opsOf(o,l).some(op=>op[0]==='pris'));
   return UI.fold('Состав заказа', `${lines}
     <datalist id="opnames">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+    <label class="cop" for="sp-${oi}"><span>Сборка в цеху, % <span class="small mute">остаток — «Сборка на объекте»${String(o.shopPctRaw)===''?` · по умолчанию ${P.shopDefault??50}%`:''}</span></span><input id="sp-${oi}" type="number" min="0" max="100" step="5" inputmode="numeric" data-act="shopPct" data-k="x" data-o="${oi}" value="${o.shopPct}" style="max-width:80px"></label>
     <label class="cop" for="ms-${oi}"><span>Мастер заказа</span><select id="ms-${oi}" data-act="master" data-k="x" data-o="${oi}" style="max-width:150px"><option value="">—</option>${WORKERS.map(w=>`<option value="${w}" ${o.master===w?'selected':''}>${esc(PEOPLE[w])}</option>`).join('')}</select></label>
     ${prisBox(o,oi)}
     ${free.length?`<div class="cadd"><select id="ag-${oi}">${free.map(f=>`<option value="${f.mc.code}" ${f.c.incomplete?'disabled':''}>${esc(f.c.name)}${f.c.incomplete?' — нет данных':''}</option>`).join('')}</select><input id="agq-${oi}" type="number" min="0" step="0.1" placeholder="м² / ₾"><button class="btn small" data-act="grpadd" data-o="${oi}">+ материал</button></div>`:''}
@@ -1303,7 +1317,7 @@ function vKitMount(o,oi,l,op,self){
     <details class="fold"><summary>${svgChev}<span>Что взяли (список комплектовки)</span><span class="fm num">${kt.packed}/${kt.n}</span></summary><div class="fb">${vKitList(o,oi,true)}</div></details>
     <div class="wgh" style="padding-top:8px">Заметки монтажа · видят все участники</div>${vNotes(o,oi,true)}${foot}</div>`;
 }
-function mountOrders(){ return ORDERS.filter(o=>o.tasks.some(t=>/\.(kompl|mont)$/.test(t.op))); }
+function mountOrders(){ return ORDERS.filter(o=>o.tasks.some(t=>/\.(kompl|mont|sborka_obj)$/.test(t.op))); }
 function vMountTab(){
   const list=mountOrders();
   if(!list.length) return UI.h('Монтаж')+UI.sec('', UI.note('Задач по подготовке и монтажу нет. Взять их можно в «Все работы» на экране «Сегодня».'));
@@ -1349,7 +1363,7 @@ function urgency(o){ const need=needHours(o,'ceh'), dl=DEADLINES.find(d=>d.order
   const st=dlStatus(dl); let days=0; for(let i=0;i<=st.n;i++) if(isWorkday(addD(TODAY,i))) days++;
   const rank = need<0.05 ? 9e8 : st.have/need - (o.hard?0.001:0);
   return {need, have:st.have, days, n:st.n, rank, cls:need<0.05?'ok':st.cls, txt:need<0.05?'цех готов':st.n<0?'срок прошёл':st.txt}; }
-const PRIS_AFTER=['sborka','kompl','mont'];   // допущение: сборка, комплектовка и монтаж — после присадки
+const PRIS_AFTER=['sborka','sborka_obj','kompl','mont'];   // допущение: сборка, комплектовка и монтаж — после присадки
 function vAllWork(){
   const mine=ORDERS.filter(o=>o.team.includes(ME)).map(o=>({o,u:urgency(o)})).sort((a,b)=>a.u.rank-b.u.rank);
   let free=0, totalH=0, myH=0;
@@ -1428,6 +1442,13 @@ document.addEventListener('click',e=>{
   if(a==='payMode'){ const w=b.dataset.who, nm=(PAYMODE[w]||'earned')==='free'?'earned':'free'; PAYMODE[w]=nm; api('payMode',{who:w, mode:nm}).catch(fail); toast('Лимит аванса: '+(nm==='free'?'без лимита':'до заработанного')); }
   if(a==='orderClose'){ const o=ORDERS[+b.dataset.o]; if(S.closeAsk!==o.id){ S.closeAsk=o.id; S.openOrd=o.id; render(); return; }
     S.closeAsk=null; CLOSED.add(o.id); api('orderSet',{order:o.id, col:12, value:'сдан'}).then(()=>{ toast('Заказ закрыт — заработанное открыто к выплате'); reload(); }).catch(fail); return; }
+  if(a==='dOpen'){ S.dpay=b.dataset.k||null; S.doneOpen=true; if(b.dataset.k) S.doneOrd=b.dataset.k.split('|')[0]; }
+  if(a==='dPay'){ const who=b.dataset.who, oid=b.dataset.o, v=Math.round(+document.getElementById('dp-a').value||0); if(!(v>0)){ toast('Впиши сумму'); return; }
+    const x={at:iso(TODAY)+' '+hm(nowMin()), who, type:'зарплата', amt:v, st:'выдано', note:'', order:oid, row:0}; PAYS.push(x); S.dpay=null; S.doneOpen=true; S.doneOrd=oid;
+    api('payAdd',{who, type:'зарплата', amount:v, order:oid}).then(r=>{ x.row=r.row; }).catch(fail); toast(`Выплачено ${fmt0(v)} ₾ — ${PEOPLE[who]||who}`); }
+  if(a==='dBonus'){ const who=b.dataset.who, oid=b.dataset.o, v=Math.round(+document.getElementById('dp-b').value||0); if(!(v>0)){ toast('Впиши сумму премии'); return; }
+    MARKS.push([iso(TODAY)+' '+hm(nowMin()), who, oid, 'korpus', 'premia', 'премия', 100, v, 0, '', '', '', 0]); S.dpay=null; S.doneOpen=true; S.doneOrd=oid;
+    api('bonusAdd',{who, order:oid, amount:v}).catch(fail); toast(`Премия ${fmt0(v)} ₾ — ${PEOPLE[who]||who}`); }
   if(a==='skOpen'){ S.skills=true; window.scrollTo(0,0); }
   if(a==='skClose'){ S.skills=false; }
   if(a==='skPick'){ const p=skPick().slice(), w=b.dataset.who, i=p.indexOf(w); if(i>=0) p.splice(i,1); else { if(p.length>=5){ toast('Не больше 5 человек — сними кого-нибудь'); return; } p.push(w); }
@@ -1494,6 +1515,8 @@ document.addEventListener('change',e=>{
     const off=o.lines.flatMap(x=>{ const s=(catL(x)[x.cat].ops||[]).map(y=>y[0]); return x.only?s.filter(y=>!x.only.includes(y)).map(y=>x.cat+'.'+y):[]; });
     const keep=(o.offRaw||[]).filter(x=>!o.lines.some(l=>l.cat===x.split('.')[0])); o.offRaw=keep.concat(off);
     api('orderSet',{order:o.id, col:22, value:o.offRaw.join(', ')}).catch(fail); }
+  if(el.dataset.act==='shopPct'){ const o=ORDERS[+el.dataset.o], v=Math.max(0,Math.min(100,Math.round(+el.value||0))); el.value=v; o.shopPct=v; o.shopPctRaw=String(v); S.openCompose=o.id;
+    api('orderSet',{order:o.id, col:26, value:v}).then(()=>{ toast(v>=100?'Сборка — вся в цеху':`В цеху ${v}%, на объекте ${100-v}%`); render(); }).catch(fail); }
   if(el.dataset.act==='master'){ const o=ORDERS[+el.dataset.o]; o.master=el.value; S.openCompose=o.id; api('orderSet',{order:o.id, col:25, value:el.value}).then(()=>toast('Мастер сохранён')).catch(fail); }
   if(el.dataset.act==='prisBonus'){ const o=ORDERS[+el.dataset.o], l=o.lines.find(x=>x.cat==='korpus'), op=opsOf(o,l).find(x=>x[0]==='pris'), free=opAmount(o,l,op)*(100-P.prisAuto)/100;
     let v=Math.max(0,Math.round(+el.value||0)); if(v>free){ v=Math.floor(free); toast('Больше свободного остатка нельзя: '+fmt0(free)+' ₾'); }
@@ -1546,7 +1569,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793010069';
+const BUILD='1793027138';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
