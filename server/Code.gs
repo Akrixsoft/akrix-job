@@ -98,34 +98,38 @@ const API = {
       orderHead: o.getRange(1, 1, 1, 25).getValues()[0],
       orders: read_(SH.orders, 2, 25),
       extras: read_(SH.extras, 2, 5), modules: read_(SH.modules, 2, 5), tasks: read_(SH.tasks, 2, 5), lib: read_(SH.lib, 2, 2),
-      shifts: read_(SH.shifts, 2, 10), marks: read_(SH.marks, 2, 12).filter(r => r[11] !== 'да'),
+      shifts: read_(SH.shifts, 2, 12), marks: read_(SH.marks, 2, 12).filter(r => r[11] !== 'да'),
       plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [], time: sh_(SH.time) ? read_(SH.time, 2, 7) : [], skills: skills_() };
   },
   /* ---- смена ---- */
-  shiftStart(me, b){
-    const t = today_(), rows = read_(SH.shifts, 2, 10);
-    if (rows.some(r => String(r[0]).slice(0, 10) === t && String(r[1]) === me.id && !r[3])) throw new Error('Смена уже начата');
-    const plan = latestPlan_(me.id, t), at = hm_();
+  shiftStart(me, b){   // смена = одна строка в день; ушёл и вернулся — новый отрезок в колонке L «Отрезки»
+    const t = today_(), rows = read_(SH.shifts, 2, 12), at = hm_();
+    const day = rows.filter(r => String(r[0]).slice(0, 10) === t && String(r[1]) === me.id).pop();
+    if (day && !day[3]) throw new Error('Смена уже начата');
+    if (day){ const g = segs_(day).concat([{ s: at, e: '' }]); const s = sh_(SH.shifts);
+      s.getRange(day[12], 4).setValue(''); s.getRange(day[12], 12).setValue("'" + segStr_(g)); return { at, late: '', again: true }; }
+    const plan = latestPlan_(me.id, t);
     let late = ''; if (plan && plan.at && !plan.off){ const d = toMin_(at) - toMin_(plan.at); late = d > 0 ? d : 0; }
-    append_(SH.shifts, [t, me.id, "'" + at, '', '', plan ? (plan.off ? 'не выходил' : "'" + plan.at) : 'не указан', late, b.geo || '', '', '']);
+    append_(SH.shifts, [t, me.id, "'" + at, '', '', plan ? (plan.off ? 'не выходил' : "'" + plan.at) : 'не указан', late, b.geo || '', '', '', '', "'" + at + '–']);
     return { at, late, plan };
   },
   shiftEnd(me, b){ // b.date — закрыть смену прошлого дня с указанным временем ухода b.at
-    const t = b.date || today_(), rows = read_(SH.shifts, 2, 10), r = rows.reverse().find(x => String(x[0]).slice(0, 10) === t && String(x[1]) === me.id && !x[3]);
+    const t = b.date || today_(), rows = read_(SH.shifts, 2, 12), r = rows.reverse().find(x => String(x[0]).slice(0, 10) === t && String(x[1]) === me.id && !x[3]);
     if (!r) throw new Error('Открытой смены нет');
     if (t !== today_() && !/^\d\d:\d\d$/.test(String(b.at || ''))) throw new Error('Укажи, во сколько ушёл');
-    const at = t !== today_() ? b.at : hm_(); let mins = toMin_(at) - toMin_(r[2]); if (mins < 0) mins += 1440;   // ушёл после полуночи
-    const h = Math.round(mins / 60 * 100) / 100;
-    stopWork_(me.id); const s = sh_(SH.shifts); s.getRange(r[10], 4, 1, 2).setValues([["'" + at, h]]); s.getRange(r[10], 9, 1, 2).setValues([[b.geo || '', b.misc || '']]);
+    const at = t !== today_() ? b.at : hm_(), g = segs_(r); g[g.length - 1].e = at;
+    const h = Math.round(segMin_(g) / 60 * 100) / 100;   // сумма отрезков, перерывы не считаются
+    stopWork_(me.id); const s = sh_(SH.shifts); s.getRange(r[12], 4, 1, 2).setValues([["'" + at, h]]); s.getRange(r[12], 9, 1, 2).setValues([[b.geo || '', b.misc || '']]);
+    s.getRange(r[12], 12).setValue("'" + segStr_(g));
     return { at, hours: h };
   },
   /* ---- счётчик времени: одна активная операция на человека ---- */
   workStart(me, b){ stopWork_(me.id); append_(SH.time, [now_(), me.id, b.order, b.op, '', '']); return {}; },
   workStop(me){ stopWork_(me.id); return {}; },
   timeAdd(me, b){ const m = Math.round(+b.minutes || 0); if (!(m > 0)) throw new Error('Впиши время');
-    const t = today_(), sh = read_(SH.shifts, 2, 10).filter(r => String(r[0]).slice(0, 10) === t && String(r[1]) === me.id).pop();
-    if (!sh) throw new Error('Ручное время — только в свою смену сегодня');
-    const shiftMin = (sh[3] ? toMin_(sh[3]) : toMin_(hm_())) - toMin_(sh[2]), nowMs = Date.now();
+    const t = today_(), days = read_(SH.shifts, 2, 12).filter(r => String(r[0]).slice(0, 10) === t && String(r[1]) === me.id);
+    if (!days.length) throw new Error('Ручное время — только в свою смену сегодня');
+    const shiftMin = days.reduce((a, d) => a + segMin_(segs_(d), hm_()), 0), nowMs = Date.now();   // все отрезки смены за день
     const used = read_(SH.time, 2, 6).filter(r => String(r[1]) === me.id && String(r[0]).slice(0, 10) === t).reduce((a, r) => a + (r[4] ? +r[5] || 0 : (nowMs - utcMs_(r[0])) / 6e4), 0);
     if (m > shiftMin - used + 1) throw new Error('Можно добавить не больше ' + Math.max(0, Math.floor(shiftMin - used)) + ' мин — столько осталось от твоей смены');
     append_(SH.time, [now_(), me.id, b.order, b.op, now_(), m, 'вручную']); return {}; },
@@ -206,6 +210,14 @@ const API = {
     if (c < 0){ const st = read_(SH.staff, 2, 2).find(x => String(x[0]) === String(b.who)); if (!st) throw new Error('Нет сотрудника ' + b.who);
       c = k.ids.length; s.getRange(1, c + 3).setValue(st[1] + ' ' + b.who); }
     const cell = s.getRange(r.row, c + 3); cell.setValue(lv); cell.setBackground(lv === '' ? '#fcf2cc' : '#d1e6fa'); return {}; }),
+  /* ---- план на завтра: задачи на день (лист «Задачи», пометка «план», срок = день плана) ---- */
+  planTask(me, b){ const d = String(b.date || ''); if (!/^\d{4}-\d\d-\d\d$/.test(d) || d <= today_()) throw new Error('План — на завтра и дальше');
+    const who = b.who && me.boss ? String(b.who) : me.id;
+    if (read_(SH.tasks, 2, 5).some(r => String(r[0]).trim() === String(b.order) && String(r[1]).trim() === b.op && String(r[2]).trim() === who && String(r[3]).slice(0, 10) === d)) return {};
+    return { row: append_(SH.tasks, ["'" + b.order, b.op, who, d, 'план ' + me.id]) }; },
+  planUntask(me, b){ const s = sh_(SH.tasks), r = s.getRange(b.row, 1, 1, 5).getValues()[0];
+    if (!me.boss && !(String(r[2]).trim() === me.id && String(r[4]).indexOf('план') === 0)) throw new Error('Эту задачу поставил руководитель — снять может он');
+    s.getRange(b.row, 1, 1, 5).clearContent(); return {}; },
   extraAdd: bossOnly_(function(me, b){ return { row: append_(SH.extras, [b.order, b.grp, b.name, b.pct === null || b.pct === '' ? '' : +b.pct, '']) }; }),
   extraDel: bossOnly_(function(me, b){ sh_(SH.extras).getRange(b.row, 1, 1, 5).clearContent(); return {}; })
 };
@@ -219,6 +231,12 @@ function skills_(){ const s = sh_(SH.skills); if (!s) return null;
   const rows = []; for (let i = 1; i < v.length; i++){ const code = String(v[i][1]).trim();
     if (/^[a-z_]+$/.test(code)) rows.push({ name: String(v[i][0]), code, vals: v[i].slice(2).map(x => x === '' || x === null ? '' : +x), row: i + 1 }); }
   return { ids, rows }; }
+// отрезки смены: колонка L «08:10–12:00, 13:00–»; у старых строк — по «Пришёл/Ушёл»
+function segs_(r){ const L = String(r[11] || '').trim();
+  if (L) return L.split(',').map(x => { const p = x.trim().split('–'); return { s: p[0], e: p[1] || '' }; });
+  return [{ s: String(r[2]), e: r[3] ? String(r[3]) : '' }]; }
+function segStr_(g){ return g.map(x => x.s + '–' + x.e).join(', '); }
+function segMin_(g, now){ return g.reduce((a, x) => { const e = x.e || now; if (!e) return a; let m = toMin_(e) - toMin_(x.s); if (m < 0) m += 1440; return a + m; }, 0); }
 function toMin_(s){ const p = String(s).split(':').map(Number); return p[0] * 60 + (p[1] || 0); }
 function latestPlan_(who, date){
   let best = null; read_(SH.plans, 2, 6).forEach(r => { if (String(r[0]).slice(0, 10) === date && String(r[1]) === who) best = r; });
@@ -259,7 +277,7 @@ function isWorkday_(iso){ const off = params_().dayOff.toLowerCase(); return off
 /* напоминание: план на завтра не указан */
 function remindPlan(){
   const d = addDays_(today_(), 1), to = params_().planTo; if (!isWorkday_(d)) return;
-  staffTg_().filter(x => !x.boss).forEach(x => { if (!latestPlan_(x.id, d)) send_(x.tg, 'План на завтра не указан. Во сколько выходишь? Указать до ' + to + '.', 'Указать план'); });
+  staffTg_().filter(x => !x.boss).forEach(x => { if (!latestPlan_(x.id, d)) send_(x.tg, 'План на завтра не указан: во сколько выходишь и какие задачи берёшь. Указать до ' + to + '.', 'Указать план'); });
 }
 /* напоминание вечером: смена открыта — одно сообщение, «работаю дальше» = вечерняя смена, больше не трогаем */
 function remindClose(){
