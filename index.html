@@ -491,6 +491,31 @@ body{padding-top:calc(6px + var(--tg-safe-area-inset-top,0px) + var(--tg-content
 .tbadge{position:absolute;top:2px;left:calc(50% + 6px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font-size:10.5px;font-weight:700;font-style:normal;line-height:17px;text-align:center;box-shadow:0 0 0 2px var(--tile)}
 .seg button{position:relative}
 .seg button.hasdot::after{content:"";position:absolute;top:4px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--bad)}
+
+/* ---- доли участников ---- */
+.shbox{margin-top:6px;padding:8px;border-radius:10px;background:var(--bg)}
+.shh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.shpre{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.shr{display:flex;align-items:center;gap:6px;padding:3px 0}
+.shr .tpn{flex:1;min-width:0}
+.shr b{min-width:44px;text-align:center}
+.shr .btn{min-height:28px;padding:2px 8px}
+.lvl{font-size:10px;color:var(--mute);font-weight:400}
+.linkbtn{background:none;border:0;padding:0;color:var(--acc-text);text-decoration:underline;font:inherit;cursor:pointer}
+
+/* ---- мой рост ---- */
+.gbars{margin:4px 0 6px}
+.gplot{position:relative;height:64px;display:flex;gap:8px;align-items:flex-end;border-bottom:1px solid var(--line)}
+.gb{flex:1;height:100%;display:flex;align-items:flex-end;justify-content:center}
+.gb i{display:block;width:100%;max-width:44px;border-radius:6px 6px 2px 2px;background:var(--line);min-height:2px}
+.gb i.ok{background:var(--ok)} .gb i.warn{background:var(--acc)} .gb i.low{background:var(--bad)}
+.gnorm{position:absolute;left:0;right:0;border-top:1.5px dashed var(--ink);opacity:.35;z-index:1}
+.glab{display:flex;gap:8px;margin-top:4px}
+.glab div{flex:1;display:flex;flex-direction:column;align-items:center;font-size:12px}
+.glab em{font-size:10px;color:var(--mute);font-style:normal}
+.gskl{display:flex;flex-direction:column;gap:4px}
+.gsk{display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.dots{display:flex;gap:3px} .dots i{width:9px;height:9px;border-radius:50%;background:var(--line)} .dots i.on{background:var(--acc)}
 .who{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
 </style></head><body>
 <div class="app">
@@ -544,7 +569,7 @@ function payParts(amount, op, pct){
 }
 
 /* ============ BLOCK: DATA (строится из таблицы в build()) ============ */
-let TIMEJ=[], FACT={}, PART={}, BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[], SKILLS=null, PLANS=[], PLANNED={}, PAYS=[], PAYMODE={}, CLOSED=new Set(), ONAME={}, DONE=[];
+let TIMEJ=[], FACT={}, PART={}, BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[], SKILLS=null, PLANS=[], PLANNED={}, PAYS=[], PAYMODE={}, CLOSED=new Set(), ONAME={}, DONE=[], OPSKILL={}, SHARE={}, SKLOG=[];
 let TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const SEC={furn:'Фурнитура',tools:'Инструменты',other:'Прочее'}, SEC_BACK={'Фурнитура':'furn','Инструменты':'tools','Прочее':'other'};
 const num = v => typeof v==='number' ? v : parseFloat(String(v).replace(/\s/g,'').replace(',','.'));
@@ -556,15 +581,15 @@ function build(D){
   TODAY=fromIso(D.today);
   PEOPLE={}; ROLE={}; D.staff.forEach(s=>{ PEOPLE[s.id]=s.name||s.id; ROLE[s.id]=s.role; });
   WORKERS=D.staff.filter(s=>s.active).map(s=>s.id);
-  SKILLS=D.skills||null;
+  SKILLS=D.skills||null; SKLOG=(D.skillLog||[]).map(r=>({at:String(r[0]), who:String(r[1]), code:String(r[2]), from:r[3]===''?null:+r[3], to:r[4]===''?null:+r[4]}));
   // деньги: закрытые заказы, выплаты, режим лимита аванса
   CLOSED=new Set(); ONAME={}; DONE=[]; D.orders.forEach(r=>{ const id=String(r[0]).trim(); if(!id||id.startsWith('пример')) return; ONAME[id]=String(r[1])+' · '+String(r[2]);
     if(String(r[11]).trim()==='сдан'){ CLOSED.add(id); DONE.push({id, client:String(r[1]), product:String(r[2]), cost:num(r[5])||0, date:d10(r[9])||d10(r[7])}); } });
   PAYMODE={}; D.staff.forEach(s=>{ PAYMODE[s.id]=s.payMode||'earned'; });
   PAYS=(D.pays||[]).map(r=>({at:String(r[0]), who:String(r[1]), type:String(r[2]), amt:num(r[3])||0, st:String(r[4]), by:String(r[5]||''), dec:String(r[6]||''), note:String(r[7]||''), order:String(r[8]||'').trim(), row:r[9]}));   // руководитель тоже работает: в командах, напарниках, учёте
   // каталог операций
-  CAT_M2={}; CAT_PCT={};
-  D.ops.forEach(r=>{ const [sys,grp,gname,rate,code,name,share]=r; if(!grp||!code) return;
+  CAT_M2={}; CAT_PCT={}; OPSKILL={};
+  D.ops.forEach(r=>{ const [sys,grp,gname,rate,code,name,share]=r; if(!grp||!code) return; OPSKILL[grp+'.'+code]=String(r[10]??'').trim();
     const C = sys==='%'?CAT_PCT:CAT_M2;
     if(!C[grp]){ C[grp]={name:String(gname).replace(' (система %)',''), ops:[]};
       if(C===CAT_M2){ if(grp==='korpus') C[grp].rates={'Кухни, комоды':num(rate),'Прочее':P.korpusOther||25}; else C[grp].rate=rate===''?null:num(rate); } }
@@ -600,7 +625,9 @@ function build(D){
   // участники операций: назначенные + взявшие + подключённые (нужно до отметок — для деления суммы)
   PART={}; const addP=(oid,op,who)=>{ const o=ord(oid), id=o?o.id:String(oid).trim(); if(id&&op&&who) (PART[id+'|'+op]=PART[id+'|'+op]||new Set()).add(String(who).trim()); };   // и для закрытых заказов — для расчёта долей
   D.tasks.forEach(r=>{ if(String(r[4]||'').indexOf('план')===0&&d10(r[3])>D.today) return; addP(r[0],String(r[1]).trim(),String(r[2]).trim()); });   // план на будущий день — ещё не участник
-  { const last={}; D.takes.forEach(r=>{ last[String(r[2]).trim()+'|'+r[3]+'|'+r[1]]=String(r[4]); });
+  SHARE={}; D.takes.forEach(r=>{ const a=String(r[4]); if(a.indexOf('доли ')!==0) return; const k=String(r[2]).trim()+'|'+String(r[3]).trim();   // заданные доли: последняя запись
+    if(a==='доли сброс'){ delete SHARE[k]; return; } const m={}; a.slice(5).split(',').forEach(x=>{ const [p,v]=x.split(':'); if(p&&+v>0) m[p.trim()]=+v; }); SHARE[k]=m; });
+  { const last={}; D.takes.forEach(r=>{ if(String(r[4]).indexOf('доли ')===0) return; last[String(r[2]).trim()+'|'+r[3]+'|'+r[1]]=String(r[4]); });
     Object.entries(last).forEach(([k,act])=>{ const [oid,op,who]=k.split('|'); if(act==='взял'||act.startsWith('подключ')) addP(oid,op,who); }); }
   // отметки → прогресс и «сделано сегодня»
   MARKS=D.marks; S.todayLines=[]; S.todayEarned=0;
@@ -625,7 +652,7 @@ function build(D){
       if(due>D.today){ if(!PLANNED[o.id+'|'+op]) PLANNED[o.id+'|'+op]={who, date:due}; return; } }
     if(who===ME){ if(!o.tasks.some(t=>t.op===op)) o.tasks.push({op, dueDate:due, due:r[3]?dayDiff(due):null}); }
     else if(who) TAKEN[o.id+'|'+op]=who; });
-  const tk={}; D.takes.forEach(r=>{ tk[String(r[2]).trim()+'|'+r[3]+'|'+r[1]]=String(r[4]); });
+  const tk={}; D.takes.forEach(r=>{ if(String(r[4]).indexOf('доли ')===0) return; tk[String(r[2]).trim()+'|'+r[3]+'|'+r[1]]=String(r[4]); });
   Object.entries(tk).forEach(([k,act])=>{ const joined=act.startsWith('подключ'); if(act!=='взял'&&!joined) return; const [oid,op,who]=k.split('|'), o=ord(oid); if(!o) return;
     if(who===ME){ if(!o.tasks.some(t=>t.op===op)) o.tasks.push({op, self:!joined, joined, due:null}); } else if(!joined&&!TAKEN[o.id+'|'+op]) TAKEN[o.id+'|'+op]=who; });
   ORDERS.forEach(o=>{ o.tasks=o.tasks.filter(t=>{ try{ const {op}=findOp(o,t.op); return !!op; }catch(e){ return false; } }); });
@@ -658,10 +685,20 @@ function build(D){
 /* ============ BLOCK: ФАКТ ВРЕМЕНИ (счётчик операции) ============ */
 // доля человека в сумме операции: по его времени на этой операции; нет времени — всё отметившему (старые отметки с напарником — 50/50)
 function opMinutes(oid, key){ const m={}; TIMEJ.forEach(t=>{ if(t.order===oid&&t.op===key){ const v=t.end?t.min:Math.max(0,(Date.now()-tsMs(t.start))/6e4); m[t.who]=(m[t.who]||0)+v; } }); return m; }
-function shares(oid, key, marker, partner, mode){ const m=opMinutes(oid,key), tot=Object.values(m).reduce((a,b)=>a+b,0), r={};
-  if(tot>0){ Object.entries(m).forEach(([p,v])=>r[p]=v/tot); return r; }
-  const ppl=new Set(PART[oid+'|'+key]||[]); if(marker&&mode!=='boss') ppl.add(marker); if(partner) ppl.add(partner); if(!ppl.size&&marker) ppl.add(marker);
-  [...ppl].forEach(p=>r[p]=1/ppl.size); return r; }
+/* ---- навыки → доли: уровень 0–1 (ученик) получает по умолчанию 30%, не больше 40%; заданные вручную доли важнее всего ---- */
+const LOW_DEF=0.30, LOW_CAP=0.40;
+function skillLv(p,key){ const c=OPSKILL[key]; if(!c||c==='простая'||!SKILLS) return null; const row=SKILLS.rows.find(x=>x.code===c); if(!row) return null; const v=skVal(row,p); return v===''?null:+v; }
+function shareSrc(oid,key){ if(SHARE[oid+'|'+key]) return 'вручную'; const m=opMinutes(oid,key); if(Object.values(m).some(v=>v>0)) return 'по времени'; return 'поровну'; }
+function shares(oid, key, marker, partner, mode){
+  const ex=SHARE[oid+'|'+key]; if(ex){ const t=Object.values(ex).reduce((a,b)=>a+b,0), r={}; Object.entries(ex).forEach(([p,v])=>r[p]=v/t); return r; }
+  const m=opMinutes(oid,key), tot=Object.values(m).reduce((a,b)=>a+b,0); let r={};
+  if(tot>0) Object.entries(m).forEach(([p,v])=>r[p]=v/tot);
+  else { const ppl=new Set(PART[oid+'|'+key]||[]); if(marker&&mode!=='boss') ppl.add(marker); if(partner) ppl.add(partner); if(!ppl.size&&marker) ppl.add(marker); [...ppl].forEach(p=>r[p]=1/ppl.size); }
+  const ps=Object.keys(r), low=ps.filter(p=>{ const l=skillLv(p,key); return l!=null&&l<=1; }), hi=ps.filter(p=>!low.includes(p));
+  if(!low.length||!hi.length) return r;   // все одного уровня — без поправки
+  const nr={}; let lowSum=0; low.forEach(p=>{ nr[p]=tot>0?Math.min(r[p],LOW_CAP):LOW_DEF; lowSum+=nr[p]; });
+  if(lowSum>1-0.05*hi.length) return r;
+  const hiBase=hi.reduce((a,p)=>a+r[p],0); hi.forEach(p=>nr[p]=(1-lowSum)*(hiBase?r[p]/hiBase:1/hi.length)); return nr; }
 const tsMs = s => { const [d,t]=String(s).split(' '); const x=fromIso(d); const [h,m]=(t||'0:0').split(':').map(Number); x.setHours(h||0,m||0,0,0); return x.getTime(); };
 function factH(o, key){ let m=0; TIMEJ.forEach(t=>{ if(t.order===o.id&&t.op===key) m+= t.end ? t.min : Math.max(0,(Date.now()-tsMs(t.start))/6e4); }); return m/60; }
 function factColor(r){ // до 80% нормы — спокойно, 80–100% — к жёлтому, 100–120% — к красному, больше 120% — красный
@@ -802,6 +839,7 @@ function vToday(){
   if(mtasks.length){ const mo=mtasks.map(x=>x.o).filter((x,i,a)=>a.indexOf(x)===i);
     html+=`<button type="button" class="tile w tlink" data-tab="mount"><span class="l">Подготовка и монтаж<span class="go">›</span></span><span class="v num">${mtasks.length}</span><span class="s">${mo.map(o=>esc(o.client)+(o.mountAt?' · на монтаже':'')).join(', ')}</span></button>`; }
   if(S.todayLines.length) html+=UI.sec('Сделано сегодня', vLines(S.todayLines), `<b class="num">${fmt0(S.todayEarned)} ₾</b>`);
+  html+=vGrowthTile();
   html+=vMoneyTile();
   const p=planParts(), pt2=planLoad(ME,p.t);
   html+=UI.tileFold(`План на завтра`, p.big, (p.mine?p.chipTxt:'время не указано')+(pt2.n?` · задач ${pt2.n}, ${fmt(pt2.h)} из ${PLAN.hoursPerDay} ч`:' · задачи не выбраны'), p.body, (p.chipCls==='bad'?'low':p.chipCls==='warn'?'warn':'')+(p.bigMid?' mid':''), p.editing||S.planOpen, (p.needsInput?'need ':'')+'w');
@@ -833,8 +871,18 @@ function vJoin(o,oi,k,t){ // всплывающий список: время и 
     ${[ME,...WORKERS.filter(p=>p!==ME)].map(row).join('')}
     ${t.boss?'<div class="small mute" style="padding:2px 4px">Отметь, кто делает, затем ставь галку «готово».</div>':''}
     <div class="tpadd" ${t.boss?'hidden':''}><span class="small mute">Забыл включить счётчик — своё время:</span><input id="tadd" type="number" min="0" step="0.25" inputmode="decimal" placeholder="ч"><button class="btn small" data-act="timeAdd" data-o="${oi}" data-op="${k}">+</button></div>
-    <div class="small mute" style="padding:2px 4px">Сумма делится по времени каждого. Никто не включал счётчик — поровну.</div>
+    ${vShareBox(o,oi,k,t,sh)}
     ${t.self?`<button class="tpi undo" data-act="untake" data-o="${oi}" data-op="${k}">Отменить взятое</button>`:''}</div>`; }
+function vShareBox(o,oi,k,t,sh){ const ppl=PART[o.id+'|'+k]||new Set(), mem=t.boss?[...ppl]:[ME,...[...ppl].filter(p=>p!==ME)];
+  const src=shareSrc(o.id,k), can=t.boss||t.self||IS_BOSS;
+  if(mem.length<2) return `<div class="small mute" style="padding:2px 4px">Сумма делится по времени каждого. Никто не включал счётчик — поровну. Ученику (навык 0–1) — 30%, не больше 40%.</div>`;
+  const pct=p=>Math.round((sh[p]||0)*100), first=mem[0], lv=p=>{ const l=skillLv(p,k); return l==null?'':` <span class="lvl">ур. ${l}</span>`; };
+  const rows=mem.map((p,i)=>`<div class="shr"><span class="tpn">${esc(PEOPLE[p]||p)}${lv(p)}</span>${can&&i>0?`<button class="btn small ghost" data-act="shStep" data-o="${oi}" data-op="${k}" data-who="${esc(p)}" data-d="-5">−5</button>`:''}<b class="num">${pct(p)}%</b>${can&&i>0?`<button class="btn small ghost" data-act="shStep" data-o="${oi}" data-op="${k}" data-who="${esc(p)}" data-d="5">+5</button>`:''}</div>`).join('');
+  const pre=can&&mem.length===2?`<div class="shpre">${[50,60,70,80].map(v=>`<button class="btn small ${Math.max(...mem.map(pct))===v?'':'ghost'}" data-act="shPreset" data-o="${oi}" data-op="${k}" data-v="${v}">${v}/${100-v}</button>`).join('')}</div>`:'';
+  return `<div class="shbox"><div class="shh"><b>Доли</b><span class="small mute">${src}${src==='вручную'&&can?` · <button class="linkbtn" data-act="shReset" data-o="${oi}" data-op="${k}">сбросить</button>`:''}</span></div>${pre}${rows}
+    ${can?'':'<div class="small mute">Доли задаёт тот, кто взял задачу, или руководитель.</div>'}</div>`; }
+function shMembers(o,k){ const ppl=PART[o.id+'|'+k]||new Set(); return S.role==='boss'?[...ppl]:[ME,...[...ppl].filter(p=>p!==ME)]; }
+function shSave(o,k,m){ SHARE[o.id+'|'+k]=m; api('shareSet',{order:o.id, op:k, shares:m}).catch(fail); }
 function vTaskBody(o,oi,l,op,t){
   const k=l.cat+'.'+op[0], ppl=[...(PART[o.id+'|'+k]||[])], free=WORKERS.filter(p=>!ppl.includes(p)&&p!==ME);
   const units=l.units.length>1?vUnits(o,oi,l,op,false,true):'';
@@ -1011,6 +1059,39 @@ function vOrders(){ const mine=ORDERS.filter(o=>o.team.includes(ME)); return UI.
 /* ============ BLOCK: ROUTER ============ */
 const TABS = { emp:[['today','Сегодня'],['mount','Монтаж'],['cal','Календарь'],['orders','Заказы'],['buy','Закупка']],
   boss:[['borders','Заказы'],['tomorrow','План'],['fund','Фонд'],['staff','Люди'],['norms','Нормы'],['buy','Закупка']] };
+/* ============ BLOCK: РОСТ И МОТИВАЦИЯ (сотрудник) + ФЛАГИ (руководитель) ============ */
+function weekSeries(p,n){ const out=[]; for(let i=n-1;i>=0;i--){ const a=addD(weekStart(),-7*i), b=addD(a,7);
+    const e=(earnedBy(a)[p]||0)-(earnedBy(b)[p]||0), h=(hoursBy(a)[p]||0)-(hoursBy(b)[p]||0); out.push({from:a, e, h, perH:h?e/h:0}); } return out; }
+function teamPerH(){ const e=earnedBy(weekStart()), h=hoursBy(weekStart()); let E=0,H=0; WORKERS.forEach(p=>{ E+=e[p]||0; H+=h[p]||0; }); return H?E/H:0; }
+const LV_HINT=['сам не берёт — попросись помощником','помощник: помогай и пробуй сам, уровень 2 — когда сделаешь сам','делает сам: держи норму — уровень 3 (ведёт, учит)','ведёт и учит других'];
+function skillOps(code){ const r=[]; ORDERS.forEach(o=>o.lines.forEach(l=>opsOf(o,l).forEach(op=>{ const k=l.cat+'.'+op[0]; if(OPSKILL[k]===code&&(l.prog[op[0]]||0)<100) r.push({o,op,k}); }))); return r; }
+function inNormWeek(p){ const f=iso(weekStart()); let n=0, all=0; MARKS.forEach(m=>{ if(d10(m[0])<f) return; const oid=String(m[2]).trim(), k=m[3]+'.'+m[4], sh=shares(oid,k,String(m[1]),String(m[9]||''),String(m[10]||''))[p]||0; if(!sh) return;
+    const mins=(opMinutes(oid,k)[p]||0); if(!mins) return; all++; if(mins/60<=(num(m[7])||0)*sh/RATE_H+0.01) n++; }); return {n, all}; }
+function vGrowthTile(){ const w=weekSeries(ME,4), cur=w[3], team=teamPerH(), mx=Math.max(RATE_H,...w.map(x=>x.perH))||1, nn=inNormWeek(ME);
+  const bars=`<div class="gbars"><div class="gplot"><b class="gnorm" style="bottom:${Math.round(RATE_H/mx*100)}%"></b>${w.map(x=>`<div class="gb"><i style="height:${Math.round(x.perH/mx*100)}%" class="${!x.h?'':x.perH>=RATE_H?'ok':x.perH>=RATE_H*0.6?'warn':'low'}"></i></div>`).join('')}</div>
+    <div class="glab">${w.map((x,i)=>`<div><b class="num">${x.h?fmt0(x.perH):'—'}</b><em>${i===3?'эта неделя':'с '+dShort(iso(x.from))}</em></div>`).join('')}</div></div>`;
+  let goal=null; const rows=SKILLS?SKILLS.rows.map(r=>{ const v=skVal(r,ME); if(v===''&&!skillOps(r.code).length) return '';
+    const lv=v===''?null:+v; if(lv!=null&&lv<3&&!goal&&skillOps(r.code).length) goal={r,lv};
+    return `<div class="gsk"><span>${esc(r.name.replace(/\s*\(.*\)$/,''))}</span><span class="dots">${[1,2,3].map(i=>`<i class="${lv!=null&&lv>=i?'on':''}"></i>`).join('')}</span></div>`; }).join(''):'';
+  const g=goal?(()=>{ const ops=skillOps(goal.r.code).slice(0,3);
+    return `<div class="pbox"><b>Цель роста: ${esc(goal.r.name.replace(/\s*\(.*\)$/,''))}</b><div class="small">Сейчас уровень ${goal.lv} — ${LV_HINT[goal.lv]}.</div>
+      <div class="small mute" style="margin-top:4px">Где сейчас есть такая работа: ${ops.map(x=>`${esc(x.op[1])} · ${esc(x.o.client)}`).join('; ')}</div></div>`; })():'';
+  const body=`<div class="small" style="margin-bottom:6px">₾ в час по неделям · линия — норма ${RATE_H} ₾/ч · команда на этой неделе ${team?fmt(team):'—'} ₾/ч</div>${bars}
+    ${nn.all?`<div class="small" style="margin:8px 0">В норму на этой неделе: <b class="num">${nn.n} из ${nn.all}</b> операций со счётчиком</div>`:''}
+    ${g}${rows?UI.fold('Мои навыки', `<div class="gskl">${rows}</div>`+UI.note('Уровень ставит руководитель по факту: сделал сам, в норму, без переделки.')):''}`;
+  return UI.tileFold('Мой рост', cur.h?fmt(cur.perH)+' ₾/ч':'—', `эта неделя · норма ${RATE_H} · команда ${team?fmt(team):'—'}`, body, cur.h?(cur.perH>=RATE_H?'good':cur.perH>=RATE_H*0.6?'warn':'low'):'', S.growOpen, 'w'); }
+function flagsOf(p){ const f=[], now=Date.now(), d28=iso(addD(TODAY,-28));
+  if(SKILLS) SKILLS.rows.forEach(r=>{ const v=skVal(r,p); if(v===''||+v>1) return; let n=0;
+    MARKS.forEach(m=>{ if(d10(m[0])<d28) return; const k=m[3]+'.'+m[4]; if(OPSKILL[k]!==r.code) return; const sh=shares(String(m[2]).trim(),k,String(m[1]),String(m[9]||''),String(m[10]||''))[p]||0; if(sh>0) n++; });
+    if(n>=3) f.push(`Застрял? ${n} участий за 4 недели в «${r.name.replace(/\s*\(.*\)$/,'')}» на уровне ${v} — повысить или разобраться`); });
+  const first=SHIFTS.filter(s=>String(s[1])===p).map(s=>d10(s[0])).sort()[0], ups=SKLOG.filter(x=>x.who===p&&x.to!=null&&(x.from==null||x.to>x.from)).map(x=>d10(x.at)).sort(), last=ups[ups.length-1]||first;
+  if(first&&first<d28&&last&&last<d28) f.push('Без роста навыков 4+ недели');
+  const w=weekSeries(p,4).slice(0,3); if(w.every(x=>x.h>0&&x.perH<RATE_H*0.6)) f.push(`Ниже 60% нормы 3 недели подряд (${w.map(x=>fmt0(x.perH)).join(' / ')} ₾/ч)`);
+  return f; }
+/* снимок отставания по срокам цеха/сдачи — раз в день, для утреннего сообщения мастеру */
+function lagSnap(){ const t=iso(TODAY); try{ if(localStorage.getItem('akrixLag')===t) return; localStorage.setItem('akrixLag',t); }catch(e){}
+  computeAlloc(); const items=DEADLINES.map(dl=>{ const st=dlStatus(dl); return {order:dl.order, label:ONAME[dl.order]||dl.order, cls:st.cls, txt:st.txt, dl:dl.label, date:dShort(dl.date)}; });
+  api('lagSnap',{items}).catch(()=>{}); }
 /* ============ BLOCK: СЧЁТЧИКИ НА ВКЛАДКАХ (что требует внимания) ============ */
 const nowStamp = () => iso(new Date())+' '+hm(nowMin());
 function seenGet(k){ try{ const v=localStorage.getItem('akrixSeen_'+k); if(v) return v; localStorage.setItem('akrixSeen_'+k, nowStamp()); }catch(e){} return nowStamp(); }
@@ -1260,7 +1341,7 @@ function vBossStaff(){
     const late=wk.filter(r=>String(r[1])===p&&num(r[6])>5).length;
     return UI.sec(esc(PEOPLE[p]), `<div class="grid2">${UI.kpi('₾/ч', h?fmt(perH):'—', `норма ${RATE_H}`, h?tone:'', true)}${UI.kpi('заработал', fmt0(ea)+' ₾', `мог ${fmt0(h*RATE_H)} · ${fmt(h)} ч`, '', true)}</div>
       <div class="bar"><i class="${perH<RATE_H*0.6?'late':''}" style="width:${Math.min(100,perH/RATE_H*100)}%"></i></div>
-      ${late?`<div class="flag warn">Опозданий за неделю: ${late}</div>`:''}${vPayBoss(p)}`,
+      ${late?`<div class="flag warn">Опозданий за неделю: ${late}</div>`:''}${flagsOf(p).map(x=>`<div class="flag warn">${esc(x)}</div>`).join('')}${vPayBoss(p)}`,
       h?chip(perH>=RATE_H?'ok':perH>=RATE_H*0.6?'warn':'bad', `${fmt(perH)} ₾/ч`):chip('n','нет смен')); }).join('');
 }
 function vBossNorms(){
@@ -1396,6 +1477,7 @@ function urgency(o){ const need=needHours(o,'ceh'), dl=DEADLINES.find(d=>d.order
   const rank = need<0.05 ? 9e8 : st.have/need - (o.hard?0.001:0);
   return {need, have:st.have, days, n:st.n, rank, cls:need<0.05?'ok':st.cls, txt:need<0.05?'цех готов':st.n<0?'срок прошёл':st.txt}; }
 const PRIS_AFTER=['sborka','sborka_obj','kompl','mont'];   // допущение: сборка, комплектовка и монтаж — после присадки
+const lowMe = k => { const l=skillLv(ME,k); return l!=null&&l<=1; };   // навык 0–1: сам не берёт, просится помощником
 function vAllWork(){
   const mine=ORDERS.filter(o=>o.team.includes(ME)).map(o=>({o,u:urgency(o)})).sort((a,b)=>a.u.rank-b.u.rank);
   let free=0, totalH=0, myH=0;
@@ -1408,7 +1490,8 @@ function vAllWork(){
         const pl=PLANNED[o.id+'|'+k];
         const act = p>=100 ? '' : who===ME ? chip('ok','моя')+cancel
           : !who&&pl ? `<span class="wtk">${pl.who===ME?'моя':esc(PEOPLE[pl.who]||pl.who)} · ${dayDiff(pl.date)===1?'завтра':dShort(pl.date)}</span>`
-          : who ? `<span class="wtk">${esc(PEOPLE[who]||who)}</span>` : `<button class="btn small take" data-act="take" data-o="${ORDERS.indexOf(o)}" data-op="${k}">Беру</button>`;
+          : who ? `<span class="wtk">${esc(PEOPLE[who]||who)}</span>`+(lowMe(k)?` <button class="btn small ghost" data-act="askJoin" data-o="${ORDERS.indexOf(o)}" data-op="${k}" data-to="${esc(who)}">Попроситься</button>`:'')
+          : lowMe(k) ? `<button class="btn small ghost" data-act="askJoin" data-o="${ORDERS.indexOf(o)}" data-op="${k}">Попроситься</button>` : `<button class="btn small take" data-act="take" data-o="${ORDERS.indexOf(o)}" data-op="${k}">Беру</button>`;
         return `<div class="wrow ${p>=100?'done':''}"><span class="on">${esc(op[1])}<span class="oc2 num">${opCost(o,l,op)}${wait}</span></span><span class="ost ${st[0]}">${st[1]}</span>${act}</div>`; }).join('');
       return `<div class="wg"><div class="wgh">${esc(c.name)}</div>${rows}</div>`; }).join('');
     return `<details class="fold wo urg-${u.cls}" ${S.openWork===o.id?'open':''} data-wo="${esc(o.id)}"><summary>${svgChev}<span class="wot"><span class="won">${oName(o)} ${oCode(o)}</span><span class="wos">${hoursFrac(o,'ceh')}</span></span><span class="fm">${chip(u.cls,u.txt)}</span></summary><div class="fb">${groups}</div></details>`; }).join('');
@@ -1490,6 +1573,17 @@ document.addEventListener('click',e=>{
     const cur=r.vals[i], nx=cur===''?0:cur>=3?'':cur+1; r.vals[i]=nx;
     api('skillSet',{code:r.code, who:w, level:nx}).catch(fail); }
   if(a==='joinOpen'){ S.joinOpen = S.joinOpen===b.dataset.k ? null : b.dataset.k; }
+  if(a==='shPreset'||a==='shStep'){ const o=ORDERS[+b.dataset.o], k=b.dataset.op, mem=shMembers(o,k), cur=shares(o.id,k,ME,'',S.role==='boss'?'boss':''), m={};
+    mem.forEach(p=>m[p]=Math.round((cur[p]||0)*100/5)*5);
+    if(a==='shPreset'){ const v=+b.dataset.v, l0=skillLv(mem[0],k), l1=skillLv(mem[1],k), swap=(l0!=null&&l1!=null&&l0<l1)||(l0!=null&&l0<=1&&l1==null);   // большая доля — у старшего по навыку
+      m[mem[swap?1:0]]=v; m[mem[swap?0:1]]=100-v; }
+    else { const w=b.dataset.who, d=+b.dataset.d; m[w]=Math.max(0,Math.min(100,(m[w]||0)+d)); }
+    const lowBad=mem.filter(p=>{ const l=skillLv(p,k); return l!=null&&l<=1&&m[p]>LOW_CAP*100; });
+    if(lowBad.length){ toast(`${PEOPLE[lowBad[0]]||lowBad[0]}: ученику не больше ${LOW_CAP*100}%`); return; }
+    const rest=100-mem.slice(1).reduce((a,p)=>a+(m[p]||0),0); if(rest<0){ toast('Сумма долей больше 100%'); return; } m[mem[0]]=rest;
+    shSave(o,k,m); S.joinOpen=S.joinOpen; }
+  if(a==='shReset'){ const o=ORDERS[+b.dataset.o], k=b.dataset.op; delete SHARE[o.id+'|'+k]; api('shareSet',{order:o.id, op:k, shares:{}}).catch(fail); toast('Доли — по времени / навыкам'); }
+  if(a==='askJoin'){ const o=ORDERS[+b.dataset.o], k=b.dataset.op, f=findOp(o,k); api('askJoin',{order:o.id, op:k, opName:f.op&&f.op[1], to:b.dataset.to||''}).catch(fail); toast('Запрос отправлен'+(b.dataset.to?' — '+(PEOPLE[b.dataset.to]||''):' руководителю')); return; }
   if(a==='join'){ const o=ORDERS[+b.dataset.o], who=b.dataset.who, k=o.id+'|'+b.dataset.op, set=(PART[k]=PART[k]||new Set()), off=set.has(who), self=who===ME;
     if(off){ set.delete(who); api(self?'untake':'unjoin',{order:o.id, op:b.dataset.op, who}).catch(fail); if(self){ const i=o.tasks.findIndex(t=>t.op===b.dataset.op); if(i>=0) o.tasks.splice(i,1); } }
     else { set.add(who); api(self?'take':'join',{order:o.id, op:b.dataset.op, who}).catch(fail); if(self&&!o.tasks.some(t=>t.op===b.dataset.op)) o.tasks.push({op:b.dataset.op, self:true, due:null}); } }
@@ -1593,15 +1687,16 @@ let loading=false;
 function busy(){ const a=document.activeElement; return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); }
 const GO=new URLSearchParams(location.search).get('go');   // из кнопок бота: close — закрыть смену, late — работаю дальше
 function reload(){ if(loading) return Promise.resolve(); loading=true;
-  return api('boot').then(D=>{ const y=window.scrollY, first=!ORDERS.length&&!ME; build(D); if(first&&IS_BOSS&&!GO){ S.role='boss'; S.tab='borders'; }
-    if(first&&GO){ S.role='emp'; S.tab='today';
+  return api('boot').then(D=>{ const y=window.scrollY, first=!ORDERS.length&&!ME; build(D); lagSnap(); if(first&&IS_BOSS&&!GO){ S.role='boss'; S.tab='borders'; }
+    if(first&&GO==='buy'){ S.role=IS_BOSS?'boss':'emp'; S.tab='buy'; }
+    else if(first&&GO){ S.role='emp'; S.tab='today';
       if(GO==='close'&&S.onShift) S.closing=true;
       if(GO==='late'&&S.onShift&&!S.late){ S.late=true; api('shiftLate').then(()=>toast('Вечерняя смена — напоминаний больше не будет')).catch(fail); } }
     render(); if(first&&GO==='close'&&S.closing) setTimeout(()=>{ const el=document.getElementById('c-misc'); if(el) el.scrollIntoView({block:'center'}); },100); if(!first) window.scrollTo(0,y); })
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793110111';
+const BUILD='1793138432';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
