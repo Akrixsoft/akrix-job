@@ -485,6 +485,12 @@ body{padding-top:calc(6px + var(--tg-safe-area-inset-top,0px) + var(--tg-content
 .dpf{display:flex;gap:6px;align-items:center;margin-top:4px}
 .dpf input{width:90px;min-height:32px;padding:4px 8px}
 .row .kb{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+
+/* ---- счётчики на вкладках ---- */
+.tabs button{position:relative}
+.tbadge{position:absolute;top:2px;left:calc(50% + 6px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font-size:10.5px;font-weight:700;font-style:normal;line-height:17px;text-align:center;box-shadow:0 0 0 2px var(--tile)}
+.seg button{position:relative}
+.seg button.hasdot::after{content:"";position:absolute;top:4px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--bad)}
 .who{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
 </style></head><body>
 <div class="app">
@@ -999,19 +1005,41 @@ function vDoneOrders(){ if(!DONE.length) return '';
         :`<div class="kb">${st||`<button class="btn small" data-act="dOpen" data-k="${esc(k)}|pay">Выплатить ${fmt0(due)} ₾</button>`}<button class="btn small ghost" data-act="dOpen" data-k="${esc(k)}|bonus">+ премия</button></div>`;
       return UI.row(esc(PEOPLE[p]||p), `${paid?'выплачено '+fmt0(paid)+' ₾':''}${paid&&rem>0.5?' · остаток '+fmt0(rem)+' ₾':''}`+act, `<b class="num">${fmt0(v)} ₾</b>`); }).join('');
     return UI.fold(`<b>${esc(d.client)}</b> · ${esc(d.product)}`, `<div class="small mute num" style="margin-bottom:4px">${esc(d.id)} · сдан ${d.date?dShort(d.date):'—'} · стоимость ${fmt0(d.cost)} ₾ · фонд ${fmt0(fund)} ₾${d.cost?` (${fmt(fund/d.cost*100)}%)`:''}</div>${rows?UI.list(rows):UI.note('Начислений нет')}`, S.doneOrd===d.id, `<span class="num small">${d.date?dShort(d.date):''}</span>`); }).join('');
-  return UI.sec('', UI.fold('Выполненные', list+UI.note('Выплата по заказу учитывает авансы человека: если они уже покрывают заработанное — «покрыто авансом». Итоги по людям — в «Людях».'), S.doneOpen, `<span class="num">${DONE.length}</span>`)); }
+  return UI.sec('', UI.fold('Выполненные', list+UI.note('Выплата по заказу учитывает авансы человека: если они уже покрывают заработанное — «покрыто авансом». Итоги по людям — в «Людях».'), S.doneOpen, (()=>{ const n=badges('boss').borders; return (n?chip('warn',`к выплате: ${n}`)+' ':'')+`<span class="num">${DONE.length}</span>`; })())); }
 function vOrders(){ const mine=ORDERS.filter(o=>o.team.includes(ME)); return UI.h('Мои заказы')+(mine.length?`<div class="olist">${mine.sort(byShip).map(o=>orderCard(o,false)).join('')}</div>`:UI.sec('',UI.note('Заказов нет'))); }
 
 /* ============ BLOCK: ROUTER ============ */
 const TABS = { emp:[['today','Сегодня'],['mount','Монтаж'],['cal','Календарь'],['orders','Заказы'],['buy','Закупка']],
   boss:[['borders','Заказы'],['tomorrow','План'],['fund','Фонд'],['staff','Люди'],['norms','Нормы'],['buy','Закупка']] };
+/* ============ BLOCK: СЧЁТЧИКИ НА ВКЛАДКАХ (что требует внимания) ============ */
+const nowStamp = () => iso(new Date())+' '+hm(nowMin());
+function seenGet(k){ try{ const v=localStorage.getItem('akrixSeen_'+k); if(v) return v; localStorage.setItem('akrixSeen_'+k, nowStamp()); }catch(e){} return nowStamp(); }
+function seenSet(k){ try{ localStorage.setItem('akrixSeen_'+k, nowStamp()); }catch(e){} }
+function badges(role){ const b={};
+  if(role==='boss'){
+    b.buy=BUY.filter(x=>x.status==='нужно').length;                       // закупка: ждёт заказа
+    b.staff=PAYS.filter(x=>x.st==='запрос').length;                        // люди: запросы аванса
+    let due=0; DONE.forEach(d=>{ const by={}; MARKS.forEach(m=>{ if(String(m[2]).trim()!==d.id) return; const sh=shares(d.id, m[3]+'.'+m[4], String(m[1]), String(m[9]||''), String(m[10]||'')); Object.entries(sh).forEach(([p,k])=>by[p]=(by[p]||0)+(num(m[7])||0)*k); });
+      Object.entries(by).forEach(([p,v])=>{ const paid=PAYS.filter(x=>x.who===p&&x.st==='выдано'&&x.order===d.id).reduce((a,x)=>a+x.amt,0); if(v-paid>0.5&&money(p).toPay>0.5) due++; }); });
+    b.borders=due;                                                          // заказы: выплаты по выполненным
+  } else {
+    const seen=seenGet('buy'); b.buy=BUY.filter(x=>x.by!==ME&&x.at>seen&&(x.status==='нужно'||x.status==='заказано')).length;   // новое в закупке от других
+    const ps=seenGet('pay'); b.today=PAYS.filter(x=>x.who===ME&&x.st!=='запрос'&&x.st!=='отменён'&&(x.dec||x.at)>ps).length;     // решение по авансу / выплата
+  }
+  return b; }
+const badgeHtml = n => n>0?`<i class="tbadge num">${n>99?'99+':n}</i>`:'';
 function render(){
   computeAlloc();
+  if(S.role==='emp'&&S.tab==='buy') seenSet('buy');
+  if(S.role==='emp'&&S.tab==='today') seenSet('pay');
   const seg=document.getElementById('roleseg'); seg.hidden=!IS_BOSS;
   document.getElementById('role-emp').setAttribute('aria-pressed',S.role==='emp');
   document.getElementById('role-boss').setAttribute('aria-pressed',S.role==='boss');
   document.getElementById('who').textContent=meName();
-  document.getElementById('tabs').innerHTML=TABS[S.role].map(([k,n])=>`<button data-tab="${k}" aria-current="${S.tab===k}">${ICON[k]}<span>${n}</span></button>`).join('');
+  const bd=badges(S.role);
+  document.getElementById('tabs').innerHTML=TABS[S.role].map(([k,n])=>`<button data-tab="${k}" aria-current="${S.tab===k}">${ICON[k]}<span>${n}</span>${S.tab===k?'':badgeHtml(bd[k])}</button>`).join('');
+  if(IS_BOSS){ const other=badges(S.role==='boss'?'emp':'boss'), tot=Object.values(other).reduce((a,x)=>a+x,0);
+    document.getElementById(S.role==='boss'?'role-emp':'role-boss').classList.toggle('hasdot', tot>0); document.getElementById(S.role==='boss'?'role-boss':'role-emp').classList.remove('hasdot'); }
   const v={today:vToday,orders:vOrders,borders:vBossOrders,fund:vBossFund,staff:vBossStaff,norms:vBossNorms,tomorrow:vBossTomorrow,cal:vCal,mount:vMountTab,buy:vBuy}[S.tab];
   document.getElementById('view').innerHTML=v();
   bindUnits(); bindPlan();
@@ -1573,7 +1601,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793027494';
+const BUILD='1793110111';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
