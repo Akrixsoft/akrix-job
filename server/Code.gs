@@ -337,9 +337,12 @@ function buyKb_(rows){ const kb = []; rows.forEach((r, i) => { if (i % 5 === 0) 
     kb[kb.length - 1].push({ text: (i + 1) + (got ? ' ✅' : ' ☐'), callback_data: 'b:' + r[8] + ':' + (got ? 'n' : 'g') }); });
   return { inline_keyboard: kb.concat([[{ text: 'Обновить список', callback_data: 'list' }]]) }; }
 function esc_(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-function buyText_(rows, title){ const left = rows.filter(r => r[5] !== 'получено').length;
-  return '<b>' + esc_(title || 'Закупка') + '</b> — ' + (left ? 'осталось ' + left + ' из ' + rows.length : 'всё куплено ✅') + '\n\n' +
-    rows.map((r, i) => (r[5] === 'получено' ? '✅ <s>' : '☐ ') + (i + 1) + '. ' + esc_(r[3]) + (r[4] ? ' × ' + esc_(r[4]) : '') + (String(r[2]).trim() ? ' · ' + esc_(String(r[2]).trim()) : '') + (r[5] === 'получено' ? '</s>' : '')).join('\n'); }
+function buyText_(rows, title){ const left = rows.filter(r => r[5] !== 'получено').length;   // таблица моноширинным шрифтом: колонки ровные
+  const cut = (t, n) => { t = String(t); return t.length > n ? t.slice(0, n - 1) + '…' : t + ' '.repeat(n - t.length); };
+  const lines = rows.map((r, i) => { const got = r[5] === 'получено', ord = String(r[2]).trim();
+    return (got ? '✓' : ' ') + cut(String(i + 1), 2) + '│' + cut(r[3] + (ord ? ' · ' + ord : ''), 21) + '│' + cut(r[4] || '', 6); });
+  return '<b>' + esc_(title || 'Закупка') + '</b> — ' + (left ? 'осталось ' + left + ' из ' + rows.length : 'всё куплено ✅') +
+    '\n<pre>' + esc_(' № │' + cut('Позиция · заказ', 21) + '│Кол-во\n' + '───┼' + '─'.repeat(21) + '┼──────\n' + lines.join('\n')) + '</pre>\n✓ — куплено. Нажми номер, чтобы отметить.'; }
 function sendBuyList_(chatId, title){ const need = read_(SH.buy, 2, 8).filter(r => r[5] === 'нужно' || r[5] === 'заказано').slice(0, 40);
   if (!need.length) return tg_('sendMessage', { chat_id: chatId, text: 'Закупка закрыта ✅' });
   return tg_('sendMessage', { chat_id: chatId, text: buyText_(need, title), parse_mode: 'HTML', reply_markup: buyKb_(need) }); }
