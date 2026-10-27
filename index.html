@@ -1462,7 +1462,7 @@ function vBuy(){
   const top=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>x[0]);
   return UI.h('Закупка')+UI.sec('Добавить', `<datalist id="buy-list">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
       ${top.length?`<div class="kb" style="flex-wrap:wrap;gap:6px;margin-bottom:4px">${top.map(n=>`<button class="btn ghost small" data-act="buyPick" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div>`:''}
-      <div class="cadd"><input id="buy-n" type="text" list="buy-list" autocomplete="off" placeholder="что купить — выбрать или новое"><input id="buy-q" type="text" inputmode="numeric" placeholder="кол." style="max-width:70px"></div>
+      <div class="cadd"><input id="buy-n" type="text" list="buy-list" autocomplete="off" placeholder="что купить — выбрать или новое"><input id="buy-q" type="text" inputmode="decimal" placeholder="кол." style="max-width:60px"><select id="buy-u" style="max-width:76px">${['шт','уп','компл','л','кг','м','м²','лист'].map(u=>`<option>${u}</option>`).join('')}</select></div>
       <div class="cadd"><select id="buy-o"><option value="">для цеха (без заказа)</option>${ORDERS.map(o=>`<option value="${esc(o.id)}">${esc(o.client)} · ${esc(o.product)}</option>`).join('')}</select><button class="btn small" data-act="buyAdd">Добавить</button></div>`)+
     UI.sec('Нужно купить', act.length?UI.list(act.map(row).join('')):UI.note('Список пуст'), chip(act.length?'warn':'ok', String(act.length)))+
     (done.length?UI.sec('', UI.fold('Получено', UI.list(done.map(row).join('')), false, done.length)):'');
@@ -1611,7 +1611,7 @@ document.addEventListener('click',e=>{
   if(a==='untake'){ const o=ORDERS[+b.dataset.o], i=o.tasks.findIndex(t=>t.op===b.dataset.op&&t.self); if(i>=0){ o.tasks.splice(i,1); api('untake',{order:o.id, op:b.dataset.op}).catch(fail); toast('Отменено'); } }
   if(a==='take'){ const o=ORDERS[+b.dataset.o]; if(!takenBy(o,b.dataset.op)){ o.tasks.push({op:b.dataset.op, due:null, self:true}); api('take',{order:o.id, op:b.dataset.op}).catch(fail); const {op}=findOp(o,b.dataset.op); toast('Взял: '+op[1]); } S.workOpen=true; S.openWork=o.id; }
   if(a==='fundPer'){ S.fundPer=b.dataset.v; }
-  if(a==='buyAdd'){ const n=document.getElementById('buy-n').value.trim(), q=document.getElementById('buy-q').value.trim(), ord=document.getElementById('buy-o').value; if(!n){ toast('Впиши, что купить'); return; }
+  if(a==='buyAdd'){ const n=document.getElementById('buy-n').value.trim(), q0=document.getElementById('buy-q').value.trim(), u=(document.getElementById('buy-u')||{}).value||'шт', q=q0?(/[a-zа-я²]/i.test(q0)?q0:q0+' '+u):'', ord=document.getElementById('buy-o').value; if(!n){ toast('Впиши, что купить'); return; }
     const x={at:iso(TODAY)+' '+hm(nowMin()), by:ME, order:ord, name:n, qty:q, status:'нужно', upd:''}; BUY.push(x); if(!BUYCAT.some(c=>c.toLowerCase()===n.toLowerCase())) BUYCAT.push(n);
     api('buyAdd',{name:n, qty:q, order:ord}).then(r=>{ x.row=r.row; }).catch(fail); toast('Добавлено в закупку'); }
   if(a==='buyPick'){ const el=document.getElementById('buy-n'); el.value=b.dataset.n; document.getElementById('buy-q').focus(); return; }
@@ -1696,7 +1696,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793138432';
+const BUILD='1793141359';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
