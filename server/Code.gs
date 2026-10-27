@@ -76,6 +76,10 @@ function whoAmI_(tgUser){
 function doGet(){ return ContentService.createTextOutput('Akrix Job API работает'); }
 function doPost(e){
   let out;
+  if (e && e.parameter && e.parameter.tg){   // вебхук Telegram: кнопки и команды в чате бота
+    if (e.parameter.tg === tgSecret_()){ const lock = LockService.getScriptLock(); lock.waitLock(20000);
+      try { handleTg_(JSON.parse(e.postData.contents)); } catch (err) {} finally { lock.releaseLock(); } }
+    return HtmlService.createHtmlOutput('ok'); }   // HtmlService: без редиректа 302, иначе Telegram повторяет обновления
   try {
     const b = JSON.parse(e.postData.contents);
     const me = whoAmI_(verify_(b.init));
@@ -90,7 +94,7 @@ function bossOnly_(f){ f.boss = true; return f; }
 
 const API = {
   /* ---- загрузка всего для приложения ---- */
-  boot(me){ ensureTriggers_();
+  boot(me){ ensureTriggers_(); ensureWebhook_();
     const o = sh_(SH.orders);
     return { me, params: params_(), today: today_(), now: hm_(),
       staff: read_(SH.staff, 2, 9).map(r => ({ id: String(r[0]), name: String(r[1]), role: String(r[4]).trim(), helperRate: r[5], active: String(r[6]).trim() !== 'нет', tg: !!r[3], payMode: String(r[8] || '').trim() === 'без лимита' ? 'free' : 'earned' })),
@@ -202,7 +206,8 @@ const API = {
   buyAdd(me, b){ const n = String(b.name || '').trim(); if (!n) throw new Error('Впиши позицию');
     const cat = sh_(SH.buyCat); if (cat && !read_(SH.buyCat, 2, 1).some(r => String(r[0]).trim().toLowerCase() === n.toLowerCase())) cat.appendRow([n, '', 'добавлено из приложения']);
     const row = append_(SH.buy, [now_(), me.id, b.order || '', b.name, b.qty ? "'" + b.qty : '', 'нужно', now_(), me.id]);
-    if (!me.boss) notifyBosses_('Закупка: ' + n + (b.qty ? ' × ' + b.qty : '') + (b.order ? ' (заказ ' + b.order + ')' : '') + ' — добавил ' + me.name + '.');
+    if (!me.boss) bossTgs_().forEach(t => tg_('sendMessage', { chat_id: t, text: 'Закупка: ' + n + (b.qty ? ' × ' + b.qty : '') + (b.order ? ' (заказ ' + b.order + ')' : '') + ' — добавил ' + me.name + '.',
+      reply_markup: { inline_keyboard: [[{ text: '☐ Куплено', callback_data: 'b:' + row + ':g' }], [{ text: 'Весь список', callback_data: 'list' }]] } }));
     return { row }; },
   buySet: bossOnly_(function(me, b){
     const ok = ['нужно', 'заказано', 'получено', 'отменено']; if (ok.indexOf(b.status) < 0) throw new Error('Неизвестный статус');
@@ -310,12 +315,43 @@ function ensureTriggers_(){ const pr = PropertiesService.getScriptProperties(); 
 /* утро: закупка, если список не закрыт; отставание заказов — мастеру (нет мастера — руководству) */
 function remindMorning930(){
   const need = read_(SH.buy, 2, 8).filter(r => r[5] === 'нужно');
-  if (need.length) notifyBosses_('Закупка не закрыта — ' + need.length + ' поз.:\n' + need.slice(0, 15).map(r => '• ' + r[3] + (r[4] ? ' × ' + r[4] : '')).join('\n') + (need.length > 15 ? '\n…' : ''));
+  if (need.length) bossTgs_().forEach(t => sendBuyList_(t, 'Закупка не закрыта'));
   let lag = null; try { lag = JSON.parse(PropertiesService.getScriptProperties().getProperty('LAG') || 'null'); } catch (e) {}
   if (!lag || !lag.items) return; const orders = read_(SH.orders, 2, 26);
   lag.items.filter(x => x.cls === 'bad').forEach(x => { const o = orders.find(r => String(r[0]).trim() === x.order); if (!o || String(o[11]).trim() === 'сдан') return;
     const txt = 'Заказ ' + x.label + ' отстаёт: ' + x.txt + ' до «' + x.dl + '» ' + x.date + '.';
     if (o[24]) notifyOne_(String(o[24]).trim(), txt); else notifyBosses_(txt); }); }
+/* ============ BLOCK: BOT (вебхук: закупка галками в чате) ============ */
+function tgSecret_(){ const pr = PropertiesService.getScriptProperties(); let s = pr.getProperty('TG_SECRET'); if (!s){ s = Utilities.getUuid().replace(/-/g, ''); pr.setProperty('TG_SECRET', s); } return s; }
+function ensureWebhook_(){ const pr = PropertiesService.getScriptProperties(); if (pr.getProperty('HOOK') === 'v1') return;
+  try { const url = ScriptApp.getService().getUrl(); if (!url || !/\/exec$/.test(url)) return;
+    const r = tg_('setWebhook', { url: url + '?tg=' + tgSecret_(), allowed_updates: ['message', 'callback_query'], drop_pending_updates: true });
+    if (r && r.ok) pr.setProperty('HOOK', 'v1'); } catch (e) {} }
+function bossTgs_(){ const ids = read_(SH.staff, 2, 5).filter(r => BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0).map(r => String(r[0]));
+  return staffTg_().filter(x => ids.indexOf(x.id) >= 0).map(x => x.tg); }
+function bossByTg_(tgId){ return read_(SH.staff, 2, 7).find(r => String(r[3]) === String(tgId) && BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0 && String(r[6]).trim() !== 'нет'); }
+function buyBtn_(r){ const got = r[5] === 'получено', ord = String(r[2]).trim();
+  return [{ text: (got ? '✅ ' : '☐ ') + r[3] + (r[4] ? ' × ' + r[4] : '') + (ord ? ' · ' + ord : ''), callback_data: 'b:' + r[8] + ':' + (got ? 'n' : 'g') }]; }
+function buyKb_(rows){ return { inline_keyboard: rows.map(buyBtn_).concat([[{ text: 'Обновить список', callback_data: 'list' }]]) }; }
+function sendBuyList_(chatId, title){ const need = read_(SH.buy, 2, 8).filter(r => r[5] === 'нужно' || r[5] === 'заказано');
+  if (!need.length) return tg_('sendMessage', { chat_id: chatId, text: 'Закупка закрыта ✅' });
+  return tg_('sendMessage', { chat_id: chatId, text: (title || 'Закупка') + ' — ' + need.length + ' поз. Отмечай купленное:', reply_markup: buyKb_(need.slice(0, 40)) }); }
+function handleTg_(u){
+  if (u.callback_query){ const q = u.callback_query, boss = bossByTg_(q.from.id), d = String(q.data || '');
+    if (!boss){ tg_('answerCallbackQuery', { callback_query_id: q.id, text: 'Только для руководителя' }); return; }
+    if (d === 'list'){ tg_('answerCallbackQuery', { callback_query_id: q.id }); sendBuyList_(q.message.chat.id); return; }
+    const m = d.match(/^b:(\d+):([gn])$/); if (!m){ tg_('answerCallbackQuery', { callback_query_id: q.id }); return; }
+    const s = sh_(SH.buy), row = +m[1], r = s.getRange(row, 1, 1, 8).getValues()[0], st = m[2] === 'g' ? 'получено' : 'нужно';
+    if (r[5] !== st && r[3]){ s.getRange(row, 6, 1, 3).setValues([[st, now_(), String(boss[0])]]); if (st === 'получено') notifyBuy_(r.concat([row]).slice(0, 8)); }   // повтор того же нажатия ничего не меняет
+    tg_('answerCallbackQuery', { callback_query_id: q.id, text: (st === 'получено' ? '✅ Куплено: ' : 'Вернул в список: ') + r[3] });
+    const kb = (q.message.reply_markup && q.message.reply_markup.inline_keyboard) || [], all = read_(SH.buy, 2, 8);   // перерисовать галки по таблице
+    const rows = kb.map(b => { const mm = String(b[0].callback_data || '').match(/^b:(\d+):/); return mm ? all.find(x => x[8] === +mm[1]) : null; }).filter(Boolean);
+    if (rows.length) tg_('editMessageReplyMarkup', { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: kb.length > rows.length ? buyKb_(rows) : { inline_keyboard: rows.map(buyBtn_) } });
+    return; }
+  const msg = u.message; if (!msg || !msg.text) return; const t = msg.text.trim().toLowerCase();
+  if (t === '/start' || t === '/buy' || t === 'закупка' || t === '/закупка'){
+    if (bossByTg_(msg.from.id)) sendBuyList_(msg.chat.id); else tg_('sendMessage', { chat_id: msg.chat.id, text: 'Открой Akrix Job кнопкой меню внизу чата.' }); }
+}
 function notifyBosses_(text){ const ids = read_(SH.staff, 2, 5).filter(r => BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0).map(r => String(r[0]));
   staffTg_().filter(x => ids.indexOf(x.id) >= 0).forEach(x => send_(x.tg, text, 'Открыть')); }
 function notifyOne_(id, text){ const x = staffTg_().find(y => y.id === id); if (x) send_(x.tg, text, 'Открыть'); }
