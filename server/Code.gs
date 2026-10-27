@@ -330,26 +330,17 @@ function ensureWebhook_(){ const pr = PropertiesService.getScriptProperties(); i
 function bossTgs_(){ const ids = read_(SH.staff, 2, 5).filter(r => BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0).map(r => String(r[0]));
   return staffTg_().filter(x => ids.indexOf(x.id) >= 0).map(x => x.tg); }
 function bossByTg_(tgId){ return read_(SH.staff, 2, 7).find(r => String(r[3]) === String(tgId) && BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0 && String(r[6]).trim() !== 'нет'); }
-function buyBtn_(r){ const got = r[5] === 'получено', ord = String(r[2]).trim();
-  return [{ text: (got ? '✅ ' : '☐ ') + r[3] + (r[4] ? ' × ' + r[4] : '') + (ord ? ' · ' + ord : ''), callback_data: 'b:' + r[8] + ':' + (got ? 'n' : 'g') }]; }
-/* список: строки текстом (ровно от левого края), галки — сетка номеров по 5 в ряд */
-function buyKb_(rows, det){ const kb = []; rows.forEach((r, i) => { if (i % 5 === 0) kb.push([]); const got = r[5] === 'получено';
-    kb[kb.length - 1].push({ text: (i + 1) + (got ? ' ✅' : ' ☐'), callback_data: 'b:' + r[8] + ':' + (got ? 'n' : 'g') }); });
-  return { inline_keyboard: kb.concat([[{ text: 'Обновить список', callback_data: 'list' }, { text: det ? 'Кратко' : 'Подробнее', callback_data: det ? 'mc' : 'md' }]]) }; }
+/* кнопка позиции: «☐ Название — 6 шт»; подробно — + заказ. Без единицы в кол-ве — «шт» */
+function qtyU_(q){ q = String(q || '').trim(); if (!q) return ''; return /[a-zа-я²]/i.test(q) ? q : q + ' шт'; }
+function buyBtn_(r, det){ const got = r[5] === 'получено', ord = String(r[2]).trim(), q = qtyU_(r[4]);
+  return [{ text: (got ? '✅ ' : '☐ ') + r[3] + (q ? ' — ' + q : '') + (det && ord ? ' · ' + ord : ''), callback_data: 'b:' + r[8] + ':' + (got ? 'n' : 'g') }]; }
+function buyKb_(rows, det){ return { inline_keyboard: rows.map(r => buyBtn_(r, det)).concat([[{ text: 'Обновить список', callback_data: 'list' }, { text: det ? 'Кратко' : 'Подробнее', callback_data: det ? 'mc' : 'md' }]]) }; }
 function esc_(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-/* таблица моноширинным шрифтом: № · позиция · кол-во · отметка (в конце строки — не сбивает колонки). Кратко — только номенклатура, подробно — + заказ и кто добавил */
-function buyText_(rows, title, det){ const left = rows.filter(r => r[5] !== 'получено').length, W = det ? 20 : 24;
-  const cut = (t, n) => { t = String(t); return t.length > n ? t.slice(0, n - 1) + '…' : t + ' '.repeat(n - t.length); };
-  const num = i => { const t = String(i + 1); return ' '.repeat(Math.max(0, 2 - t.length)) + t; };
-  const who = {}; if (det) read_(SH.staff, 2, 2).forEach(r => who[String(r[0])] = String(r[1]));
-  const lines = rows.map((r, i) => { const ord = String(r[2]).trim();
-    const main = num(i) + '│' + cut(r[3], W) + '│' + cut(r[4] || '', 6) + '│' + (r[5] === 'получено' ? '✅' : '');
-    return det ? main + '\n  │' + cut((ord ? ord : 'для цеха') + ' · ' + (who[String(r[1])] || r[1]), W) + '│      │' : main; });
-  return '<b>' + esc_(title || 'Закупка') + '</b> — ' + (left ? 'осталось ' + left + ' из ' + rows.length : 'всё куплено ✅') +
-    '\n<pre>' + esc_(' №│' + cut(det ? 'Позиция / заказ, кто' : 'Позиция', W) + '│' + cut('Кол-во', 6) + '│\n' + '──┼' + '─'.repeat(W) + '┼──────┼──\n' + lines.join('\n')) + '</pre>\nНажми номер, чтобы отметить купленное.'; }
+function buyText_(rows, title){ const left = rows.filter(r => r[5] !== 'получено').length;
+  return '<b>' + esc_(title || 'Закупка') + '</b> — ' + (left ? 'осталось ' + left + ' из ' + rows.length : 'всё куплено ✅'); }
 function sendBuyList_(chatId, title, det){ const need = read_(SH.buy, 2, 8).filter(r => r[5] === 'нужно' || r[5] === 'заказано').slice(0, 40);
   if (!need.length) return tg_('sendMessage', { chat_id: chatId, text: 'Закупка закрыта ✅' });
-  return tg_('sendMessage', { chat_id: chatId, text: buyText_(need, title, det), parse_mode: 'HTML', reply_markup: buyKb_(need, det) }); }
+  return tg_('sendMessage', { chat_id: chatId, text: buyText_(need, title), parse_mode: 'HTML', reply_markup: buyKb_(need, det) }); }
 function buyRowsFromKb_(kb){ const all = read_(SH.buy, 2, 8);
   return [].concat.apply([], kb).map(b => { const mm = String(b.callback_data || '').match(/^b:(\d+):/); return mm ? all.find(x => x[8] === +mm[1]) : null; }).filter(Boolean); }
 function handleTg_(u){
@@ -357,7 +348,7 @@ function handleTg_(u){
     if (!boss){ tg_('answerCallbackQuery', { callback_query_id: q.id, text: 'Только для руководителя' }); return; }
     if (d === 'list'){ tg_('answerCallbackQuery', { callback_query_id: q.id }); sendBuyList_(q.message.chat.id); return; }
     if (d === 'md' || d === 'mc'){ tg_('answerCallbackQuery', { callback_query_id: q.id }); const rows = buyRowsFromKb_((q.message.reply_markup || {}).inline_keyboard || []);
-      if (rows.length) tg_('editMessageText', { chat_id: q.message.chat.id, message_id: q.message.message_id, text: buyText_(rows, String(q.message.text || '').split(' — ')[0], d === 'md'), parse_mode: 'HTML', reply_markup: buyKb_(rows, d === 'md') });
+      if (rows.length) tg_('editMessageText', { chat_id: q.message.chat.id, message_id: q.message.message_id, text: buyText_(rows, String(q.message.text || '').split(' — ')[0]), parse_mode: 'HTML', reply_markup: buyKb_(rows, d === 'md') });
       return; }
     const m = d.match(/^b:(\d+):([gn])$/); if (!m){ tg_('answerCallbackQuery', { callback_query_id: q.id }); return; }
     const s = sh_(SH.buy), row = +m[1], r = s.getRange(row, 1, 1, 8).getValues()[0], st = m[2] === 'g' ? 'получено' : 'нужно';
@@ -366,9 +357,9 @@ function handleTg_(u){
     const kb = (q.message.reply_markup && q.message.reply_markup.inline_keyboard) || [], rows = buyRowsFromKb_(kb);   // перерисовать по таблице
     const det = kb.some(rw => rw.some(b => b.callback_data === 'mc'));   // сейчас открыт подробный вид
     const single = !kb.some(rw => rw.some(b => b.callback_data === 'list' && b.text === 'Обновить список'));   // одиночное сообщение о новой закупке
-    if (single && rows.length) tg_('editMessageReplyMarkup', { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: rows.map(buyBtn_).concat([[{ text: 'Весь список', callback_data: 'list' }]]) } });
+    if (single && rows.length) tg_('editMessageReplyMarkup', { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: rows.map(r => buyBtn_(r)).concat([[{ text: 'Весь список', callback_data: 'list' }]]) } });
     else if (rows.length){ const title = String(q.message.text || '').split(' — ')[0] || 'Закупка';
-      tg_('editMessageText', { chat_id: q.message.chat.id, message_id: q.message.message_id, text: buyText_(rows, title, det), parse_mode: 'HTML', reply_markup: buyKb_(rows, det) }); }
+      tg_('editMessageText', { chat_id: q.message.chat.id, message_id: q.message.message_id, text: buyText_(rows, title), parse_mode: 'HTML', reply_markup: buyKb_(rows, det) }); }
     return; }
   const msg = u.message; if (!msg || !msg.text) return; const t = msg.text.trim().toLowerCase();
   if (t === '/start' || t === '/buy' || t === 'закупка' || t === '/закупка'){
