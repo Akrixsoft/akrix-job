@@ -8,7 +8,7 @@
 const APP_URL = 'https://akrixsoft.github.io/akrix-job/';   // адрес мини-приложения (GitHub Pages)
 const TZ = 'Asia/Tbilisi';
 const SH = { params:'Параметры', staff:'Сотрудники', orders:'Заказы', extras:'Доп. обработки', modules:'Модули', tasks:'Задачи',
-  ops:'Операции', lib:'Библиотека монтажа', shifts:'Смены', marks:'Отметки', plans:'Планы', takes:'Взятые задачи', kit:'Комплект', notes:'Заметки монтажа', buy:'Закупка', buyCat:'Справочник закупки', time:'Время', skills:'Навыки', pays:'Выплаты' };
+  ops:'Операции', lib:'Библиотека монтажа', shifts:'Смены', marks:'Отметки', plans:'Планы', takes:'Взятые задачи', kit:'Комплект', notes:'Заметки монтажа', buy:'Закупка', buyCat:'Справочник закупки', time:'Время', skills:'Навыки', pays:'Выплаты', skillLog:'Навыки — история' };
 const ORD = { id:0, client:1, product:2, sys:3, kind:4, cost:5, term:6, ship:7, ceh:8, done:9, team:10, status:11, mat0:12, matN:21, off:21, mountAt:22, prisManual:23, master:24, shopPct:25 };
 const BOSS_ROLES = ['руководитель', 'администратор'];   // полный доступ: заказы, фонд, люди, закупка
 
@@ -46,7 +46,7 @@ function params_(){
   const g = (label, def) => { const k = Object.keys(m).find(x => x.indexOf(label) === 0); return k !== undefined && m[k] !== '' ? m[k] : def; };
   return { rateH: +g('Ставка нормо-часа', 15), prisAuto: +g('Присадка по выгрузке', 70), prisManualAdd: 100 - +g('Присадка по выгрузке', 70),   // ручная = 100% пула
     planTo: String(g('Крайний срок плана', '18:00')), remindPlan: String(g('Напоминания бота о плане', '16:00, 17:30')),
-    remindClose: String(g('Напоминание закрыть', '20:00')), remindMorning: String(g('Напоминание о незакрытой', '08:00')), hoursDay: +g('Часов в рабочем дне', 8), dayOff: String(g('Выходной день', 'воскресенье')),
+    remindClose: String(g('Напоминание закрыть', '20:00')), remindMorning: String(g('Напоминание о незакрытой', '08:00')), remindBuy: String(g('Напоминание о закупке', '09:30')), hoursDay: +g('Часов в рабочем дне', 8), dayOff: String(g('Выходной день', 'воскресенье')),
     helperRate: +g('Ставка помощника', 9), korpusOther: +g('Ставка корпуса «Прочее»', 25), shopDefault: +g('Сборка в цеху по умолчанию', 50), botName: String(g('Имя бота', '')) };
 }
 
@@ -90,7 +90,7 @@ function bossOnly_(f){ f.boss = true; return f; }
 
 const API = {
   /* ---- загрузка всего для приложения ---- */
-  boot(me){
+  boot(me){ ensureTriggers_();
     const o = sh_(SH.orders);
     return { me, params: params_(), today: today_(), now: hm_(),
       staff: read_(SH.staff, 2, 9).map(r => ({ id: String(r[0]), name: String(r[1]), role: String(r[4]).trim(), helperRate: r[5], active: String(r[6]).trim() !== 'нет', tg: !!r[3], payMode: String(r[8] || '').trim() === 'без лимита' ? 'free' : 'earned' })),
@@ -100,7 +100,7 @@ const API = {
       orders: read_(SH.orders, 2, 26),
       extras: read_(SH.extras, 2, 5), modules: read_(SH.modules, 2, 5), tasks: read_(SH.tasks, 2, 5), lib: read_(SH.lib, 2, 2),
       shifts: read_(SH.shifts, 2, 12), marks: read_(SH.marks, 2, 12).filter(r => r[11] !== 'да'),
-      plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [], time: sh_(SH.time) ? read_(SH.time, 2, 7) : [], skills: skills_() };
+      plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [], time: sh_(SH.time) ? read_(SH.time, 2, 7) : [], skills: skills_(), skillLog: sh_(SH.skillLog) ? read_(SH.skillLog, 2, 6) : [] };
   },
   /* ---- смена ---- */
   shiftStart(me, b){   // смена = одна строка в день; ушёл и вернулся — новый отрезок в колонке L «Отрезки»
@@ -201,7 +201,9 @@ const API = {
   /* ---- закупка: добавляют все, статус ведёт руководитель / администратор ---- */
   buyAdd(me, b){ const n = String(b.name || '').trim(); if (!n) throw new Error('Впиши позицию');
     const cat = sh_(SH.buyCat); if (cat && !read_(SH.buyCat, 2, 1).some(r => String(r[0]).trim().toLowerCase() === n.toLowerCase())) cat.appendRow([n, '', 'добавлено из приложения']);
-    return { row: append_(SH.buy, [now_(), me.id, b.order || '', b.name, b.qty ? "'" + b.qty : '', 'нужно', now_(), me.id]) }; },
+    const row = append_(SH.buy, [now_(), me.id, b.order || '', b.name, b.qty ? "'" + b.qty : '', 'нужно', now_(), me.id]);
+    if (!me.boss) notifyBosses_('Закупка: ' + n + (b.qty ? ' × ' + b.qty : '') + (b.order ? ' (заказ ' + b.order + ')' : '') + ' — добавил ' + me.name + '.');
+    return { row }; },
   buySet: bossOnly_(function(me, b){
     const ok = ['нужно', 'заказано', 'получено', 'отменено']; if (ok.indexOf(b.status) < 0) throw new Error('Неизвестный статус');
     const s = sh_(SH.buy); s.getRange(b.row, 6, 1, 3).setValues([[b.status, now_(), me.id]]);
@@ -233,6 +235,8 @@ const API = {
     notifyOne_(String(b.who), 'Премия ' + a + ' ₾ по заказу ' + b.order + '.'); return { row }; }),
   payMode: bossOnly_(function(me, b){ const r = read_(SH.staff, 2, 1).find(x => String(x[0]) === String(b.who)); if (!r) throw new Error('Нет сотрудника');
     sh_(SH.staff).getRange(r[1], 9).setValue(b.mode === 'free' ? 'без лимита' : 'до заработанного'); return {}; }),
+  /* ---- снимок отставания заказов (считает приложение) — утром бот пишет мастеру ---- */
+  lagSnap(me, b){ const pr = PropertiesService.getScriptProperties(); pr.setProperty('LAG', JSON.stringify({ at: now_(), items: (b.items || []).slice(0, 30) })); return {}; },
   /* ---- карта навыков: руководитель выставляет уровни 0–3 прямо из приложения ---- */
   skillSet: bossOnly_(function(me, b){
     const lv = b.level === '' || b.level == null ? '' : +b.level; if (lv !== '' && !(lv >= 0 && lv <= 3)) throw new Error('Уровень 0–3');
@@ -241,7 +245,10 @@ const API = {
     let c = k.ids.indexOf(String(b.who));
     if (c < 0){ const st = read_(SH.staff, 2, 2).find(x => String(x[0]) === String(b.who)); if (!st) throw new Error('Нет сотрудника ' + b.who);
       c = k.ids.length; s.getRange(1, c + 3).setValue(st[1] + ' ' + b.who); }
-    const cell = s.getRange(r.row, c + 3); cell.setValue(lv); cell.setBackground(lv === '' ? '#fcf2cc' : '#d1e6fa'); return {}; }),
+    const cell = s.getRange(r.row, c + 3), old = cell.getValue(); cell.setValue(lv);
+    if (String(old) !== String(lv)){ let lg = sh_(SH.skillLog); if (!lg){ lg = book_().insertSheet(SH.skillLog); lg.appendRow(['Дата', 'Сотрудник ID', 'Навык', 'Было', 'Стало', 'Кто изменил']); }
+      lg.appendRow([now_(), String(b.who), b.code, old === '' ? '' : old, lv, me.id]); }   // история — для флага «без роста»
+    cell.setBackground(lv === '' ? '#fcf2cc' : '#d1e6fa'); return {}; }),
   /* ---- план на завтра: задачи на день (лист «Задачи», пометка «план», срок = день плана) ---- */
   planTask(me, b){ const d = String(b.date || ''); if (!/^\d{4}-\d\d-\d\d$/.test(d) || d <= today_()) throw new Error('План — на завтра и дальше');
     const who = b.who && me.boss ? String(b.who) : me.id;
@@ -295,6 +302,20 @@ function tg_(method, payload){
   const r = UrlFetchApp.fetch('https://api.telegram.org/bot' + token_() + '/' + method, { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true });
   return JSON.parse(r.getContentText());
 }
+/* триггеры ставятся сами при первом запуске новой версии (без ручного setup) */
+function ensureTriggers_(){ const pr = PropertiesService.getScriptProperties(); if (pr.getProperty('TRG') === 'v2') return;
+  try { if (!ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'remindMorning930')){ const m = toMin_(params_().remindBuy);
+      ScriptApp.newTrigger('remindMorning930').timeBased().atHour(Math.floor(m / 60)).nearMinute(m % 60).everyDays(1).inTimezone(TZ).create(); }
+    pr.setProperty('TRG', 'v2'); } catch (e) {} }
+/* утро: закупка, если список не закрыт; отставание заказов — мастеру (нет мастера — руководству) */
+function remindMorning930(){
+  const need = read_(SH.buy, 2, 8).filter(r => r[5] === 'нужно');
+  if (need.length) notifyBosses_('Закупка не закрыта — ' + need.length + ' поз.:\n' + need.slice(0, 15).map(r => '• ' + r[3] + (r[4] ? ' × ' + r[4] : '')).join('\n') + (need.length > 15 ? '\n…' : ''));
+  let lag = null; try { lag = JSON.parse(PropertiesService.getScriptProperties().getProperty('LAG') || 'null'); } catch (e) {}
+  if (!lag || !lag.items) return; const orders = read_(SH.orders, 2, 26);
+  lag.items.filter(x => x.cls === 'bad').forEach(x => { const o = orders.find(r => String(r[0]).trim() === x.order); if (!o || String(o[11]).trim() === 'сдан') return;
+    const txt = 'Заказ ' + x.label + ' отстаёт: ' + x.txt + ' до «' + x.dl + '» ' + x.date + '.';
+    if (o[24]) notifyOne_(String(o[24]).trim(), txt); else notifyBosses_(txt); }); }
 function notifyBosses_(text){ const ids = read_(SH.staff, 2, 5).filter(r => BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0).map(r => String(r[0]));
   staffTg_().filter(x => ids.indexOf(x.id) >= 0).forEach(x => send_(x.tg, text, 'Открыть')); }
 function notifyOne_(id, text){ const x = staffTg_().find(y => y.id === id); if (x) send_(x.tg, text, 'Открыть'); }
@@ -334,6 +355,7 @@ function setup(){
   const p = params_();
   p.remindPlan.split(',').map(s => s.trim()).filter(Boolean).forEach(s => { const m = toMin_(s); ScriptApp.newTrigger('remindPlan').timeBased().atHour(Math.floor(m / 60)).nearMinute(m % 60).everyDays(1).inTimezone(TZ).create(); });
   const c = toMin_(p.remindClose); ScriptApp.newTrigger('remindClose').timeBased().atHour(Math.floor(c / 60)).nearMinute(c % 60).everyDays(1).inTimezone(TZ).create();
+  const mb = toMin_(p.remindBuy); ScriptApp.newTrigger('remindMorning930').timeBased().atHour(Math.floor(mb / 60)).nearMinute(mb % 60).everyDays(1).inTimezone(TZ).create();
   const mo = toMin_(p.remindMorning); ScriptApp.newTrigger('remindMorning').timeBased().atHour(Math.floor(mo / 60)).nearMinute(mo % 60).everyDays(1).inTimezone(TZ).create();
   const r = tg_('setChatMenuButton', { menu_button: { type: 'web_app', text: 'Akrix Job', web_app: { url: appUrl_() } } });
   Logger.log('Кнопка меню: ' + JSON.stringify(r));
