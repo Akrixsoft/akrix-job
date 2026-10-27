@@ -95,7 +95,7 @@ const API = {
     return { me, params: params_(), today: today_(), now: hm_(),
       staff: read_(SH.staff, 2, 9).map(r => ({ id: String(r[0]), name: String(r[1]), role: String(r[4]).trim(), helperRate: r[5], active: String(r[6]).trim() !== 'нет', tg: !!r[3], payMode: String(r[8] || '').trim() === 'без лимита' ? 'free' : 'earned' })),
       pays: sh_(SH.pays) ? read_(SH.pays, 2, 9) : [],
-      ops: read_(SH.ops, 2, 9),
+      ops: read_(SH.ops, 2, 11),
       orderHead: o.getRange(1, 1, 1, 26).getValues()[0],
       orders: read_(SH.orders, 2, 26),
       extras: read_(SH.extras, 2, 5), modules: read_(SH.modules, 2, 5), tasks: read_(SH.tasks, 2, 5), lib: read_(SH.lib, 2, 2),
@@ -152,6 +152,14 @@ const API = {
   take(me, b){ append_(SH.takes, [now_(), me.id, b.order, b.op, 'взял']); return {}; },
   untake(me, b){ append_(SH.takes, [now_(), me.id, b.order, b.op, 'отменил']); return {}; },
   unjoin(me, b){ append_(SH.takes, [now_(), b.who, b.order, b.op, 'отключён ' + me.id]); return {}; },
+  /* доли участников: задаёт позвавший (взявший задачу) или руководитель; 'доли S1:70,S3:30' или 'доли сброс' */
+  shareSet(me, b){ const e = Object.entries(b.shares || {}).filter(x => +x[1] > 0);
+    if (e.length && Math.abs(e.reduce((a, x) => a + +x[1], 0) - 100) > 0.5) throw new Error('Доли должны давать 100%');
+    append_(SH.takes, [now_(), me.id, b.order, b.op, 'доли ' + (e.length ? e.map(x => x[0] + ':' + Math.round(+x[1])).join(',') : 'сброс')]); return {}; },
+  /* ученик просится на операцию: сообщение взявшему (если есть) или руководству и мастеру */
+  askJoin(me, b){ const txt = me.name + ' просится помощником: ' + (b.opName || b.op) + ' · ' + b.order + '. Подключить — в списке участников задачи.';
+    if (b.to) notifyOne_(String(b.to), txt); else { notifyBosses_(txt); const o = read_(SH.orders, 2, 26).find(r => String(r[0]).trim() === String(b.order)); if (o && o[24]) notifyOne_(String(o[24]).trim(), txt); }
+    return {}; },
   join(me, b){ if (!b.who || b.who === me.id) throw new Error('Выбери сотрудника'); append_(SH.takes, [now_(), b.who, b.order, b.op, 'подключён ' + me.id]); return {}; },
   /* ---- план выхода ---- */
   planSet(me, b){
