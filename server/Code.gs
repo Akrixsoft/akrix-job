@@ -332,10 +332,17 @@ function bossTgs_(){ const ids = read_(SH.staff, 2, 5).filter(r => BOSS_ROLES.in
 function bossByTg_(tgId){ return read_(SH.staff, 2, 7).find(r => String(r[3]) === String(tgId) && BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0 && String(r[6]).trim() !== 'нет'); }
 function buyBtn_(r){ const got = r[5] === 'получено', ord = String(r[2]).trim();
   return [{ text: (got ? '✅ ' : '☐ ') + r[3] + (r[4] ? ' × ' + r[4] : '') + (ord ? ' · ' + ord : ''), callback_data: 'b:' + r[8] + ':' + (got ? 'n' : 'g') }]; }
-function buyKb_(rows){ return { inline_keyboard: rows.map(buyBtn_).concat([[{ text: 'Обновить список', callback_data: 'list' }]]) }; }
-function sendBuyList_(chatId, title){ const need = read_(SH.buy, 2, 8).filter(r => r[5] === 'нужно' || r[5] === 'заказано');
+/* список: строки текстом (ровно от левого края), галки — сетка номеров по 5 в ряд */
+function buyKb_(rows){ const kb = []; rows.forEach((r, i) => { if (i % 5 === 0) kb.push([]); const got = r[5] === 'получено';
+    kb[kb.length - 1].push({ text: (i + 1) + (got ? ' ✅' : ' ☐'), callback_data: 'b:' + r[8] + ':' + (got ? 'n' : 'g') }); });
+  return { inline_keyboard: kb.concat([[{ text: 'Обновить список', callback_data: 'list' }]]) }; }
+function esc_(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function buyText_(rows, title){ const left = rows.filter(r => r[5] !== 'получено').length;
+  return '<b>' + esc_(title || 'Закупка') + '</b> — ' + (left ? 'осталось ' + left + ' из ' + rows.length : 'всё куплено ✅') + '\n\n' +
+    rows.map((r, i) => (r[5] === 'получено' ? '✅ <s>' : '☐ ') + (i + 1) + '. ' + esc_(r[3]) + (r[4] ? ' × ' + esc_(r[4]) : '') + (String(r[2]).trim() ? ' · ' + esc_(String(r[2]).trim()) : '') + (r[5] === 'получено' ? '</s>' : '')).join('\n'); }
+function sendBuyList_(chatId, title){ const need = read_(SH.buy, 2, 8).filter(r => r[5] === 'нужно' || r[5] === 'заказано').slice(0, 40);
   if (!need.length) return tg_('sendMessage', { chat_id: chatId, text: 'Закупка закрыта ✅' });
-  return tg_('sendMessage', { chat_id: chatId, text: (title || 'Закупка') + ' — ' + need.length + ' поз. Отмечай купленное:', reply_markup: buyKb_(need.slice(0, 40)) }); }
+  return tg_('sendMessage', { chat_id: chatId, text: buyText_(need, title), parse_mode: 'HTML', reply_markup: buyKb_(need) }); }
 function handleTg_(u){
   if (u.callback_query){ const q = u.callback_query, boss = bossByTg_(q.from.id), d = String(q.data || '');
     if (!boss){ tg_('answerCallbackQuery', { callback_query_id: q.id, text: 'Только для руководителя' }); return; }
@@ -344,9 +351,12 @@ function handleTg_(u){
     const s = sh_(SH.buy), row = +m[1], r = s.getRange(row, 1, 1, 8).getValues()[0], st = m[2] === 'g' ? 'получено' : 'нужно';
     if (r[5] !== st && r[3]){ s.getRange(row, 6, 1, 3).setValues([[st, now_(), String(boss[0])]]); if (st === 'получено') notifyBuy_(r.concat([row]).slice(0, 8)); }   // повтор того же нажатия ничего не меняет
     tg_('answerCallbackQuery', { callback_query_id: q.id, text: (st === 'получено' ? '✅ Куплено: ' : 'Вернул в список: ') + r[3] });
-    const kb = (q.message.reply_markup && q.message.reply_markup.inline_keyboard) || [], all = read_(SH.buy, 2, 8);   // перерисовать галки по таблице
-    const rows = kb.map(b => { const mm = String(b[0].callback_data || '').match(/^b:(\d+):/); return mm ? all.find(x => x[8] === +mm[1]) : null; }).filter(Boolean);
-    if (rows.length) tg_('editMessageReplyMarkup', { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: kb.length > rows.length ? buyKb_(rows) : { inline_keyboard: rows.map(buyBtn_) } });
+    const kb = (q.message.reply_markup && q.message.reply_markup.inline_keyboard) || [], all = read_(SH.buy, 2, 8);   // перерисовать по таблице
+    const rows = [].concat.apply([], kb).map(b => { const mm = String(b.callback_data || '').match(/^b:(\d+):/); return mm ? all.find(x => x[8] === +mm[1]) : null; }).filter(Boolean);
+    const single = !kb.some(rw => rw.some(b => b.callback_data === 'list' && b.text === 'Обновить список'));   // одиночное сообщение о новой закупке
+    if (single && rows.length) tg_('editMessageReplyMarkup', { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: rows.map(buyBtn_).concat([[{ text: 'Весь список', callback_data: 'list' }]]) } });
+    else if (rows.length){ const title = String(q.message.text || '').split(' — ')[0] || 'Закупка';
+      tg_('editMessageText', { chat_id: q.message.chat.id, message_id: q.message.message_id, text: buyText_(rows, title), parse_mode: 'HTML', reply_markup: buyKb_(rows) }); }
     return; }
   const msg = u.message; if (!msg || !msg.text) return; const t = msg.text.trim().toLowerCase();
   if (t === '/start' || t === '/buy' || t === 'закупка' || t === '/закупка'){
