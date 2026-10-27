@@ -355,8 +355,14 @@ function handleTg_(u){
 function notifyBosses_(text){ const ids = read_(SH.staff, 2, 5).filter(r => BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0).map(r => String(r[0]));
   staffTg_().filter(x => ids.indexOf(x.id) >= 0).forEach(x => send_(x.tg, text, 'Открыть')); }
 function notifyOne_(id, text){ const x = staffTg_().find(y => y.id === id); if (x) send_(x.tg, text, 'Открыть'); }
+/* сотрудникам — со звуком только на смене; вне смены сообщение приходит беззвучно. Руководству и админам — всегда со звуком */
+let QUIET_ = null;
+function quiet_(chatId){ if (!QUIET_){ const t = today_(), on = {}; QUIET_ = {};
+    read_(SH.shifts, 2, 10).forEach(r => { if (String(r[0]).slice(0, 10) === t && !r[3]) on[String(r[1])] = 1; });
+    read_(SH.staff, 2, 5).forEach(r => { if (r[3]) QUIET_[String(r[3])] = BOSS_ROLES.indexOf(String(r[4]).trim()) < 0 && !on[String(r[0])]; }); }
+  return !!QUIET_[String(chatId)]; }
 function send_(chatId, text, btn){ // btn: 'Текст' или [['Текст', 'go-параметр'], …]
-  const p = { chat_id: chatId, text };
+  const p = { chat_id: chatId, text }; if (quiet_(chatId)) p.disable_notification = true;
   const list = !btn ? [] : Array.isArray(btn) ? btn : [[btn, '']];
   if (list.length) p.reply_markup = { inline_keyboard: list.map(x => [{ text: x[0], web_app: { url: appUrl_() + (x[1] ? '&go=' + x[1] : '') } }]) };
   return tg_('sendMessage', p);
