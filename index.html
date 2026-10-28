@@ -572,7 +572,7 @@ function payParts(amount, op, pct){
 }
 
 /* ============ BLOCK: DATA (строится из таблицы в build()) ============ */
-let TIMEJ=[], FACT={}, PART={}, BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[], SKILLS=null, PLANS=[], PLANNED={}, PAYS=[], PAYMODE={}, CLOSED=new Set(), ONAME={}, DONE=[], OPSKILL={}, SHARE={}, SKLOG=[], MYSUBS=[];
+let TIMEJ=[], FACT={}, PART={}, BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[], SKILLS=null, PLANS=[], PLANNED={}, PAYS=[], PAYMODE={}, CLOSED=new Set(), ONAME={}, DONE=[], OPSKILL={}, SHARE={}, SKLOG=[], MYSUBS=[], MYOFF=[];
 let TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const SEC={furn:'Фурнитура',tools:'Инструменты',other:'Прочее'}, SEC_BACK={'Фурнитура':'furn','Инструменты':'tools','Прочее':'other'};
 const num = v => typeof v==='number' ? v : parseFloat(String(v).replace(/\s/g,'').replace(',','.'));
@@ -584,7 +584,7 @@ function build(D){
   TODAY=fromIso(D.today);
   PEOPLE={}; ROLE={}; D.staff.forEach(s=>{ PEOPLE[s.id]=s.name||s.id; ROLE[s.id]=s.role; });
   WORKERS=D.staff.filter(s=>s.active).map(s=>s.id);
-  MYSUBS=((D.staff.find(x=>x.id===ME)||{}).subs)||[];
+  { const me=D.staff.find(x=>x.id===ME)||{}; MYSUBS=me.subs||[]; MYOFF=String(me.subsRaw||'').split(',').map(x=>x.trim()).filter(x=>x[0]==='-').map(x=>x.slice(1)); }
   SKILLS=D.skills||null; SKLOG=(D.skillLog||[]).map(r=>({at:String(r[0]), who:String(r[1]), code:String(r[2]), from:r[3]===''?null:+r[3], to:r[4]===''?null:+r[4]}));
   // деньги: закрытые заказы, выплаты, режим лимита аванса
   CLOSED=new Set(); ONAME={}; DONE=[]; D.orders.forEach(r=>{ const id=String(r[0]).trim(); if(!id||id.startsWith('пример')) return; ONAME[id]=String(r[1])+' · '+String(r[2]);
@@ -848,6 +848,7 @@ function vToday(){
   html+=vMoneyTile();
   const p=planParts(), pt2=planLoad(ME,p.t);
   html+=UI.tileFold(`План на завтра`, p.big, (p.mine?p.chipTxt:'время не указано')+(pt2.n?` · задач ${pt2.n}, ${fmt(pt2.h)} из ${PLAN.hoursPerDay} ч`:' · задачи не выбраны'), p.body, (p.chipCls==='bad'?'low':p.chipCls==='warn'?'warn':'')+(p.bigMid?' mid':''), p.editing||S.planOpen, (p.needsInput?'need ':'')+'w');
+  if(!IS_BOSS) html+=vNotifyEmp();
   if(S.closing) html+=vClosePanel();
   else if(S.onShift) html+=`<div class="tile w endbar"><button class="btn end" data-act="shift">Закрыть смену</button></div>`;
   return html;
@@ -1341,8 +1342,13 @@ function vPayRequests(){ const req=PAYS.filter(x=>x.st==='запрос'); if(!re
       `<div class="kb" style="margin-top:4px"><button class="btn small undo" data-act="payDecide" data-row="${x.row}" data-v="отклонено">Отклонить</button><button class="btn small" data-act="payDecide" data-row="${x.row}" data-v="выдано">Выдать</button></div>`); }).join('')), chip('warn', String(req.length))); }
 /* свои уведомления бота (руководитель / админ) */
 const NTYPES={arrive:'Пришёл / вернулся сотрудник', arrive_plan:'↳ к приходу — план и опоздание', leave:'Ушёл сотрудник — итог дня', buy_new:'Новая закупка — сразу', buy_morning:'Список закупки утром', adv:'Запрос аванса', ask:'Просится помощником', lag:'Заказ отстаёт от срока'};
-function vNotifySet(){ return UI.sec('', UI.fold('Мои уведомления от бота', `<div class="nlist">${Object.entries(NTYPES).map(([k,n])=>`<label class="chk nrow" for="ns-${k}"><input id="ns-${k}" type="checkbox" data-act="nset" data-k="${k}" ${MYSUBS.includes(k)?'checked':''}> ${n}</label>`).join('')}</div>`+
-  UI.note('Настройка только для тебя. Сотрудникам бот пишет как раньше; вне смены — беззвучно.'), S.nsetOpen, `<span class="small mute num">${MYSUBS.length} из ${Object.keys(NTYPES).length}</span>`)); }
+const ETYPES={plan_remind:'Напоминание о плане на завтра', close_remind:'Напоминание закрыть смену (20:00)', morning_remind:'Утром — если вчерашняя смена не закрыта', task_msg:'«Мои задачи» в чате бота (▶ / ⏸)', pay_info:'Аванс и выплаты', bonus_info:'Премии', buy_got:'Получено по закупке', ask_me:'Просятся ко мне помощником', lag_master:'Мой заказ отстаёт (я мастер)'};
+const empRows = () => Object.entries(ETYPES).map(([k,n])=>`<label class="chk nrow" for="ne-${k}"><input id="ne-${k}" type="checkbox" data-act="nset" data-k="-${k}" ${MYOFF.includes(k)?'':'checked'}> ${n}</label>`).join('');
+function vNotifySet(){ const on=Object.keys(NTYPES).filter(k=>MYSUBS.includes(k)).length;
+  return UI.sec('', UI.fold('Мои уведомления от бота', `<div class="nlist">${Object.entries(NTYPES).map(([k,n])=>`<label class="chk nrow" for="ns-${k}"><input id="ns-${k}" type="checkbox" data-act="nset" data-k="${k}" ${MYSUBS.includes(k)?'checked':''}> ${n}</label>`).join('')}
+    <div class="wgh" style="padding-top:8px">Как сотруднику</div>${empRows()}</div>`+
+  UI.note('Настройка только для тебя. Вне смены сотрудникам сообщения приходят беззвучно.'), S.nsetOpen, `<span class="small mute num">${on} из ${Object.keys(NTYPES).length}</span>`)); }
+function vNotifyEmp(){ return UI.sec('', UI.fold('Мои уведомления', `<div class="nlist">${empRows()}</div>`+UI.note('Сними галку — бот перестанет присылать это сообщение. Вне смены всё приходит беззвучно.'), S.nsetOpen, `<span class="small mute num">${Object.keys(ETYPES).length-MYOFF.length} из ${Object.keys(ETYPES).length}</span>`)); }
 function vBossStaff(){
   if(S.skills) return vSkills();
   const from=weekStart(), e=earnedBy(from), hh=hoursBy(from), wk=shiftsSince(from);
@@ -1650,8 +1656,10 @@ document.addEventListener('change',e=>{
     const off=o.lines.flatMap(x=>{ const s=(catL(x)[x.cat].ops||[]).map(y=>y[0]); return x.only?s.filter(y=>!x.only.includes(y)).map(y=>x.cat+'.'+y):[]; });
     const keep=(o.offRaw||[]).filter(x=>!o.lines.some(l=>l.cat===x.split('.')[0])); o.offRaw=keep.concat(off);
     api('orderSet',{order:o.id, col:22, value:o.offRaw.join(', ')}).catch(fail); }
-  if(el.dataset.act==='nset'){ MYSUBS=[...document.querySelectorAll('[data-act="nset"]')].filter(x=>x.checked).map(x=>x.dataset.k); S.nsetOpen=true;
-    api('notifySet',{types:MYSUBS}).then(()=>toast(el.checked?'Включено: '+NTYPES[el.dataset.k]:'Выключено: '+NTYPES[el.dataset.k])).catch(fail); return; }
+  if(el.dataset.act==='nset'){ const all=[...document.querySelectorAll('[data-act="nset"]')]; S.nsetOpen=true;
+    if(el.dataset.k[0]==='-'){ const k=el.dataset.k.slice(1); MYOFF=el.checked?MYOFF.filter(x=>x!==k):[...new Set(MYOFF.concat([k]))]; } else MYSUBS=all.filter(x=>x.dataset.k[0]!=='-'&&x.checked).map(x=>x.dataset.k);
+    const nm=NTYPES[el.dataset.k]||ETYPES[el.dataset.k.slice(1)];
+    api('notifySet',{types:(IS_BOSS?MYSUBS.filter(k=>NTYPES[k]):[]).concat(MYOFF.map(k=>'-'+k))}).then(()=>toast((el.checked?'Включено: ':'Выключено: ')+nm)).catch(fail); return; }
   if(el.dataset.act==='shopPct'){ const o=ORDERS[+el.dataset.o], v=Math.max(0,Math.min(100,Math.round(+el.value||0))); el.value=v; o.shopPct=v; o.shopPctRaw=String(v); S.openCompose=o.id;
     api('orderSet',{order:o.id, col:26, value:v}).then(()=>{ toast(v>=100?'Сборка — вся в цеху':`В цеху ${v}%, на объекте ${100-v}%`); render(); }).catch(fail); }
   if(el.dataset.act==='master'){ const o=ORDERS[+el.dataset.o]; o.master=el.value; S.openCompose=o.id; api('orderSet',{order:o.id, col:25, value:el.value}).then(()=>toast('Мастер сохранён')).catch(fail); }
@@ -1707,7 +1715,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793174477';
+const BUILD='1793175413';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
