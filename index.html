@@ -1404,7 +1404,7 @@ function vPayRequests(){ const req=PAYS.filter(x=>x.st==='запрос'); if(!re
       `<div class="kb" style="margin-top:4px"><button class="btn small undo" data-act="payDecide" data-row="${x.row}" data-v="отклонено">Отклонить</button><button class="btn small" data-act="payDecide" data-row="${x.row}" data-v="выдано">Выдать</button></div>`); }).join('')), chip('warn', String(req.length))); }
 /* свои уведомления бота (руководитель / админ) */
 const NTYPES={arrive:'Пришёл / вернулся сотрудник', arrive_plan:'↳ к приходу — план и опоздание', leave:'Ушёл сотрудник — итог дня', buy_new:'Новая закупка — сразу', buy_morning:'Список закупки утром', adv:'Запрос аванса', ask:'Просится помощником', lag:'Заказ отстаёт от срока'};
-const ETYPES={plan_remind:'Напоминание о плане на завтра', close_remind:'Напоминание закрыть смену (20:00)', morning_remind:'Утром — если вчерашняя смена не закрыта', task_msg:'«Мои задачи» в чате бота (▶ / ⏸)', pay_info:'Аванс и выплаты', bonus_info:'Премии', buy_got:'Получено по закупке', ask_me:'Просятся ко мне помощником', lag_master:'Мой заказ отстаёт (я мастер)'};
+const ETYPES={plan_remind:'Напоминание о плане на завтра', close_remind:'Напоминание закрыть смену (20:00)', morning_remind:'Утром — если вчерашняя смена не закрыта', task_msg:'«Мои задачи» в чате бота (▶ / ⏸)', pay_info:'Аванс и выплаты', bonus_info:'Премии', ask_me:'Просятся ко мне помощником', lag_master:'Мой заказ отстаёт (я мастер)'};
 const empRows = () => Object.entries(ETYPES).map(([k,n])=>`<label class="chk nrow" for="ne-${k}"><input id="ne-${k}" type="checkbox" data-act="nset" data-k="-${k}" ${MYOFF.includes(k)?'':'checked'}> ${n}</label>`).join('');
 function vNotifySet(){ const on=Object.keys(NTYPES).filter(k=>MYSUBS.includes(k)).length;
   return UI.sec('', UI.fold('Мои уведомления от бота', `<div class="nlist">${Object.entries(NTYPES).map(([k,n])=>`<label class="chk nrow" for="ns-${k}"><input id="ns-${k}" type="checkbox" data-act="nset" data-k="${k}" ${MYSUBS.includes(k)?'checked':''}> ${n}</label>`).join('')}
@@ -1794,7 +1794,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793177955';
+const BUILD='1793187110';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 

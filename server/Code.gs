@@ -221,7 +221,6 @@ const API = {
   buySet: bossOnly_(function(me, b){
     const ok = ['нужно', 'заказано', 'получено', 'отменено']; if (ok.indexOf(b.status) < 0) throw new Error('Неизвестный статус');
     const s = sh_(SH.buy); s.getRange(b.row, 6, 1, 3).setValues([[b.status, now_(), me.id]]);
-    if (b.status === 'получено') notifyBuy_(s.getRange(b.row, 1, 1, 8).getValues()[0]);
     return {}; }),
   /* ---- назначение задач: руководитель, администратор или мастер заказа ---- */
   taskAssign(me, b){ canAssign_(me, b.order); return { row: append_(SH.tasks, [b.order, b.op, b.who, b.due || '', 'назначил ' + me.id]) }; },
@@ -371,7 +370,7 @@ const NDEF_ = ['arrive', 'buy_new', 'buy_morning', 'adv', 'ask'];
 function subsOf_(v){ v = String(v || '').trim(); if (!v) return NDEF_.slice(); return v.split(',').map(x => x.trim()).filter(Boolean); }
 /* напоминания сотруднику: включены, пока не выключил сам */
 const ETYPES_ = { plan_remind: 'Напоминание о плане на завтра', close_remind: 'Напоминание закрыть смену', morning_remind: 'Незакрытая вчерашняя смена', task_msg: '«Мои задачи» в чате бота',
-  pay_info: 'Аванс и выплаты', bonus_info: 'Премии', buy_got: 'Получено по закупке', ask_me: 'Просятся ко мне помощником', lag_master: 'Мой заказ отстаёт (я мастер)' };
+  pay_info: 'Аванс и выплаты', bonus_info: 'Премии', ask_me: 'Просятся ко мне помощником', lag_master: 'Мой заказ отстаёт (я мастер)' };
 function empOn_(id, type){ const r = read_(SH.staff, 2, 10).find(x => String(x[0]) === String(id)); return !r || String(r[9] || '').split(',').map(x => x.trim()).indexOf('-' + type) < 0; }
 function isBoss_(id){ const r = read_(SH.staff, 2, 5).find(x => String(x[0]) === String(id)); return !!r && BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0; }
 function wants_(id, type){ const r = read_(SH.staff, 2, 10).find(x => String(x[0]) === String(id)); return !!r && subsOf_(r[9]).indexOf(type) >= 0; }
@@ -407,7 +406,7 @@ function handleTg_(u){
       return; }
     const m = d.match(/^b:(\d+):([gn])$/); if (!m){ tg_('answerCallbackQuery', { callback_query_id: q.id }); return; }
     const s = sh_(SH.buy), row = +m[1], r = s.getRange(row, 1, 1, 8).getValues()[0], st = m[2] === 'g' ? 'получено' : 'нужно';
-    if (r[5] !== st && r[3]){ s.getRange(row, 6, 1, 3).setValues([[st, now_(), String(boss[0])]]); if (st === 'получено') notifyBuy_(r.concat([row]).slice(0, 8)); }   // повтор того же нажатия ничего не меняет
+    if (r[5] !== st && r[3]){ s.getRange(row, 6, 1, 3).setValues([[st, now_(), String(boss[0])]]); }   // повтор того же нажатия ничего не меняет
     tg_('answerCallbackQuery', { callback_query_id: q.id, text: (st === 'получено' ? '✅ Куплено: ' : 'Вернул в список: ') + r[3] });
     const kb = (q.message.reply_markup && q.message.reply_markup.inline_keyboard) || [], rows = buyRowsFromKb_(kb);   // перерисовать по таблице
     const det = kb.some(rw => rw.some(b => b.callback_data === 'mc'));   // сейчас открыт подробный вид
