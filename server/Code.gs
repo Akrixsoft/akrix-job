@@ -117,7 +117,9 @@ const API = {
     const plan = latestPlan_(me.id, t);
     let late = ''; if (plan && plan.at && !plan.off){ const d = toMin_(at) - toMin_(plan.at); late = d > 0 ? d : 0; }
     append_(SH.shifts, [t, me.id, "'" + at, '', '', plan ? (plan.off ? 'не выходил' : "'" + plan.at) : 'не указан', late, b.geo || '', '', '', '', "'" + at + '–']);
-    if (!me.boss) notifyBosses_('arrive', (late > 5 ? '⏰ ' : '✅ ') + me.name + ' пришёл в ' + at + (plan && plan.at && !plan.off ? ' · план ' + plan.at + (late > 5 ? ' · опоздание ' + late + ' мин' : '') : ' · план не указан') + '.');
+    if (!me.boss) notifyBosses_('arrive', subs => subs.indexOf('arrive_plan') >= 0   // подробности (план и опоздание) — отдельной галкой
+      ? (late > 5 ? '⏰ ' : '✅ ') + me.name + ' пришёл в ' + at + (plan && plan.at && !plan.off ? ' · план ' + plan.at + (late > 5 ? ' · опоздание ' + late + ' мин' : '') : ' · план не указан') + '.'
+      : '✅ ' + me.name + ' пришёл в ' + at + '.');
     return { at, late, plan };
   },
   shiftEnd(me, b){ // b.date — закрыть смену прошлого дня с указанным временем ухода b.at
@@ -335,7 +337,7 @@ function ensureWebhook_(){ const pr = PropertiesService.getScriptProperties(); i
     const r = tg_('setWebhook', { url: url + '?tg=' + tgSecret_(), allowed_updates: ['message', 'callback_query'], drop_pending_updates: true });
     if (r && r.ok) pr.setProperty('HOOK', 'v1'); } catch (e) {} }
 /* типы сообщений руководству; пусто в колонке J — набор по умолчанию */
-const NTYPES_ = { arrive: 'Пришёл / вернулся сотрудник', leave: 'Ушёл сотрудник (итог дня)', buy_new: 'Новая закупка — сразу', buy_morning: 'Список закупки утром',
+const NTYPES_ = { arrive: 'Пришёл / вернулся сотрудник', arrive_plan: 'К приходу — план и опоздание', leave: 'Ушёл сотрудник (итог дня)', buy_new: 'Новая закупка — сразу', buy_morning: 'Список закупки утром',
   adv: 'Запрос аванса', ask: 'Просится помощником', lag: 'Заказ отстаёт от срока' };
 const NDEF_ = ['arrive', 'buy_new', 'buy_morning', 'adv', 'ask'];
 function subsOf_(v){ v = String(v || '').trim(); if (!v) return NDEF_.slice(); if (v === 'никаких') return []; return v.split(',').map(x => x.trim()).filter(Boolean); }
@@ -379,7 +381,9 @@ function handleTg_(u){
   if (t === '/start' || t === '/buy' || t === 'закупка' || t === '/закупка'){
     if (bossByTg_(msg.from.id)) sendBuyList_(msg.chat.id); else tg_('sendMessage', { chat_id: msg.chat.id, text: 'Открой Akrix Job кнопкой меню внизу чата.' }); }
 }
-function notifyBosses_(type, text){ const ids = read_(SH.staff, 2, 10).filter(r => BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0 && subsOf_(r[9]).indexOf(type) >= 0).map(r => String(r[0]));
+function notifyBosses_(type, text){ const rows = read_(SH.staff, 2, 10).filter(r => BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0 && subsOf_(r[9]).indexOf(type) >= 0), subs = {};
+  rows.forEach(r => subs[String(r[0])] = subsOf_(r[9])); const ids = rows.map(r => String(r[0]));
+  if (typeof text === 'function'){ staffTg_().filter(x => ids.indexOf(x.id) >= 0).forEach(x => send_(x.tg, text(subs[x.id]), 'Открыть')); return; }
   staffTg_().filter(x => ids.indexOf(x.id) >= 0).forEach(x => send_(x.tg, text, 'Открыть')); }
 function notifyOne_(id, text){ const x = staffTg_().find(y => y.id === id); if (x) send_(x.tg, text, 'Открыть'); }
 /* сотрудникам — со звуком только на смене; вне смены сообщение приходит беззвучно. Руководству и админам — всегда со звуком */
