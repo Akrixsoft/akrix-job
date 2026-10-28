@@ -559,6 +559,9 @@ body{padding-top:calc(6px + var(--tg-safe-area-inset-top,0px) + var(--tg-content
 details.tile[open]>summary{margin:-4px -6px 0;padding-top:8px;padding-bottom:8px}
 details.ord[open]>summary{border-radius:0 10px 10px 0}
 details.kpk[open]>summary.ksum{margin:0 -8px;padding:0 8px}
+
+.of .hardm{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--bad);color:#fff!important;font-size:11px;font-style:normal;font-weight:700;vertical-align:super;margin-left:2px;line-height:1}
+.legend .hard{color:var(--bad);font-weight:600}
 .who{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
 </style></head><body>
 <div class="app">
@@ -1103,15 +1106,15 @@ function orderCard(o, boss){
   return `<details class="ord ${tone}" ${S.openOrd===o.id?'open':''} data-ord="${esc(o.id)}">
     <summary>
       <div class="om"><div class="ot"><b>${esc(o.client)}</b></div>
-        <div class="os">${o.hard?'<span class="hard">жёсткий срок</span> · ':''}${esc(o.product)} ${oCode(o)}${o.master?' · мастер '+esc(PEOPLE[o.master]||o.master):''}</div>
+        <div class="os">${esc(o.product)} ${oCode(o)}${o.master?' · мастер '+esc(PEOPLE[o.master]||o.master):''}</div>
         <div class="bar thin"><i class="${late?'late':''}" style="width:${Math.min(100,st.fact)}%"></i><b style="left:${Math.min(100,st.plan)}%"></b></div></div>
       <div class="or"><span class="of num ${tone}">${fmt0(st.fact)}%</span><span class="osh num">${cehSt?`<span style="color:var(--${cehSt.cls==='bad'?'bad':cehSt.cls==='warn'?'warn':'mute'})">${cehSt.txt}</span>`:late?`план ${fmt0(st.plan)}%`:'в графике'}</span></div>
-      <div class="or"><span class="of num">${o.shipIn??'—'}</span><span class="osh">дн. до отгр.</span></div>
+      <div class="or"><span class="of num">${o.shipIn??'—'}${o.hard?'<i class="hardm" title="жёсткий срок">!</i>':''}</span><span class="osh">дн. до отгр.</span></div>
       ${svgChev}
     </summary>
     <div class="fb">
       ${late&&o.hard?`<div class="flag" style="color:var(--bad);background:var(--bad-soft)">Заказ не успевает к сроку цеха</div>`:''}
-      <div class="legend num">${o.cehDays?`<span>цех: день ${o.cehElapsed} из ${o.cehDays}</span>`:'<span>срок цеха не задан</span>'}<span>план ${fmt0(st.plan)}% · факт ${fmt0(st.fact)}%</span>${boss?`<span>фонд ${fmt0(st.fund)} ₾ · выполнено ${fmt0(st.done)} ₾</span>`:''}</div>
+      <div class="legend num">${o.hard?'<span class="hard">❗ жёсткий срок</span>':''}${o.cehDays?`<span>цех: день ${o.cehElapsed} из ${o.cehDays}</span>`:'<span>срок цеха не задан</span>'}<span>план ${fmt0(st.plan)}% · факт ${fmt0(st.fact)}%</span>${boss?`<span>фонд ${fmt0(st.fund)} ₾ · выполнено ${fmt0(st.done)} ₾</span>`:''}</div>
       ${UI.list(dls)}
       ${boss?taskGroups(o):opGroups(o)}
       ${boss?vCompose(o):''}
@@ -1838,7 +1841,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793192481';
+const BUILD='1793196275';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
