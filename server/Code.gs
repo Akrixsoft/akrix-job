@@ -135,13 +135,16 @@ const API = {
     return { at, hours: h };
   },
   /* ---- счётчик времени: одна активная операция на человека ---- */
-  workStart(me, b){ stopWork_(me.id); append_(SH.time, [now_(), me.id, b.order, b.op, '', '']); taskMsg_(me.id); return {}; },
+  workStart(me, b){ stopWork_(me.id); const pl = Math.round(+b.plan || 0);   // pl — свой таймер, мин (0 — без вопроса)
+    const dl = Math.max(0, Math.min(240, Math.round(+b.delay || 0))), at = new Date(Date.now() + dl * 6e4);   // отложенный старт: строка с будущим началом
+    append_(SH.time, [Utilities.formatDate(at, TZ, 'yyyy-MM-dd HH:mm'), me.id, b.order, b.op, '', '', '', pl > 0 ? pl : '', '', dl && b.ping ? 'ждёт' : '']);
+    if (dl && b.ping) pingAt_(at); taskMsg_(me.id); return {}; },
   workStop(me){ stopWork_(me.id); taskMsg_(me.id); return {}; },
   timeAdd(me, b){ const m = Math.round(+b.minutes || 0); if (!(m > 0)) throw new Error('Впиши время');
     const t = today_(), days = read_(SH.shifts, 2, 12).filter(r => String(r[0]).slice(0, 10) === t && String(r[1]) === me.id);
     if (!days.length) throw new Error('Ручное время — только в свою смену сегодня');
     const shiftMin = days.reduce((a, d) => a + segMin_(segs_(d), hm_()), 0), nowMs = Date.now();   // все отрезки смены за день
-    const used = read_(SH.time, 2, 6).filter(r => String(r[1]) === me.id && String(r[0]).slice(0, 10) === t).reduce((a, r) => a + (r[4] ? +r[5] || 0 : (nowMs - utcMs_(r[0])) / 6e4), 0);
+    const used = read_(SH.time, 2, 6).filter(r => String(r[1]) === me.id && String(r[0]).slice(0, 10) === t).reduce((a, r) => a + (r[4] ? +r[5] || 0 : Math.max(0, (nowMs - utcMs_(r[0])) / 6e4)), 0);
     if (m > shiftMin - used + 1) throw new Error('Можно добавить не больше ' + Math.max(0, Math.floor(shiftMin - used)) + ' мин — столько осталось от твоей смены');
     append_(SH.time, [now_(), me.id, b.order, b.op, now_(), m, 'вручную']); return {}; },
   shiftLate(me){ // «работаю дальше» — вечерняя смена, больше не напоминать
@@ -319,10 +322,32 @@ function tg_(method, payload){
   return JSON.parse(r.getContentText());
 }
 /* триггеры ставятся сами при первом запуске новой версии (без ручного setup) */
-function ensureTriggers_(){ const pr = PropertiesService.getScriptProperties(); if (pr.getProperty('TRG') === 'v2') return;
-  try { if (!ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'remindMorning930')){ const m = toMin_(params_().remindBuy);
+function ensureTriggers_(){ const pr = PropertiesService.getScriptProperties(); if (pr.getProperty('TRG') === 'v3') return;
+  try { const has = n => ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === n);
+    if (!has('remindMorning930')){ const m = toMin_(params_().remindBuy);
       ScriptApp.newTrigger('remindMorning930').timeBased().atHour(Math.floor(m / 60)).nearMinute(m % 60).everyDays(1).inTimezone(TZ).create(); }
-    pr.setProperty('TRG', 'v2'); } catch (e) {} }
+    if (!has('checkTimers')) ScriptApp.newTrigger('checkTimers').timeBased().everyMinutes(15).create();
+    pr.setProperty('TRG', 'v3'); } catch (e) {} }
+/* свой таймер: время вышло — один вопрос в бот (Время: H — план, мин; I — когда спросили) */
+function checkTimers(){ const s = sh_(SH.time); if (!s) return; const now = Date.now();
+  read_(SH.time, 2, 9).forEach(r => { const pl = +r[7] || 0; if (r[4] || !pl || r[8]) return; const el = (now - utcMs_(r[0])) / 6e4; if (el < pl) return;
+    const st = staffById_(r[1]); s.getRange(r[9], 9).setValue(now_()); if (!st || !st[3]) return;
+    const o = read_(SH.orders, 2, 3).find(x => String(x[0]).trim() === String(r[2]).trim()), lbl = (o ? o[1] + ' · ' + o[2] + ' · ' : '') + opName_(r[2], r[3]);
+    const h = Math.floor(el / 60), m = Math.round(el % 60);
+    tg_('sendMessage', { chat_id: String(st[3]), text: '⏱ ' + lbl + '\nПрошло ' + (h ? h + ' ч ' : '') + (m ? m + ' мин' : '') + ' — продолжаешь?',
+      reply_markup: { inline_keyboard: [[{ text: '+30 мин', callback_data: 'tx:30:' + r[9] }, { text: '+1 ч', callback_data: 'tx:60:' + r[9] }, { text: '+2 ч', callback_data: 'tx:120:' + r[9] }], [{ text: '⏸ Пауза', callback_data: 'p' }]] } }); }); }
+/* ===== BLOCK: START PING — отложенный старт: напоминание точно ко времени (Время: J «Напомнить о старте» = ждёт/отправлено) ===== */
+function pingAt_(at){ try { const has = ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'startPing').length;
+  if (has < 5) ScriptApp.newTrigger('startPing').timeBased().at(new Date(at.getTime() + 20e3)).create(); } catch (e) {} }
+function startPing(){ const s = sh_(SH.time); if (!s) return; const now = Date.now(); let next = 0;
+  read_(SH.time, 2, 10).forEach(r => { if (r[9] !== 'ждёт' || r[4]) return; const st = utcMs_(r[0]);
+    if (st > now + 60e3){ next = next ? Math.min(next, st) : st; return; }
+    s.getRange(r[10], 10).setValue('отправлено'); const p = staffById_(r[1]); if (!p || !p[3]) return;
+    const o = read_(SH.orders, 2, 3).find(x => String(x[0]).trim() === String(r[2]).trim());
+    tg_('sendMessage', { chat_id: String(p[3]), text: '▶ Пора: ' + (o ? o[1] + ' · ' + o[2] + ' · ' : '') + opName_(r[2], r[3]) + '\nВремя пошло.', reply_markup: { inline_keyboard: [[{ text: '⏸ Пауза', callback_data: 'p' }]] } }); });
+  try { ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'startPing').forEach(t => ScriptApp.deleteTrigger(t)); } catch (e) {}
+  if (next) pingAt_(new Date(next)); }
+/* ===== END BLOCK: START PING ===== */
 /* утро: закупка, если список не закрыт; отставание заказов — мастеру (нет мастера — руководству) */
 function remindMorning930(){
   const need = read_(SH.buy, 2, 8).filter(r => r[5] === 'нужно');
@@ -368,6 +393,12 @@ function buyRowsFromKb_(kb){ const all = read_(SH.buy, 2, 8);
   return [].concat.apply([], kb).map(b => { const mm = String(b.callback_data || '').match(/^b:(\d+):/); return mm ? all.find(x => x[8] === +mm[1]) : null; }).filter(Boolean); }
 function handleTg_(u){
   if (u.callback_query && /^(w:|p$|t$)/.test(String(u.callback_query.data || ''))){ taskTap_(u.callback_query); return; }
+  if (u.callback_query && /^tx:/.test(String(u.callback_query.data || ''))){ const q = u.callback_query, m = String(q.data).match(/^tx:(\d+):(\d+)$/), s = sh_(SH.time);
+    const r = m ? s.getRange(+m[2], 1, 1, 9).getValues()[0] : null, st = read_(SH.staff, 2, 7).find(x => String(x[3]) === String(q.from.id));
+    if (!r || !st || String(r[1]) !== String(st[0]) || r[4]){ tg_('answerCallbackQuery', { callback_query_id: q.id, text: 'Счётчик уже остановлен' }); return; }
+    const el = (Date.now() - utcMs_(cell_(r[0]))) / 6e4; s.getRange(+m[2], 8, 1, 2).setValues([[Math.round(el) + +m[1], '']]);   // новый срок от текущего момента
+    tg_('answerCallbackQuery', { callback_query_id: q.id, text: 'Ок, спрошу через ' + (+m[1] >= 60 ? (+m[1] / 60) + ' ч' : m[1] + ' мин') });
+    tg_('editMessageReplyMarkup', { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [] } }); return; }
   if (u.callback_query){ const q = u.callback_query, boss = bossByTg_(q.from.id), d = String(q.data || '');
     if (!boss){ tg_('answerCallbackQuery', { callback_query_id: q.id, text: 'Только для руководителя' }); return; }
     if (d === 'list'){ tg_('answerCallbackQuery', { callback_query_id: q.id }); sendBuyList_(q.message.chat.id); return; }

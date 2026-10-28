@@ -519,6 +519,29 @@ body{padding-top:calc(6px + var(--tg-safe-area-inset-top,0px) + var(--tg-content
 .nlist{display:flex;flex-direction:column;gap:2px}
 .nrow{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;border-bottom:1px solid var(--line)}
 .nrow input{width:20px;height:20px}
+
+/* ---- свой таймер (лист снизу) и итог смены ---- */
+.sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--tile);border-radius:16px 16px 0 0;padding:16px 16px calc(16px + max(env(safe-area-inset-bottom,0px),var(--tg-safe-area-inset-bottom,0px)));max-width:560px;margin:0 auto;box-shadow:0 -8px 24px rgba(0,0,0,.18)}
+.sheet .shd{display:flex;flex-direction:column;gap:2px}
+.pchips{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pchips .btn{min-height:48px;font-size:16px}
+.pchips .btn:last-child{grid-column:1/-1}
+.stp{min-width:40px;min-height:34px;padding:0 10px;font-size:18px}
+.stv{min-width:58px;text-align:center;font-size:13px}
+.num.bad{color:var(--bad)}
+
+.ptape{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 30% 8px;margin:0 -16px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.ptape::-webkit-scrollbar{display:none}
+.pt{flex:0 0 auto;scroll-snap-align:center;min-width:76px;height:56px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);font:inherit;font-size:17px;font-weight:600;color:var(--ink)}
+.pt.on{background:var(--acc);border-color:var(--acc);color:#1a1400;transform:scale(1.06)}
+
+.pcap{margin:10px 0 4px;color:var(--mute)}
+.pping{margin-top:6px}
+.pgo{width:100%;margin-top:12px;min-height:50px}
+.plist{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow-y:auto;margin-top:8px}
+.pli{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);font:inherit;color:var(--ink)}
+.pli:active{border-color:var(--acc)}
 .who{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
 </style></head><body>
 <div class="app">
@@ -869,7 +892,8 @@ function vJoin(o,oi,k,t){ // всплывающий список: время и 
   const mins=opMinutes(o.id,k), tot=Object.values(mins).reduce((a,b)=>a+b,0), sh=shares(o.id,k,ME,'',t.boss?'boss':'');
   const man={}; TIMEJ.forEach(t=>{ if(t.manual&&t.order===o.id&&t.op===k) man[t.who]=(man[t.who]||0)+t.min/60; });
   const row=p=>{ const on=ppl.has(p)||(p===ME&&!t.boss), h=(mins[p]||0)/60, v=sum*(sh[p]||0);
-    const body=`<span class="tpn">${esc(PEOPLE[p]||p)}${p===ME?' (я)':''}</span><span class="tpv num">${h?fmt(h)+' ч'+(man[p]?` <span class="tpm">✎ ${fmt(man[p])} вручную</span>`:'')+' · ':''}${on?fmt0(v)+' ₾':''}</span>`;
+    const noClock=!h&&on&&shareSrc(o.id,k)==='по времени';
+    const body=`<span class="tpn">${esc(PEOPLE[p]||p)}${p===ME?' (я)':''}${noClock?' <span class="tpm">без счётчика</span>':''}</span><span class="tpv num">${h?fmt(h)+' ч'+(man[p]?` <span class="tpm">✎ ${fmt(man[p])} вручную</span>`:'')+' · ':''}${on?fmt0(v)+' ₾':''}</span>`;
     if(p===ME&&!t.boss) return `<div class="tpi on me">${body}</div>`;
     const on2=t.boss?ppl.has(p):on; return `<button class="tpi ${on2?'on':''}" data-act="join" data-o="${oi}" data-op="${k}" data-who="${p}" aria-pressed="${on2}">${body}</button>`; };
   return `<div class="tpop" role="dialog" aria-label="Участники задачи">
@@ -909,7 +933,7 @@ function vUnits(o,oi,l,op,self,bare){
   const foot=self?`<button class="btn small undo" data-act="untake" data-o="${oi}" data-op="${l.cat}.${op[0]}" style="align-self:flex-start;margin:6px 0 2px">Отменить взятое</button>`:'';
   const pm=isPris(op)?`<div class="small mute" style="padding:2px 0 4px">Присадка: ${fmt(ppct)}% пула${ppct>P.prisAuto+0.01?' (с бонусом)':''}</div>`:'';
   const k=l.cat+'.'+op[0], run=S.active&&S.active.order===o.id&&S.active.op===k;
-  const timer=`<div class="runbar">${run?`<button class="btn small" data-act="workStop">⏸ Пауза</button><span class="small num">идёт с ${S.active.start.slice(11,16)}</span>`:`<button class="btn small start2" data-act="workStart" data-o="${oi}" data-op="${k}" ${S.onShift?'':'disabled'}>▶ Приступить</button><span class="small mute">${S.active?'текущая работа встанет на паузу':'время пойдёт в факт операции'}</span>`}</div>`;
+  const timer=`<div class="runbar">${run?`<button class="btn small" data-act="workStop">⏸ Пауза</button><span class="small num">${tsMs(S.active.start)>Date.now()?'старт в':'идёт с'} ${S.active.start.slice(11,16)}</span>`:`<button class="btn small start2" data-act="workStart" data-o="${oi}" data-op="${k}" ${S.onShift?'':'disabled'}>▶ Приступить</button><span class="small mute">${S.active?'текущая работа встанет на паузу':'время пойдёт в факт операции'}</span>`}</div>`;
   if(bare) return `${top}${pm}${rows}`;
   return `<div class="uin">${timer}<div class="ctl">${top}</div>${pm}${rows}${foot}</div>`;
 }
@@ -917,8 +941,46 @@ function vLines(raw){ const m={}; raw.forEach(d=>{ const k=d.order+'|'+d.opName;
     m[k].units.push(...d.units); m[k].pct+=d.pct; m[k].mine+=d.mine; m[k].at=d.at; });
   return UI.list(Object.values(m).map(d=>UI.row(d.opName, `${d.at?d.at+' · ':''}${oLabel(d.order)} · ${d.units.map(esc).join(', ')} · ${fmt(d.pct)}%${d.with?` · с ${esc(PEOPLE[d.with]||d.with)}`:''}`,
   `<b class="num">${fmt0(d.mine)} ₾</b>`)).join('')); }
+/* выбор своего таймера при «Приступить»: без ввода цифр — крупные кнопки */
+const PLAN_CH=[30,60,90,120,180,240,300,360,420,480];   // лента: до 2 ч — шаг 30 мин, дальше по часу до 8
+const planTxt = m => m<60?m+' мин':fmt(m/60)+' ч';
+/* ===== BLOCK: START PICK (выбор задачи при открытии смены · отложенный старт · свой таймер) ===== */
+const DELAY_CH=[0,15,30,45,60,90,120];
+const dlyTxt = m => m?'через '+planTxt(m):'сейчас';
+const atTxt = m => { const d=new Date(Date.now()+m*6e4); return hm(d.getHours()*60+d.getMinutes()); };
+function myOpenTasks(){ return ORDERS.flatMap(o=>o.tasks.map(t=>({o,t}))).filter(x=>{ const f=findOp(x.o,x.t.op); return f.op&&(f.line.prog[f.op[0]]||0)<100; }); }
+function vStartPick(){ const p=S.startPick; if(!p) return '';
+  const tape=(id,arr,cur,act,txt)=>`<div class="ptape" id="${id}">${arr.map(m=>`<button class="pt ${cur===m?'on':''}" data-act="${act}" data-m="${m}">${txt(m)}</button>`).join('')}</div>`;
+  if(p.list){ const L=myOpenTasks();
+    return `<div class="sheetbg" data-act="pickClose"></div><div class="sheet" role="dialog" aria-label="Чем займёшься"><div class="shd"><b>Чем займёшься?</b><span class="small mute">выбери задачу — время пойдёт в неё</span></div>
+      <div class="plist">${L.map(({o,t})=>{ const f=findOp(o,t.op); return `<button class="pli" data-act="pickTask" data-o="${ORDERS.indexOf(o)}" data-op="${esc(t.op)}"><b>${esc(f.op[1])}</b><span class="small mute">${esc(o.client)} · ${esc(o.product)}</span></button>`; }).join('')||UI.note('Задач нет. Возьми работу в «Все работы».')}</div>
+      <button class="btn ghost" data-act="pickClose" style="width:100%;margin-top:8px">Позже</button></div>`; }
+  const o=ORDERS[+p.o], f=o&&findOp(o,p.op); if(!f||!f.op) return ''; const d=S.pickDelay||0;
+  const go=(plan,txt,cls)=>`<button class="btn ${cls}" data-act="workStart" data-o="${p.o}" data-op="${esc(p.op)}" data-plan="${plan}" data-delay="${d}" data-ping="${S.pickPing?1:0}">${txt}</button>`;
+  return `<div class="sheetbg" data-act="pickClose"></div><div class="sheet" role="dialog" aria-label="Старт задачи"><div class="shd"><b>${esc(f.op[1])}</b><span class="small mute">${esc(o.client)} · ${esc(o.product)}</span></div>
+    <div class="small pcap">Начну</div>${tape('pdelay',DELAY_CH,d,'pickDelay',m=>m?planTxt(m):'Сейчас')}
+    ${d?`<div class="grid2 pping"><button class="btn ${S.pickPing?'':'ghost'} small" data-act="pickPing" data-v="1">🔔 Напомнить в ${atTxt(d)}</button><button class="btn ${S.pickPing?'ghost':''} small" data-act="pickPing" data-v="0">🔕 Без напоминания</button></div>`:''}
+    <div class="small pcap">Спросить, продолжаю ли, через</div>${tape('ptape',PLAN_CH,S.pickPlan,'pickPlan',planTxt)}
+    ${go(S.pickPlan,(d?'Старт в '+atTxt(d):'Приступить')+' · спросить через '+planTxt(S.pickPlan),'pgo')}
+    <div class="grid2" style="margin-top:8px">${go('day','До конца дня','ghost')}<button class="btn ghost" data-act="pickClose">Отмена</button></div></div>`; }
+function pickOpen(o,op){ S.startPick={o,op}; S.pickPlan=S.pickPlan||120; S.pickDelay=0; if(S.pickPing==null) S.pickPing=true;
+  setTimeout(()=>document.querySelectorAll('.ptape .pt.on').forEach(x=>x.scrollIntoView({inline:'center',block:'nearest'})),0); }
+/* ===== END BLOCK: START PICK ===== */
+/* итог смены: сколько учтено по задачам; остаток можно разнести по своим задачам шагом 30 мин */
+function closeTasks(){ const t0=iso(TODAY), keys=new Set(); TIMEJ.forEach(t=>{ if(t.who===ME&&String(t.start).slice(0,10)===t0) keys.add(t.order+'|'+t.op); });
+  ORDERS.forEach(o=>o.tasks.forEach(t=>keys.add(o.id+'|'+t.op)));
+  return [...keys].map(k=>{ const [oid,op]=k.split('|'), o=oById(oid), f=o&&findOp(o,op); return f&&f.op?{k,o,op,name:f.op[1]}:null; }).filter(Boolean); }
+function dayCounted(){ const t0=iso(TODAY); return TIMEJ.filter(t=>t.who===ME&&String(t.start).slice(0,10)===t0).reduce((a,t)=>a+(t.end?t.min:Math.max(0,(Date.now()-tsMs(t.start))/6e4)),0); }
 function vClosePanel(){
-  return UI.sec('Закрыть смену', `${S.todayLines.length?UI.note(`За день отмечено: ${S.todayLines.length} · ${fmt0(S.todayEarned)} ₾`):`<div class="flag warn">За день ничего не отмечено. Если работал — сначала отметь сделанное.</div>`}
+  const sh=segMin(), cnt=dayCounted(), al=S.alloc||{}, alSum=Object.values(al).reduce((a,b)=>a+b,0), free=Math.max(0,sh-cnt-alSum), pc=sh?Math.round((cnt+alSum)/sh*100):0;
+  const fh=m=>m>=60?fmt(m/60)+' ч':Math.round(m)+' мин';
+  const rows=closeTasks().map((x,i)=>`<div class="prow"><span class="pn">${esc(x.name)}<span class="ps">${esc(x.o.client)} · ${esc(x.o.product)}</span></span>
+      <button class="btn small ghost stp" data-act="alloc" data-k="${esc(x.k)}" data-d="-30" ${al[x.k]?'':'disabled'}>−</button><b class="num stv">${al[x.k]?'+'+fh(al[x.k]):'—'}</b><button class="btn small ghost stp" data-act="alloc" data-k="${esc(x.k)}" data-d="30" ${free>=30?'':'disabled'}>+</button></div>`).join('');
+  const sum=`<div class="pbox closesum"><div class="pbh"><b>Итог смены</b><span class="num">${fh(sh)}</span></div>
+    <div class="bar"><i class="${pc<60?'late':''}" style="width:${Math.min(100,pc)}%"></i></div>
+    <div class="small">По задачам учтено <b class="num">${fh(cnt+alSum)}</b> (${pc}%) · без задачи <b class="num">${fh(free)}</b></div>
+    ${free>=30||alSum?`<div class="small mute" style="margin:6px 0 2px">Забыл включить счётчик — разнеси время по задачам:</div>${rows}`:''}</div>`;
+  return UI.sec('Закрыть смену', sum+`${S.todayLines.length?UI.note(`За день отмечено: ${S.todayLines.length} · ${fmt0(S.todayEarned)} ₾`):`<div class="flag warn">За день ничего не отмечено. Если работал — сначала отметь сделанное.</div>`}
     <label for="c-misc">Хозработы<input id="c-misc" type="text" placeholder="уборка, порядок инструмента…"></label>
     <div class="grid2"><button class="btn ghost" data-act="cancelClose">Отмена</button><button class="btn" data-act="submitClose">Закрыть смену</button></div>`);
 }
@@ -1128,7 +1190,7 @@ function render(){
   if(IS_BOSS){ const other=badges(S.role==='boss'?'emp':'boss'), tot=Object.values(other).reduce((a,x)=>a+x,0);
     document.getElementById(S.role==='boss'?'role-emp':'role-boss').classList.toggle('hasdot', tot>0); document.getElementById(S.role==='boss'?'role-boss':'role-emp').classList.remove('hasdot'); }
   const v={today:vToday,orders:vOrders,borders:vBossOrders,fund:vBossFund,staff:vBossStaff,norms:vBossNorms,tomorrow:vBossTomorrow,cal:vCal,mount:vMountTab,buy:vBuy}[S.tab];
-  document.getElementById('view').innerHTML=v();
+  document.getElementById('view').innerHTML=v()+(S.role==='emp'?vStartPick():'');
   bindUnits(); bindPlan();
 }
 
@@ -1356,6 +1418,8 @@ function vBossStaff(){
     const late=wk.filter(r=>String(r[1])===p&&num(r[6])>5).length;
     return UI.sec(esc(PEOPLE[p]), `<div class="grid2">${UI.kpi('₾/ч', h?fmt(perH):'—', `норма ${RATE_H}`, h?tone:'', true)}${UI.kpi('заработал', fmt0(ea)+' ₾', `мог ${fmt0(h*RATE_H)} · ${fmt(h)} ч`, '', true)}</div>
       <div class="bar"><i class="${perH<RATE_H*0.6?'late':''}" style="width:${Math.min(100,perH/RATE_H*100)}%"></i></div>
+      ${(()=>{ const f0=iso(weekStart()), m=TIMEJ.filter(t=>t.who===p&&String(t.start).slice(0,10)>=f0).reduce((a,t)=>a+(t.end?t.min:Math.max(0,(Date.now()-tsMs(t.start))/6e4)),0), pc=h?Math.round(m/60/h*100):null;
+        return pc==null?'':`<div class="small" style="margin:4px 0">По задачам учтено <b class="num ${pc<60?'bad':''}">${Math.min(pc,100)}%</b> смены за неделю</div>`; })()}
       ${late?`<div class="flag warn">Опозданий за неделю: ${late}</div>`:''}${flagsOf(p).map(x=>`<div class="flag warn">${esc(x)}</div>`).join('')}${vPayBoss(p)}`,
       h?chip(perH>=RATE_H?'ok':perH>=RATE_H*0.6?'warn':'bad', `${fmt(perH)} ₾/ч`):chip('n','нет смен')); }).join('');
 }
@@ -1533,16 +1597,24 @@ document.addEventListener('click',e=>{
   if(a==='shift'){
     if(!S.onShift){ b.disabled=true; toast('Начинаю смену…');
       geo().then(g=>api('shiftStart',{geo:g})).then(r=>{ const again=S.segs&&S.segs.length; S.segs=(S.segs||[]).concat([{s:r.at,e:''}]); S.onShift=true; S.shiftDone=false;
-        if(!again){ S.startAt=r.at; S.arrLate=+r.late||0; S.arrNote=r.plan?'план':''; } toast(again?'С возвращением — смена продолжается':'Смена начата'); render(); }).catch(fail); return; }
+        if(!again){ S.startAt=r.at; S.arrLate=+r.late||0; S.arrNote=r.plan?'план':''; } toast(again?'С возвращением — смена продолжается':'Смена начата'); if(S.role==='emp'&&!S.active&&myOpenTasks().length) S.startPick={list:true}; render(); }).catch(fail); return; }
     else { S.closing=true; }
   }
+  if(a==='alloc'){ const k=b.dataset.k, d=+b.dataset.d; S.alloc=S.alloc||{}; S.alloc[k]=Math.max(0,(S.alloc[k]||0)+d); if(!S.alloc[k]) delete S.alloc[k]; renderKeep(`[data-act="alloc"][data-k="${CSS.escape(k)}"][data-d="${d}"]`, b); return; }
   if(a==='submitClose'){ const misc=(document.getElementById('c-misc')||{}).value||''; b.disabled=true;
+    Object.entries(S.alloc||{}).forEach(([k,m])=>{ const [oid,op]=k.split('|'); const now=iso(new Date())+' '+hm(nowMin()); TIMEJ.push({start:now, who:ME, order:oid, op, end:now, min:m, manual:true}); api('timeAdd',{order:oid, op, minutes:m}).catch(fail); }); S.alloc=null;
     stopWork(true); geo().then(g=>api('shiftEnd',{misc, geo:g})).then(r=>{ S.onShift=false; S.shiftDone=true; S.leftAt=r.at; S.closing=false; const g=(S.segs||[])[S.segs.length-1]; if(g) g.e=r.at; toast('Смена закрыта'); render(); }).catch(fail); return; }
   if(a==='cancelClose'){ S.closing=false; }
-  if(a==='workStart'){ const o=ORDERS[+b.dataset.o]; if(!S.onShift){ toast('Сначала начни смену'); return; } const now=iso(new Date())+' '+hm(nowMin());
+  if(a==='workStart'&&!b.dataset.plan){ if(!S.onShift){ toast('Сначала начни смену'); return; } pickOpen(b.dataset.o, b.dataset.op); }
+  if(a==='pickTask'){ pickOpen(b.dataset.o, b.dataset.op); }
+  if(a==='pickDelay'||a==='pickPlan'){ if(a==='pickDelay') S.pickDelay=+b.dataset.m; else S.pickPlan=+b.dataset.m; const keep={}; document.querySelectorAll('.ptape').forEach(x=>keep[x.id]=x.scrollLeft); render();
+    document.querySelectorAll('.ptape').forEach(x=>{ x.scrollLeft=keep[x.id]||0; }); const on=document.querySelector(`#${a==='pickDelay'?'pdelay':'ptape'} .pt.on`); if(on) on.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'}); return; }
+  if(a==='pickPing'){ S.pickPing=b.dataset.v==='1'; }
+  if(a==='pickClose'){ S.startPick=null; }
+  if(a==='workStart'&&b.dataset.plan){ const o=ORDERS[+b.dataset.o]; S.startPick=null; if(!S.onShift){ toast('Сначала начни смену'); return; } const now=iso(new Date())+' '+hm(nowMin()), plan=+b.dataset.plan||0, dl=+b.dataset.delay||0, ping=b.dataset.ping==='1', st0=dl?iso(new Date(Date.now()+dl*6e4))+' '+atTxt(dl):now;
     TIMEJ.forEach(t=>{ if(t.who===ME&&!t.end){ t.end=now; t.min=Math.max(0,(Date.now()-tsMs(t.start))/6e4); } });
-    const t={start:now, who:ME, order:o.id, op:b.dataset.op, end:'', min:0}; TIMEJ.push(t); S.active={order:o.id, op:b.dataset.op, start:now};
-    api('workStart',{order:o.id, op:b.dataset.op}).catch(fail); toast('Приступил'); }
+    const t={start:st0, who:ME, order:o.id, op:b.dataset.op, end:'', min:0}; TIMEJ.push(t); S.active={order:o.id, op:b.dataset.op, start:st0};
+    api('workStart',{order:o.id, op:b.dataset.op, plan, delay:dl, ping}).catch(fail); toast((dl?'Старт в '+atTxt(dl)+(ping?' · напомню':''):'Приступил')+(plan?' · спрошу через '+planTxt(plan):'')); }
   if(a==='workStop'){ stopWork(); toast('Пауза'); }
   if(a==='timeAdd'){ const o=ORDERS[+b.dataset.o], h=parseFloat(String(document.getElementById('tadd').value).replace(',','.')); if(!(h>0)){ toast('Впиши часы, например 1,5'); return; }
     const free=manualLeftH(); if(free<=0.01){ toast('Ручное время — только в свою смену сегодня, и не больше её длины'); return; }
@@ -1715,7 +1787,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793175413';
+const BUILD='1793177159';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
