@@ -1584,7 +1584,14 @@ function vAllWork(){
 }
 
 /* ============ BLOCK: EVENTS ============ */
-function geo(){ return new Promise(res=>{ if(!navigator.geolocation) return res('');
+/* геопозиция: через Telegram LocationManager — разрешение спрашивается один раз и запоминается Telegram; браузерный запрос — только вне Telegram */
+function geo(){ const LM=window.Telegram&&Telegram.WebApp&&Telegram.WebApp.LocationManager, inTg=!!(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initData);
+  if(LM&&inTg) return new Promise(res=>{ const t=setTimeout(()=>res(''),6000), done=v=>{ clearTimeout(t); res(v); };
+    const get=()=>{ if(!LM.isLocationAvailable||(LM.isAccessRequested&&!LM.isAccessGranted)) return done('');   // отказал — больше не спрашиваем
+      LM.getLocation(d=>done(d?d.latitude.toFixed(5)+', '+d.longitude.toFixed(5):'')); };
+    try { LM.isInited?get():LM.init(get); } catch(e){ done(''); } });
+  if(inTg) return Promise.resolve('');   // старый Telegram без LocationManager — без повторяющихся запросов
+  return new Promise(res=>{ if(!navigator.geolocation) return res('');
   const t=setTimeout(()=>res(''),4000);
   navigator.geolocation.getCurrentPosition(p=>{ clearTimeout(t); res(p.coords.latitude.toFixed(5)+', '+p.coords.longitude.toFixed(5)); }, ()=>{ clearTimeout(t); res(''); }, {timeout:3500,maximumAge:60000}); }); }
 document.getElementById('role-emp').onclick=()=>{S.role='emp';S.tab='today';render();};
@@ -1787,7 +1794,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793177159';
+const BUILD='1793177955';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
