@@ -113,14 +113,14 @@ const API = {
     if (day && !day[3]) throw new Error('Смена уже начата');
     if (day){ const g = segs_(day).concat([{ s: at, e: '' }]); const s = sh_(SH.shifts);
       s.getRange(day[12], 4).setValue(''); s.getRange(day[12], 12).setValue("'" + segStr_(g));
-      if (!me.boss) notifyBosses_('arrive', '↩️ ' + me.name + ' вернулся в ' + at + '.'); return { at, late: '', again: true }; }
+      if (!me.boss) notifyBosses_('arrive', '↩️ ' + me.name + ' вернулся в ' + at + '.'); taskMsg_(me.id, true); return { at, late: '', again: true }; }
     const plan = latestPlan_(me.id, t);
     let late = ''; if (plan && plan.at && !plan.off){ const d = toMin_(at) - toMin_(plan.at); late = d > 0 ? d : 0; }
     append_(SH.shifts, [t, me.id, "'" + at, '', '', plan ? (plan.off ? 'не выходил' : "'" + plan.at) : 'не указан', late, b.geo || '', '', '', '', "'" + at + '–']);
     if (!me.boss) notifyBosses_('arrive', subs => subs.indexOf('arrive_plan') >= 0   // подробности (план и опоздание) — отдельной галкой
       ? (late > 5 ? '⏰ ' : '✅ ') + me.name + ' пришёл в ' + at + (plan && plan.at && !plan.off ? ' · план ' + plan.at + (late > 5 ? ' · опоздание ' + late + ' мин' : '') : ' · план не указан') + '.'
       : '✅ ' + me.name + ' пришёл в ' + at + '.');
-    return { at, late, plan };
+    taskMsg_(me.id, true); return { at, late, plan };
   },
   shiftEnd(me, b){ // b.date — закрыть смену прошлого дня с указанным временем ухода b.at
     const t = b.date || today_(), rows = read_(SH.shifts, 2, 12), r = rows.reverse().find(x => String(x[0]).slice(0, 10) === t && String(x[1]) === me.id && !x[3]);
@@ -131,11 +131,12 @@ const API = {
     stopWork_(me.id); const s = sh_(SH.shifts); s.getRange(r[12], 4, 1, 2).setValues([["'" + at, h]]); s.getRange(r[12], 9, 1, 2).setValues([[b.geo || '', b.misc || '']]);
     s.getRange(r[12], 12).setValue("'" + segStr_(g));
     if (!me.boss) notifyBosses_('leave', '🏁 ' + me.name + ' ушёл в ' + at + (t !== today_() ? ' (смена ' + t.slice(8, 10) + '.' + t.slice(5, 7) + ', закрыта задним числом)' : '') + ' · на смене ' + String(h).replace('.', ',') + ' ч.');
+    if (t === today_()) taskMsgClose_(me.id);
     return { at, hours: h };
   },
   /* ---- счётчик времени: одна активная операция на человека ---- */
-  workStart(me, b){ stopWork_(me.id); append_(SH.time, [now_(), me.id, b.order, b.op, '', '']); return {}; },
-  workStop(me){ stopWork_(me.id); return {}; },
+  workStart(me, b){ stopWork_(me.id); append_(SH.time, [now_(), me.id, b.order, b.op, '', '']); taskMsg_(me.id); return {}; },
+  workStop(me){ stopWork_(me.id); taskMsg_(me.id); return {}; },
   timeAdd(me, b){ const m = Math.round(+b.minutes || 0); if (!(m > 0)) throw new Error('Впиши время');
     const t = today_(), days = read_(SH.shifts, 2, 12).filter(r => String(r[0]).slice(0, 10) === t && String(r[1]) === me.id);
     if (!days.length) throw new Error('Ручное время — только в свою смену сегодня');
@@ -150,7 +151,7 @@ const API = {
   /* ---- отметки работы: галочка = запись в расчёт ---- */
   mark(me, b){
     const row = append_(SH.marks, [now_(), me.id, b.order, b.grp, b.op, b.unit, b.pct, b.amount, 0, b.partner || '', b.mode || '', '']);
-    return { row, at: hm_() };
+    taskMsg_(me.id); return { row, at: hm_() };
   },
   unmark(me, b){
     const s = sh_(SH.marks), r = s.getRange(b.row, 1, 1, 12).getValues()[0];
@@ -158,9 +159,9 @@ const API = {
     if (!me.boss && String(cell_(r[0])).slice(0, 10) !== today_()) throw new Error('Снять можно только сегодняшнюю отметку');
     s.getRange(b.row, 12).setValue('да'); return {};
   },
-  take(me, b){ append_(SH.takes, [now_(), me.id, b.order, b.op, 'взял']); return {}; },
-  untake(me, b){ append_(SH.takes, [now_(), me.id, b.order, b.op, 'отменил']); return {}; },
-  unjoin(me, b){ append_(SH.takes, [now_(), b.who, b.order, b.op, 'отключён ' + me.id]); return {}; },
+  take(me, b){ append_(SH.takes, [now_(), me.id, b.order, b.op, 'взял']); taskMsg_(me.id); return {}; },
+  untake(me, b){ append_(SH.takes, [now_(), me.id, b.order, b.op, 'отменил']); taskMsg_(me.id); return {}; },
+  unjoin(me, b){ append_(SH.takes, [now_(), b.who, b.order, b.op, 'отключён ' + me.id]); taskMsg_(String(b.who)); return {}; },
   /* доли участников: задаёт позвавший (взявший задачу) или руководитель; 'доли S1:70,S3:30' или 'доли сброс' */
   shareSet(me, b){ const e = Object.entries(b.shares || {}).filter(x => +x[1] > 0);
     if (e.length && Math.abs(e.reduce((a, x) => a + +x[1], 0) - 100) > 0.5) throw new Error('Доли должны давать 100%');
@@ -169,7 +170,7 @@ const API = {
   askJoin(me, b){ const txt = me.name + ' просится помощником: ' + (b.opName || b.op) + ' · ' + b.order + '. Подключить — в списке участников задачи.';
     if (b.to) notifyOne_(String(b.to), txt); else { notifyBosses_('ask', txt); const o = read_(SH.orders, 2, 26).find(r => String(r[0]).trim() === String(b.order)); if (o && o[24]) notifyOne_(String(o[24]).trim(), txt); }
     return {}; },
-  join(me, b){ if (!b.who || b.who === me.id) throw new Error('Выбери сотрудника'); append_(SH.takes, [now_(), b.who, b.order, b.op, 'подключён ' + me.id]); return {}; },
+  join(me, b){ if (!b.who || b.who === me.id) throw new Error('Выбери сотрудника'); append_(SH.takes, [now_(), b.who, b.order, b.op, 'подключён ' + me.id]); taskMsg_(String(b.who)); return {}; },
   /* ---- план выхода ---- */
   planSet(me, b){
     const d = b.date; if (!canEditPlan_(d) && !me.boss) throw new Error('Этот день уже не меняется');
@@ -360,6 +361,7 @@ function sendBuyList_(chatId, title, det){ const need = read_(SH.buy, 2, 8).filt
 function buyRowsFromKb_(kb){ const all = read_(SH.buy, 2, 8);
   return [].concat.apply([], kb).map(b => { const mm = String(b.callback_data || '').match(/^b:(\d+):/); return mm ? all.find(x => x[8] === +mm[1]) : null; }).filter(Boolean); }
 function handleTg_(u){
+  if (u.callback_query && /^(w:|p$|t$)/.test(String(u.callback_query.data || ''))){ taskTap_(u.callback_query); return; }
   if (u.callback_query){ const q = u.callback_query, boss = bossByTg_(q.from.id), d = String(q.data || '');
     if (!boss){ tg_('answerCallbackQuery', { callback_query_id: q.id, text: 'Только для руководителя' }); return; }
     if (d === 'list'){ tg_('answerCallbackQuery', { callback_query_id: q.id }); sendBuyList_(q.message.chat.id); return; }
@@ -381,6 +383,46 @@ function handleTg_(u){
   if (t === '/start' || t === '/buy' || t === 'закупка' || t === '/закупка'){
     if (bossByTg_(msg.from.id)) sendBuyList_(msg.chat.id); else tg_('sendMessage', { chat_id: msg.chat.id, text: 'Открой Akrix Job кнопкой меню внизу чата.' }); }
 }
+/* ============ BLOCK: «МОИ ЗАДАЧИ» — закреплённое сообщение бота с ▶ / ⏸ (в стиле списка закупки) ============ */
+function staffById_(id){ return read_(SH.staff, 2, 7).find(r => String(r[0]) === String(id)); }
+function opName_(order, key){ const p = String(key).split('.'), grp = p[0], code = p[1]; if (code === 'sborka_obj') return 'Сборка на объекте';
+  if (/^x\d+$/.test(code)){ const ex = sh_(SH.extras); try { return String(ex.getRange(+code.slice(1), 3).getValue()) || code; } catch (e) { return code; } }
+  const r = read_(SH.ops, 2, 6).find(x => String(x[1]).trim() === grp && String(x[4]).trim() === code); return r ? String(r[5]) : code; }
+function myTasks_(id){ const t = today_(), keys = {}, add = (o, op) => { o = String(o).trim(); op = String(op).trim(); if (o && op) keys[o + '|' + op] = 1; };
+  read_(SH.tasks, 2, 5).forEach(r => { if (String(r[2]).trim() !== id) return; if (String(r[4] || '').indexOf('план') === 0 && String(r[3]).slice(0, 10) > t) return; add(r[0], r[1]); });
+  const last = {}; read_(SH.takes, 2, 5).forEach(r => { const a = String(r[4]); if (a.indexOf('доли ') === 0 || String(r[1]) !== id) return; last[String(r[2]).trim() + '|' + String(r[3]).trim()] = a; });
+  Object.keys(last).forEach(k => { const a = last[k]; if (a === 'взял' || a.indexOf('подключ') === 0) keys[k] = 1; else if (a === 'отменил' || a.indexOf('отключ') === 0) delete keys[k]; });
+  const done = {}; read_(SH.marks, 2, 12).forEach(r => { if (r[11] === 'да') return; const k = String(r[2]).trim() + '|' + String(r[3]).trim() + '.' + String(r[4]).trim(); done[k] = (done[k] || 0) + (+String(r[6]).replace(',', '.') || 0); });
+  const ord = {}; read_(SH.orders, 2, 3).forEach(r => ord[String(r[0]).trim()] = r);
+  const st = {}; read_(SH.orders, 2, 12).forEach(r => st[String(r[0]).trim()] = String(r[11]).trim());
+  return Object.keys(keys).filter(k => (done[k] || 0) < 99.5 && ord[k.split('|')[0]] && st[k.split('|')[0]] !== 'сдан').map(k => { const p = k.split('|'), o = ord[p[0]];
+    return { order: p[0], op: p[1], label: String(o[1]) + ' · ' + String(o[2]) + ' · ' + opName_(p[0], p[1]) }; }); }
+function runningOf_(id){ const r = read_(SH.time, 2, 6).filter(x => String(x[1]) === id && !x[4]).pop(); return r ? { order: String(r[2]).trim(), op: String(r[3]).trim(), start: String(r[0]).slice(11, 16) } : null; }
+function onShift_(id){ const t = today_(); return read_(SH.shifts, 2, 10).some(r => String(r[0]).slice(0, 10) === t && String(r[1]) === id && !r[3]); }
+function taskView_(id){ const list = myTasks_(id), run = runningOf_(id);
+  const cur = run ? list.find(x => x.order === run.order && x.op === run.op) : null;
+  const text = '<b>Мои задачи</b>' + (cur ? ' — идёт с ' + run.start : list.length ? ' — нажми ▶, чтобы начать' : ' — задач нет');
+  const kb = list.slice(0, 20).map(x => { const on = cur === x, cb = (on ? 'p' : 'w:' + x.order + '|' + x.op);
+    return [{ text: (on ? '⏸ ' : '▶ ') + x.label, callback_data: Utilities.newBlob(cb).getBytes().length <= 64 ? cb : 't' }]; });
+  kb.push([{ text: 'Открыть Akrix Job', web_app: { url: appUrl_() } }]); return { text, kb }; }
+function taskMsg_(id, create){ try { const st = staffById_(id); if (!st || !st[3]) return; const chat = String(st[3]), pr = PropertiesService.getScriptProperties(), key = 'TM_' + id;
+    const v = taskView_(id); let m = null; try { m = JSON.parse(pr.getProperty(key) || 'null'); } catch (e) {}
+    if (m && m.d === today_()){ const r = tg_('editMessageText', { chat_id: chat, message_id: m.id, text: v.text, parse_mode: 'HTML', reply_markup: { inline_keyboard: v.kb } });
+      if (r && (r.ok || /not modified/.test(r.description || ''))) return; if (!create) return; }
+    if (!create) return;
+    const r = tg_('sendMessage', { chat_id: chat, text: v.text, parse_mode: 'HTML', reply_markup: { inline_keyboard: v.kb }, disable_notification: true });
+    if (r && r.ok){ pr.setProperty(key, JSON.stringify({ id: r.result.message_id, d: today_() })); tg_('pinChatMessage', { chat_id: chat, message_id: r.result.message_id, disable_notification: true }); } } catch (e) {} }
+function taskMsgClose_(id){ try { const st = staffById_(id); if (!st || !st[3]) return; const pr = PropertiesService.getScriptProperties(), key = 'TM_' + id; let m = null; try { m = JSON.parse(pr.getProperty(key) || 'null'); } catch (e) {}
+    if (!m) return; tg_('editMessageText', { chat_id: String(st[3]), message_id: m.id, text: '<b>Мои задачи</b> — смена закрыта', parse_mode: 'HTML' });
+    tg_('unpinChatMessage', { chat_id: String(st[3]), message_id: m.id }); pr.deleteProperty(key); } catch (e) {} }
+function taskTap_(q){ const st = read_(SH.staff, 2, 7).find(r => String(r[3]) === String(q.from.id) && String(r[6]).trim() !== 'нет'), d = String(q.data);
+  if (!st){ tg_('answerCallbackQuery', { callback_query_id: q.id, text: 'Нет доступа' }); return; } const id = String(st[0]);
+  if (d === 't'){ tg_('answerCallbackQuery', { callback_query_id: q.id, text: 'Эту задачу запусти в приложении' }); return; }
+  if (d === 'p'){ stopWork_(id); tg_('answerCallbackQuery', { callback_query_id: q.id, text: 'Пауза' }); taskMsg_(id); return; }
+  if (!onShift_(id)){ tg_('answerCallbackQuery', { callback_query_id: q.id, text: 'Сначала начни смену в приложении', show_alert: true }); return; }
+  const p = d.slice(2).split('|'), run = runningOf_(id);
+  if (!(run && run.order === p[0] && run.op === p[1])){ stopWork_(id); append_(SH.time, [now_(), id, p[0], p[1], '', '']); }   // повтор нажатия — без второго запуска
+  tg_('answerCallbackQuery', { callback_query_id: q.id, text: '▶ Приступил' }); taskMsg_(id); }
 function notifyBosses_(type, text){ const rows = read_(SH.staff, 2, 10).filter(r => BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0 && subsOf_(r[9]).indexOf(type) >= 0), subs = {};
   rows.forEach(r => subs[String(r[0])] = subsOf_(r[9])); const ids = rows.map(r => String(r[0]));
   if (typeof text === 'function'){ staffTg_().filter(x => ids.indexOf(x.id) >= 0).forEach(x => send_(x.tg, text(subs[x.id]), 'Открыть')); return; }
