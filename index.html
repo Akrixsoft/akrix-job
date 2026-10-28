@@ -562,6 +562,9 @@ details.kpk[open]>summary.ksum{margin:0 -8px;padding:0 8px}
 
 .of .hardm{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--bad);color:#fff!important;font-size:11px;font-style:normal;font-weight:700;vertical-align:super;margin-left:2px;line-height:1}
 .legend .hard{color:var(--bad);font-weight:600}
+/* участники задачи — нижний лист поверх подвала, прокручивается */
+.tpop{position:fixed;left:0;right:0;top:auto;bottom:0;z-index:30;max-width:560px;margin:0 auto;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;border-radius:16px 16px 0 0;
+  padding:14px 14px calc(14px + max(env(safe-area-inset-bottom,0px),var(--tg-safe-area-inset-bottom,0px)));box-shadow:0 0 0 100vmax rgba(0,0,0,.35)}
 .who{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
 </style></head><body>
 <div class="app">
@@ -1841,7 +1844,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793196275';
+const BUILD='1793219555';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
