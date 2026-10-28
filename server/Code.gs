@@ -438,9 +438,9 @@ function runningOf_(id){ const r = read_(SH.time, 2, 6).filter(x => String(x[1])
 function onShift_(id){ const t = today_(); return read_(SH.shifts, 2, 10).some(r => String(r[0]).slice(0, 10) === t && String(r[1]) === id && !r[3]); }
 function taskView_(id){ const list = myTasks_(id), run = runningOf_(id);
   const cur = run ? list.find(x => x.order === run.order && x.op === run.op) : null;
-  const text = '<b>Мои задачи</b>' + (cur ? ' — идёт с ' + run.start : list.length ? ' — нажми ▶, чтобы начать' : ' — задач нет');
+  const text = '<b>Мои задачи</b>' + (cur ? ' — 🟢 идёт с ' + run.start + ', нажми её для паузы' : list.length ? ' — нажми ▶, чтобы начать' : ' — задач нет');
   const kb = list.slice(0, 20).map(x => { const on = cur === x, cb = (on ? 'p' : 'w:' + x.order + '|' + x.op);
-    return [{ text: (on ? '⏸ ' : '▶ ') + x.label, callback_data: Utilities.newBlob(cb).getBytes().length <= 64 ? cb : 't' }]; });
+    return [{ text: (on ? '🟢 ' : '▶ ') + x.label, callback_data: Utilities.newBlob(cb).getBytes().length <= 64 ? cb : 't' }]; });
   kb.push([{ text: 'Открыть Akrix Job', web_app: { url: appUrl_() } }]); return { text, kb }; }
 function taskMsg_(id, create){ try { const st = staffById_(id); if (!st || !st[3]) return; if (create && !empOn_(id, 'task_msg')) return; const chat = String(st[3]), pr = PropertiesService.getScriptProperties(), key = 'TM_' + id;
     const v = taskView_(id); let m = null; try { m = JSON.parse(pr.getProperty(key) || 'null'); } catch (e) {}
