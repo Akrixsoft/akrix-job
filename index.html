@@ -551,6 +551,14 @@ body{padding-top:calc(6px + var(--tg-safe-area-inset-top,0px) + var(--tg-content
 .bdd button:last-child{border-bottom:0}
 
 .pcode{font-size:34px;font-weight:700;letter-spacing:4px;text-align:center;margin:12px 0 2px}
+
+/* ===== открытый раздел: заголовок прилипает сверху, жёлтый с чёрным текстом ===== */
+:is(details.tile,details.fold,details.ord,details.opg,details.kpk)[open]>summary{position:sticky;z-index:6;background:var(--acc);color:#1a1400;border-radius:10px;padding-left:10px;padding-right:10px;box-shadow:0 4px 10px -6px rgba(0,0,0,.35)}
+:is(details.tile,details.fold,details.ord,details.opg,details.kpk)[open]>summary *{color:#1a1400!important;fill:currentColor}
+:is(details.tile,details.fold,details.ord,details.opg,details.kpk)[open]>summary svg{stroke:#1a1400}
+details.tile[open]>summary{margin:-4px -6px 0;padding-top:8px;padding-bottom:8px}
+details.ord[open]>summary{border-radius:0 10px 10px 0}
+details.kpk[open]>summary.ksum{margin:0 -8px;padding:0 8px}
 .who{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
 </style></head><body>
 <div class="app">
@@ -1202,6 +1210,7 @@ function render(){
     document.getElementById(S.role==='boss'?'role-emp':'role-boss').classList.toggle('hasdot', tot>0); document.getElementById(S.role==='boss'?'role-boss':'role-emp').classList.remove('hasdot'); }
   const v={today:vToday,orders:vOrders,borders:vBossOrders,fund:vBossFund,staff:vBossStaff,norms:vBossNorms,tomorrow:vBossTomorrow,cal:vCal,mount:vMountTab,buy:vBuy}[S.tab];
   document.getElementById('view').innerHTML=v()+(S.role==='emp'?vStartPick():'');
+  stickTops();
   bindUnits(); bindPlan();
 }
 
@@ -1755,6 +1764,13 @@ document.addEventListener('input',e=>{ if(e.target.id==='buy-n') buyDD(true); })
 document.addEventListener('focusout',e=>{ if(e.target.id==='buy-n') setTimeout(()=>{ if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#buy-dd')) return; buyDD(false); },150); });
 document.addEventListener('pointerdown',e=>{ if(e.target.closest&&e.target.closest('#buy-dd')) e.preventDefault(); });   // не терять фокус при выборе
 /* ===== END BLOCK: BUY DROPDOWN ===== */
+/* ===== BLOCK: STICKY HEADS — заголовок открытого раздела держится наверху; вложенные — под заголовком родителя ===== */
+const SEL_FOLD='details.tile,details.fold,details.ord,details.opg,details.kpk';
+function stickTops(){ document.querySelectorAll('#view details[open]>summary').forEach(sm=>{ let top=0, d=sm.parentElement.parentElement&&sm.parentElement.parentElement.closest('details[open]');
+  while(d){ const s2=d.querySelector(':scope>summary'); if(s2) top+=s2.offsetHeight; d=d.parentElement&&d.parentElement.closest('details[open]'); }
+  sm.style.top=top+'px'; }); }
+document.addEventListener('toggle',e=>{ if(e.target.matches&&e.target.matches('details')) requestAnimationFrame(stickTops); }, true);
+/* ===== END BLOCK: STICKY HEADS ===== */
 document.addEventListener('change',e=>{
   const el=e.target, k=el.dataset.k; if(!k) return;
   if(el.dataset.act==='dl' && el.value){ const d=DEADLINES[+k]; d.date=el.value; api('orderSet',{order:d.order, col:d.col, value:el.value}).then(()=>toast('Срок сохранён')).catch(fail); }
@@ -1822,7 +1838,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793191957';
+const BUILD='1793192481';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
