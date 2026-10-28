@@ -549,6 +549,8 @@ body{padding-top:calc(6px + var(--tg-safe-area-inset-top,0px) + var(--tg-content
 .bdd{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:var(--bg);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-height:260px;overflow-y:auto}
 .bdd button{display:block;width:100%;text-align:left;padding:10px 12px;border:0;border-bottom:1px solid var(--line);background:none;font:inherit;font-size:14px;color:var(--ink)}
 .bdd button:last-child{border-bottom:0}
+
+.pcode{font-size:34px;font-weight:700;letter-spacing:4px;text-align:center;margin:12px 0 2px}
 .who{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
 </style></head><body>
 <div class="app">
@@ -574,14 +576,16 @@ const API_URL = (()=>{ // адрес веб-приложения Apps Script (�
   const q=new URLSearchParams(location.search).get('api'); try{ if(q) localStorage.setItem('akrixApi',q); return q||localStorage.getItem('akrixApi')||API_DEFAULT; }catch(e){ return q||API_DEFAULT; } })();
 const BOT = 'AkrixJob_bot';
 const TG = window.Telegram && Telegram.WebApp;
+const AND = window.AkrixAndroid||null;   // внутри Android-приложения (мост из WebView)
+const KEY = (()=>{ const q=new URLSearchParams(location.search).get('key'); try{ if(q) localStorage.setItem('akrixKey',q); return q||localStorage.getItem('akrixKey')||''; }catch(e){ return q||''; } })();   // ключ телефона вместо подписи Telegram
 
 /* ============ BLOCK: API (очередь запросов к таблице) ============ */
 let apiQ = Promise.resolve();
 function api(action, payload={}){
   if(window.MOCK_API) return Promise.resolve().then(()=>window.MOCK_API(Object.assign({ action }, payload))).then(j=>{ if(!j.ok) throw new Error(j.error); return j.data; });   // макет: встроенная копия сервера
   const run = () => fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify(Object.assign({ action, init: (TG&&TG.initData)||window.DEV_INIT||'' }, payload)) })
-    .then(r=>r.json()).then(j=>{ if(!j.ok) throw new Error(j.error||'Ошибка сервера'); return j.data; });
+      body: JSON.stringify(Object.assign({ action, init: (TG&&TG.initData)||window.DEV_INIT||'', key: (TG&&TG.initData)?'':KEY }, payload)) })
+    .then(r=>r.json()).then(j=>{ if(!j.ok) throw new Error(j.error||'Ошибка сервера'); if(AND&&action!=='boot'&&action!=='pairCode') try{ AND.changed(); }catch(e){} return j.data; });
   const p = apiQ.then(run, run); apiQ = p.catch(()=>{}); return p;
 }
 function fail(e){ toast('⚠ '+(e&&e.message||e)); setTimeout(()=>reload(), 600); }   // ошибка записи — перечитать таблицу
@@ -878,7 +882,7 @@ function vToday(){
   html+=vMoneyTile();
   const p=planParts(), pt2=planLoad(ME,p.t);
   html+=UI.tileFold(`План на завтра`, p.big, (p.mine?p.chipTxt:'время не указано')+(pt2.n?` · задач ${pt2.n}, ${fmt(pt2.h)} из ${PLAN.hoursPerDay} ч`:' · задачи не выбраны'), p.body, (p.chipCls==='bad'?'low':p.chipCls==='warn'?'warn':'')+(p.bigMid?' mid':''), p.editing||S.planOpen, (p.needsInput?'need ':'')+'w');
-  if(!IS_BOSS) html+=vNotifyEmp();
+  if(!IS_BOSS) html+=vNotifyEmp()+vAndroid();
   if(S.closing) html+=vClosePanel();
   else if(S.onShift) html+=`<div class="tile w endbar"><button class="btn end" data-act="shift">Закрыть смену</button></div>`;
   return html;
@@ -1417,11 +1421,18 @@ function vNotifySet(){ const on=Object.keys(NTYPES).filter(k=>MYSUBS.includes(k)
   return UI.sec('', UI.fold('Мои уведомления от бота', `<div class="nlist">${Object.entries(NTYPES).map(([k,n])=>`<label class="chk nrow" for="ns-${k}"><input id="ns-${k}" type="checkbox" data-act="nset" data-k="${k}" ${MYSUBS.includes(k)?'checked':''}> ${n}</label>`).join('')}
     <div class="wgh" style="padding-top:8px">Как сотруднику</div>${empRows()}</div>`+
   UI.note('Настройка только для тебя. Вне смены сотрудникам сообщения приходят беззвучно.'), S.nsetOpen, `<span class="small mute num">${on} из ${Object.keys(NTYPES).length}</span>`)); }
+/* ===== BLOCK: ANDROID — подключение телефона к приложению со шторкой ===== */
+const APK_URL='https://akrixsoft.github.io/akrix-job/apk/akrix-job.apk';
+function vAndroid(){ if(AND) return ''; const c=S.pairCode;
+  return UI.sec('', UI.fold('📱 Android-приложение', `<div class="small" style="margin-bottom:8px">Работа прямо из шторки: текущая задача с идущим временем, ▶ / ⏸, начать и закрыть смену.</div>
+    <div class="grid2"><button class="btn ghost" data-act="apkGet">Скачать APK</button><button class="btn" data-act="pairCode">${c?'Новый код':'Получить код'}</button></div>
+    ${c?`<div class="pcode num">${c.slice(0,3)} ${c.slice(3)}</div><div class="small mute" style="text-align:center">Введи код в приложении · действует 10 минут</div>`:''}`, S.andOpen||!!c, '')); }
+/* ===== END BLOCK: ANDROID ===== */
 function vNotifyEmp(){ return UI.sec('', UI.fold('Мои уведомления', `<div class="nlist">${empRows()}</div>`+UI.note('Сними галку — бот перестанет присылать это сообщение. Вне смены всё приходит беззвучно.'), S.nsetOpen, `<span class="small mute num">${Object.keys(ETYPES).length-MYOFF.length} из ${Object.keys(ETYPES).length}</span>`)); }
 function vBossStaff(){
   if(S.skills) return vSkills();
   const from=weekStart(), e=earnedBy(from), hh=hoursBy(from), wk=shiftsSince(from);
-  return UI.h('Сотрудники · неделя')+vPayRequests()+vNotifySet()+`<button class="btn small" data-act="skOpen" style="margin-bottom:10px">Карта навыков</button>`+WORKERS.map(p=>{ const ea=e[p]||0, h=hh[p]||0, perH=h?ea/h:0, tone=perH>=RATE_H?'good':perH>=RATE_H*0.6?'warn':'low';
+  return UI.h('Сотрудники · неделя')+vPayRequests()+vNotifySet()+vAndroid()+`<button class="btn small" data-act="skOpen" style="margin-bottom:10px">Карта навыков</button>`+WORKERS.map(p=>{ const ea=e[p]||0, h=hh[p]||0, perH=h?ea/h:0, tone=perH>=RATE_H?'good':perH>=RATE_H*0.6?'warn':'low';
     const late=wk.filter(r=>String(r[1])===p&&num(r[6])>5).length;
     return UI.sec(esc(PEOPLE[p]), `<div class="grid2">${UI.kpi('₾/ч', h?fmt(perH):'—', `норма ${RATE_H}`, h?tone:'', true)}${UI.kpi('заработал', fmt0(ea)+' ₾', `мог ${fmt0(h*RATE_H)} · ${fmt(h)} ч`, '', true)}</div>
       <div class="bar"><i class="${perH<RATE_H*0.6?'late':''}" style="width:${Math.min(100,perH/RATE_H*100)}%"></i></div>
@@ -1588,7 +1599,8 @@ function vAllWork(){
 
 /* ============ BLOCK: EVENTS ============ */
 /* геопозиция: через Telegram LocationManager — разрешение спрашивается один раз и запоминается Telegram; браузерный запрос — только вне Telegram */
-function geo(){ const LM=window.Telegram&&Telegram.WebApp&&Telegram.WebApp.LocationManager, inTg=!!(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initData);
+function geo(){ if(AND) return Promise.resolve('');   // в Android-приложении точку не берём
+  const LM=window.Telegram&&Telegram.WebApp&&Telegram.WebApp.LocationManager, inTg=!!(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initData);
   if(LM&&inTg) return new Promise(res=>{ const t=setTimeout(()=>res(''),6000), done=v=>{ clearTimeout(t); res(v); };
     const get=()=>{ if(!LM.isLocationAvailable||(LM.isAccessRequested&&!LM.isAccessGranted)) return done('');   // отказал — больше не спрашиваем
       LM.getLocation(d=>done(d?d.latitude.toFixed(5)+', '+d.longitude.toFixed(5):'')); };
@@ -1615,6 +1627,8 @@ document.addEventListener('click',e=>{
     Object.entries(S.alloc||{}).forEach(([k,m])=>{ const [oid,op]=k.split('|'); const now=iso(new Date())+' '+hm(nowMin()); TIMEJ.push({start:now, who:ME, order:oid, op, end:now, min:m, manual:true}); api('timeAdd',{order:oid, op, minutes:m}).catch(fail); }); S.alloc=null;
     stopWork(true); geo().then(g=>api('shiftEnd',{misc, geo:g})).then(r=>{ S.onShift=false; S.shiftDone=true; S.leftAt=r.at; S.closing=false; const g=(S.segs||[])[S.segs.length-1]; if(g) g.e=r.at; toast('Смена закрыта'); render(); }).catch(fail); return; }
   if(a==='cancelClose'){ S.closing=false; }
+  if(a==='apkGet'){ if(TG&&TG.openLink&&TG.initData) TG.openLink(APK_URL); else window.open(APK_URL,'_blank'); return; }
+  if(a==='pairCode'){ b.disabled=true; api('pairCode').then(r=>{ S.pairCode=r.code; render(); }).catch(fail); return; }
   if(a==='workStart'&&!b.dataset.plan){ if(!S.onShift){ toast('Сначала начни смену'); return; } pickOpen(b.dataset.o, b.dataset.op); }
   if(a==='pickTask'){ pickOpen(b.dataset.o, b.dataset.op); }
   if(a==='pickDelay'||a==='pickPlan'){ if(a==='pickDelay') S.pickDelay=+b.dataset.m; else S.pickPlan=+b.dataset.m; const keep={}; document.querySelectorAll('.ptape').forEach(x=>keep[x.id]=x.scrollLeft); render();
@@ -1808,13 +1822,13 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793187341';
+const BUILD='1793191957';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
 function start(){
   if(TG){ try{ TG.ready(); TG.expand(); TG.setHeaderColor && TG.setHeaderColor('#eef0f3'); }catch(e){} }
-  if(!window.MOCK_API&&(!API_URL||(!(TG&&TG.initData) && !window.DEV_INIT))){ document.getElementById('view').innerHTML=UI.sec('Akrix Job', UI.note(`Откройте приложение через бота <b>@${BOT}</b> в Telegram — кнопка «Akrix Job» внизу чата.`)); return; }
+  if(!window.MOCK_API&&(!API_URL||(!(TG&&TG.initData) && !window.DEV_INIT && !KEY))){ document.getElementById('view').innerHTML=UI.sec('Akrix Job', UI.note(`Откройте приложение через бота <b>@${BOT}</b> в Telegram — кнопка «Akrix Job» внизу чата.`)); return; }
   document.getElementById('view').innerHTML=UI.sec('', UI.note('Загрузка…'));
   splash(); reload(); checkUpdate(); hsInit();
   setInterval(()=>{ if(!busy()&&!S.closing&&document.visibilityState==='visible') reload(); }, 60000);

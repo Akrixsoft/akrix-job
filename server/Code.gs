@@ -72,6 +72,21 @@ function whoAmI_(tgUser){
   return { id: String(r[0]), name: String(r[1]), boss: BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0, role: String(r[4]).trim() };
 }
 
+/* ============ BLOCK: ANDROID KEY — вход из Android-приложения: код из Telegram (10 мин) → постоянный ключ (свойство AK_<ключ> = id) ============ */
+function whoByKey_(key){ const pr = PropertiesService.getScriptProperties(), id = /^[a-f0-9]{48}$/.test(String(key)) ? pr.getProperty('AK_' + key) : null;
+  const r = id && read_(SH.staff, 2, 7).find(x => String(x[0]) === id);
+  if (!r || String(r[6]).trim() === 'нет') throw new Error('Телефон не подключён — получи новый код в Akrix Job');
+  return { id: String(r[0]), name: String(r[1]), boss: BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0, role: String(r[4]).trim(), viaKey: true }; }
+function pair_(code){ const pr = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try { const f = JSON.parse(pr.getProperty('PAIRFAIL') || '{"n":0,"t":0}'); if (Date.now() - f.t > 6e5){ f.n = 0; f.t = Date.now(); }
+    if (f.n >= 20) throw new Error('Слишком много попыток — подожди 10 минут');
+    const c = String(code || '').replace(/\D/g, ''), v = c.length === 6 ? JSON.parse(pr.getProperty('PC_' + c) || 'null') : null;
+    if (!v || v.exp < Date.now()){ f.n++; pr.setProperty('PAIRFAIL', JSON.stringify(f)); throw new Error('Код не подошёл или истёк'); }
+    pr.deleteProperty('PC_' + c); const key = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '').slice(0, 48);
+    pr.setProperty('AK_' + key, v.id); const st = staffById_(v.id); return { key, name: st ? String(st[1]) : '' }; }
+  catch (e){ return { error: String(e.message || e) }; } finally { lock.releaseLock(); } }
+/* ===== END BLOCK: ANDROID KEY ===== */
+
 /* ============ BLOCK: API ============ */
 function doGet(){ return ContentService.createTextOutput('Akrix Job API работает'); }
 function doPost(e){
@@ -82,7 +97,8 @@ function doPost(e){
     return HtmlService.createHtmlOutput('ok'); }   // HtmlService: без редиректа 302, иначе Telegram повторяет обновления
   try {
     const b = JSON.parse(e.postData.contents);
-    const me = whoAmI_(verify_(b.init));
+    if (b.action === 'pair') return ContentService.createTextOutput(JSON.stringify({ ok: true, data: pair_(b.code) })).setMimeType(ContentService.MimeType.JSON);
+    const me = b.key && !b.init ? whoByKey_(b.key) : whoAmI_(verify_(b.init));
     const fn = API[b.action]; if (!fn) throw new Error('Нет действия ' + b.action);
     if (fn.boss && !me.boss) throw new Error('Только для руководителя');
     const lock = LockService.getScriptLock(); lock.waitLock(20000);
@@ -140,6 +156,14 @@ const API = {
     append_(SH.time, [Utilities.formatDate(at, TZ, 'yyyy-MM-dd HH:mm'), me.id, b.order, b.op, '', '', '', pl > 0 ? pl : '', '', dl && b.ping ? 'ждёт' : '']);
     if (dl && b.ping) pingAt_(at); taskMsg_(me.id); return {}; },
   workStop(me){ stopWork_(me.id); taskMsg_(me.id); return {}; },
+  /* ---- Android: код подключения и компактное состояние для шторки ---- */
+  pairCode(me){ if (me.viaKey) throw new Error('Код выдаётся в Telegram'); const pr = PropertiesService.getScriptProperties();
+    let c; do { c = String(100000 + Math.floor(Math.random() * 900000)); } while (pr.getProperty('PC_' + c));
+    pr.setProperty('PC_' + c, JSON.stringify({ id: me.id, exp: Date.now() + 6e5 })); return { code: c }; },
+  mini(me){ const run = read_(SH.time, 2, 6).filter(x => String(x[1]) === me.id && !x[4]).pop(), list = myTasks_(me.id);
+    const lbl = (o, op) => { const t = list.find(x => x.order === o && x.op === op); if (t) return t.label; const r = read_(SH.orders, 2, 3).find(x => String(x[0]).trim() === o); return (r ? r[1] + ' · ' + r[2] + ' · ' : '') + opName_(o, op); };
+    const active = run ? { order: String(run[2]).trim(), op: String(run[3]).trim(), label: lbl(String(run[2]).trim(), String(run[3]).trim()), startMs: utcMs_(cell_(run[0])) } : null;
+    return { name: me.name, onShift: onShift_(me.id), active, tasks: list.slice(0, 8) }; },
   timeAdd(me, b){ const m = Math.round(+b.minutes || 0); if (!(m > 0)) throw new Error('Впиши время');
     const t = today_(), days = read_(SH.shifts, 2, 12).filter(r => String(r[0]).slice(0, 10) === t && String(r[1]) === me.id);
     if (!days.length) throw new Error('Ручное время — только в свою смену сегодня');
