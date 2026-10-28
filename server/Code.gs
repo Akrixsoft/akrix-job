@@ -46,7 +46,7 @@ function params_(){
   const g = (label, def) => { const k = Object.keys(m).find(x => x.indexOf(label) === 0); return k !== undefined && m[k] !== '' ? m[k] : def; };
   return { rateH: +g('Ставка нормо-часа', 15), prisAuto: +g('Присадка по выгрузке', 70), prisManualAdd: 100 - +g('Присадка по выгрузке', 70),   // ручная = 100% пула
     planTo: String(g('Крайний срок плана', '18:00')), remindPlan: String(g('Напоминания бота о плане', '16:00, 17:30')),
-    remindClose: String(g('Напоминание закрыть', '20:00')), remindMorning: String(g('Напоминание о незакрытой', '08:00')), remindBuy: String(g('Напоминание о закупке', '09:30')), hoursDay: +g('Часов в рабочем дне', 8), dayOff: String(g('Выходной день', 'воскресенье')),
+    remindClose: String(g('Напоминание закрыть', '20:00')), remindMorning: String(g('Напоминание о незакрытой', '08:00')), remindBuy: String(g('Напоминание о закупке', '09:30')), lagMaster: String(g('Отставание заказа — писать мастеру', 'нет')), hoursDay: +g('Часов в рабочем дне', 8), dayOff: String(g('Выходной день', 'воскресенье')),
     helperRate: +g('Ставка помощника', 9), korpusOther: +g('Ставка корпуса «Прочее»', 25), shopDefault: +g('Сборка в цеху по умолчанию', 50), botName: String(g('Имя бота', '')) };
 }
 
@@ -97,7 +97,7 @@ const API = {
   boot(me){ ensureTriggers_(); ensureWebhook_();
     const o = sh_(SH.orders);
     return { me, params: params_(), today: today_(), now: hm_(),
-      staff: read_(SH.staff, 2, 9).map(r => ({ id: String(r[0]), name: String(r[1]), role: String(r[4]).trim(), helperRate: r[5], active: String(r[6]).trim() !== 'нет', tg: !!r[3], payMode: String(r[8] || '').trim() === 'без лимита' ? 'free' : 'earned' })),
+      staff: read_(SH.staff, 2, 10).map(r => ({ id: String(r[0]), name: String(r[1]), role: String(r[4]).trim(), helperRate: r[5], active: String(r[6]).trim() !== 'нет', tg: !!r[3], payMode: String(r[8] || '').trim() === 'без лимита' ? 'free' : 'earned', subs: subsOf_(r[9]) })),
       pays: sh_(SH.pays) ? read_(SH.pays, 2, 9) : [],
       ops: read_(SH.ops, 2, 11),
       orderHead: o.getRange(1, 1, 1, 26).getValues()[0],
@@ -112,10 +112,12 @@ const API = {
     const day = rows.filter(r => String(r[0]).slice(0, 10) === t && String(r[1]) === me.id).pop();
     if (day && !day[3]) throw new Error('Смена уже начата');
     if (day){ const g = segs_(day).concat([{ s: at, e: '' }]); const s = sh_(SH.shifts);
-      s.getRange(day[12], 4).setValue(''); s.getRange(day[12], 12).setValue("'" + segStr_(g)); return { at, late: '', again: true }; }
+      s.getRange(day[12], 4).setValue(''); s.getRange(day[12], 12).setValue("'" + segStr_(g));
+      if (!me.boss) notifyBosses_('arrive', '↩️ ' + me.name + ' вернулся в ' + at + '.'); return { at, late: '', again: true }; }
     const plan = latestPlan_(me.id, t);
     let late = ''; if (plan && plan.at && !plan.off){ const d = toMin_(at) - toMin_(plan.at); late = d > 0 ? d : 0; }
     append_(SH.shifts, [t, me.id, "'" + at, '', '', plan ? (plan.off ? 'не выходил' : "'" + plan.at) : 'не указан', late, b.geo || '', '', '', '', "'" + at + '–']);
+    if (!me.boss) notifyBosses_('arrive', (late > 5 ? '⏰ ' : '✅ ') + me.name + ' пришёл в ' + at + (plan && plan.at && !plan.off ? ' · план ' + plan.at + (late > 5 ? ' · опоздание ' + late + ' мин' : '') : ' · план не указан') + '.');
     return { at, late, plan };
   },
   shiftEnd(me, b){ // b.date — закрыть смену прошлого дня с указанным временем ухода b.at
@@ -126,6 +128,7 @@ const API = {
     const h = Math.round(segMin_(g) / 60 * 100) / 100;   // сумма отрезков, перерывы не считаются
     stopWork_(me.id); const s = sh_(SH.shifts); s.getRange(r[12], 4, 1, 2).setValues([["'" + at, h]]); s.getRange(r[12], 9, 1, 2).setValues([[b.geo || '', b.misc || '']]);
     s.getRange(r[12], 12).setValue("'" + segStr_(g));
+    if (!me.boss) notifyBosses_('leave', '🏁 ' + me.name + ' ушёл в ' + at + (t !== today_() ? ' (смена ' + t.slice(8, 10) + '.' + t.slice(5, 7) + ', закрыта задним числом)' : '') + ' · на смене ' + String(h).replace('.', ',') + ' ч.');
     return { at, hours: h };
   },
   /* ---- счётчик времени: одна активная операция на человека ---- */
@@ -162,7 +165,7 @@ const API = {
     append_(SH.takes, [now_(), me.id, b.order, b.op, 'доли ' + (e.length ? e.map(x => x[0] + ':' + Math.round(+x[1])).join(',') : 'сброс')]); return {}; },
   /* ученик просится на операцию: сообщение взявшему (если есть) или руководству и мастеру */
   askJoin(me, b){ const txt = me.name + ' просится помощником: ' + (b.opName || b.op) + ' · ' + b.order + '. Подключить — в списке участников задачи.';
-    if (b.to) notifyOne_(String(b.to), txt); else { notifyBosses_(txt); const o = read_(SH.orders, 2, 26).find(r => String(r[0]).trim() === String(b.order)); if (o && o[24]) notifyOne_(String(o[24]).trim(), txt); }
+    if (b.to) notifyOne_(String(b.to), txt); else { notifyBosses_('ask', txt); const o = read_(SH.orders, 2, 26).find(r => String(r[0]).trim() === String(b.order)); if (o && o[24]) notifyOne_(String(o[24]).trim(), txt); }
     return {}; },
   join(me, b){ if (!b.who || b.who === me.id) throw new Error('Выбери сотрудника'); append_(SH.takes, [now_(), b.who, b.order, b.op, 'подключён ' + me.id]); return {}; },
   /* ---- план выхода ---- */
@@ -206,7 +209,7 @@ const API = {
   buyAdd(me, b){ const n = String(b.name || '').trim(); if (!n) throw new Error('Впиши позицию');
     const cat = sh_(SH.buyCat); if (cat && !read_(SH.buyCat, 2, 1).some(r => String(r[0]).trim().toLowerCase() === n.toLowerCase())) cat.appendRow([n, '', 'добавлено из приложения']);
     const row = append_(SH.buy, [now_(), me.id, b.order || '', b.name, b.qty ? "'" + b.qty : '', 'нужно', now_(), me.id]);
-    if (!me.boss) bossTgs_().forEach(t => tg_('sendMessage', { chat_id: t, text: 'Закупка: ' + n + (b.qty ? ' × ' + b.qty : '') + (b.order ? ' (заказ ' + b.order + ')' : '') + ' — добавил ' + me.name + '.',
+    if (!me.boss) bossTgs_('buy_new').forEach(t => tg_('sendMessage', { chat_id: t, text: 'Закупка: ' + n + (b.qty ? ' × ' + b.qty : '') + (b.order ? ' (заказ ' + b.order + ')' : '') + ' — добавил ' + me.name + '.',
       reply_markup: { inline_keyboard: [[{ text: '☐ Куплено', callback_data: 'b:' + row + ':g' }], [{ text: 'Весь список', callback_data: 'list' }]] } }));
     return { row }; },
   buySet: bossOnly_(function(me, b){
@@ -221,7 +224,7 @@ const API = {
   payRequest(me, b){ const a = Math.round(+b.amount || 0); if (!(a > 0)) throw new Error('Впиши сумму');
     if (read_(SH.pays, 2, 8).some(r => String(r[1]) === me.id && r[4] === 'запрос')) throw new Error('Предыдущий запрос ещё не рассмотрен');
     const row = append_(SH.pays, [now_(), me.id, 'аванс', a, 'запрос', '', '', String(b.note || '')]);
-    notifyBosses_('Запрос аванса: ' + me.name + ' — ' + a + ' ₾' + (b.note ? ' (' + b.note + ')' : '') + '. Решение — в «Людях».');
+    notifyBosses_('adv', 'Запрос аванса: ' + me.name + ' — ' + a + ' ₾' + (b.note ? ' (' + b.note + ')' : '') + '. Решение — в «Людях».');
     return { row }; },
   payCancel(me, b){ const s = sh_(SH.pays), r = s.getRange(b.row, 1, 1, 8).getValues()[0];
     if (String(r[1]) !== me.id || r[4] !== 'запрос') throw new Error('Отменить можно только свой нерассмотренный запрос');
@@ -238,6 +241,9 @@ const API = {
   bonusAdd: bossOnly_(function(me, b){ const a = Math.round(+b.amount || 0); if (!(a > 0)) throw new Error('Впиши сумму');
     const row = append_(SH.marks, [now_(), b.who, "'" + b.order, 'korpus', 'premia', 'премия', 100, a, 0, '', '', '']);
     notifyOne_(String(b.who), 'Премия ' + a + ' ₾ по заказу ' + b.order + '.'); return { row }; }),
+  /* типы сообщений бота для руководителя / админа (свои настройки) — «Сотрудники», колонка J */
+  notifySet: bossOnly_(function(me, b){ const ok = Object.keys(NTYPES_), t = (b.types || []).filter(x => ok.indexOf(x) >= 0);
+    const r = read_(SH.staff, 2, 1).find(x => String(x[0]) === me.id); sh_(SH.staff).getRange(r[1], 10).setValue(t.length ? t.join(', ') : 'никаких'); return { subs: t }; }),
   payMode: bossOnly_(function(me, b){ const r = read_(SH.staff, 2, 1).find(x => String(x[0]) === String(b.who)); if (!r) throw new Error('Нет сотрудника');
     sh_(SH.staff).getRange(r[1], 9).setValue(b.mode === 'free' ? 'без лимита' : 'до заработанного'); return {}; }),
   /* ---- снимок отставания заказов (считает приложение) — утром бот пишет мастеру ---- */
@@ -315,19 +321,27 @@ function ensureTriggers_(){ const pr = PropertiesService.getScriptProperties(); 
 /* утро: закупка, если список не закрыт; отставание заказов — мастеру (нет мастера — руководству) */
 function remindMorning930(){
   const need = read_(SH.buy, 2, 8).filter(r => r[5] === 'нужно');
-  if (need.length) bossTgs_().forEach(t => sendBuyList_(t, 'Закупка не закрыта'));
+  if (need.length) bossTgs_('buy_morning').forEach(t => sendBuyList_(t, 'Закупка не закрыта'));
   let lag = null; try { lag = JSON.parse(PropertiesService.getScriptProperties().getProperty('LAG') || 'null'); } catch (e) {}
   if (!lag || !lag.items) return; const orders = read_(SH.orders, 2, 26);
   lag.items.filter(x => x.cls === 'bad').forEach(x => { const o = orders.find(r => String(r[0]).trim() === x.order); if (!o || String(o[11]).trim() === 'сдан') return;
     const txt = 'Заказ ' + x.label + ' отстаёт: ' + x.txt + ' до «' + x.dl + '» ' + x.date + '.';
-    if (o[24]) notifyOne_(String(o[24]).trim(), txt); else notifyBosses_(txt); }); }
+    const m = String(o[24] || '').trim(), mBoss = m && isBoss_(m);
+    if (m && !mBoss){ if (String(params_().lagMaster).trim() === 'да') notifyOne_(m, txt); } else if (m) { if (wants_(m, 'lag')) notifyOne_(m, txt); } else notifyBosses_('lag', txt); }); }
 /* ============ BLOCK: BOT (вебхук: закупка галками в чате) ============ */
 function tgSecret_(){ const pr = PropertiesService.getScriptProperties(); let s = pr.getProperty('TG_SECRET'); if (!s){ s = Utilities.getUuid().replace(/-/g, ''); pr.setProperty('TG_SECRET', s); } return s; }
 function ensureWebhook_(){ const pr = PropertiesService.getScriptProperties(); if (pr.getProperty('HOOK') === 'v1') return;
   try { const url = ScriptApp.getService().getUrl(); if (!url || !/\/exec$/.test(url)) return;
     const r = tg_('setWebhook', { url: url + '?tg=' + tgSecret_(), allowed_updates: ['message', 'callback_query'], drop_pending_updates: true });
     if (r && r.ok) pr.setProperty('HOOK', 'v1'); } catch (e) {} }
-function bossTgs_(){ const ids = read_(SH.staff, 2, 5).filter(r => BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0).map(r => String(r[0]));
+/* типы сообщений руководству; пусто в колонке J — набор по умолчанию */
+const NTYPES_ = { arrive: 'Пришёл / вернулся сотрудник', leave: 'Ушёл сотрудник (итог дня)', buy_new: 'Новая закупка — сразу', buy_morning: 'Список закупки утром',
+  adv: 'Запрос аванса', ask: 'Просится помощником', lag: 'Заказ отстаёт от срока' };
+const NDEF_ = ['arrive', 'buy_new', 'buy_morning', 'adv', 'ask'];
+function subsOf_(v){ v = String(v || '').trim(); if (!v) return NDEF_.slice(); if (v === 'никаких') return []; return v.split(',').map(x => x.trim()).filter(Boolean); }
+function isBoss_(id){ const r = read_(SH.staff, 2, 5).find(x => String(x[0]) === String(id)); return !!r && BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0; }
+function wants_(id, type){ const r = read_(SH.staff, 2, 10).find(x => String(x[0]) === String(id)); return !!r && subsOf_(r[9]).indexOf(type) >= 0; }
+function bossTgs_(type){ const ids = read_(SH.staff, 2, 10).filter(r => BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0 && (!type || subsOf_(r[9]).indexOf(type) >= 0)).map(r => String(r[0]));
   return staffTg_().filter(x => ids.indexOf(x.id) >= 0).map(x => x.tg); }
 function bossByTg_(tgId){ return read_(SH.staff, 2, 7).find(r => String(r[3]) === String(tgId) && BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0 && String(r[6]).trim() !== 'нет'); }
 /* кнопка позиции: «☐ Название — 6 шт»; подробно — + заказ. Без единицы в кол-ве — «шт» */
@@ -365,7 +379,7 @@ function handleTg_(u){
   if (t === '/start' || t === '/buy' || t === 'закупка' || t === '/закупка'){
     if (bossByTg_(msg.from.id)) sendBuyList_(msg.chat.id); else tg_('sendMessage', { chat_id: msg.chat.id, text: 'Открой Akrix Job кнопкой меню внизу чата.' }); }
 }
-function notifyBosses_(text){ const ids = read_(SH.staff, 2, 5).filter(r => BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0).map(r => String(r[0]));
+function notifyBosses_(type, text){ const ids = read_(SH.staff, 2, 10).filter(r => BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0 && subsOf_(r[9]).indexOf(type) >= 0).map(r => String(r[0]));
   staffTg_().filter(x => ids.indexOf(x.id) >= 0).forEach(x => send_(x.tg, text, 'Открыть')); }
 function notifyOne_(id, text){ const x = staffTg_().find(y => y.id === id); if (x) send_(x.tg, text, 'Открыть'); }
 /* сотрудникам — со звуком только на смене; вне смены сообщение приходит беззвучно. Руководству и админам — всегда со звуком */
