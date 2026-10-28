@@ -516,6 +516,9 @@ body{padding-top:calc(6px + var(--tg-safe-area-inset-top,0px) + var(--tg-content
 .gskl{display:flex;flex-direction:column;gap:4px}
 .gsk{display:flex;justify-content:space-between;align-items:center;font-size:13px}
 .dots{display:flex;gap:3px} .dots i{width:9px;height:9px;border-radius:50%;background:var(--line)} .dots i.on{background:var(--acc)}
+.nlist{display:flex;flex-direction:column;gap:2px}
+.nrow{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;border-bottom:1px solid var(--line)}
+.nrow input{width:20px;height:20px}
 .who{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
 </style></head><body>
 <div class="app">
@@ -569,7 +572,7 @@ function payParts(amount, op, pct){
 }
 
 /* ============ BLOCK: DATA (строится из таблицы в build()) ============ */
-let TIMEJ=[], FACT={}, PART={}, BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[], SKILLS=null, PLANS=[], PLANNED={}, PAYS=[], PAYMODE={}, CLOSED=new Set(), ONAME={}, DONE=[], OPSKILL={}, SHARE={}, SKLOG=[];
+let TIMEJ=[], FACT={}, PART={}, BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[], SKILLS=null, PLANS=[], PLANNED={}, PAYS=[], PAYMODE={}, CLOSED=new Set(), ONAME={}, DONE=[], OPSKILL={}, SHARE={}, SKLOG=[], MYSUBS=[];
 let TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const SEC={furn:'Фурнитура',tools:'Инструменты',other:'Прочее'}, SEC_BACK={'Фурнитура':'furn','Инструменты':'tools','Прочее':'other'};
 const num = v => typeof v==='number' ? v : parseFloat(String(v).replace(/\s/g,'').replace(',','.'));
@@ -581,6 +584,7 @@ function build(D){
   TODAY=fromIso(D.today);
   PEOPLE={}; ROLE={}; D.staff.forEach(s=>{ PEOPLE[s.id]=s.name||s.id; ROLE[s.id]=s.role; });
   WORKERS=D.staff.filter(s=>s.active).map(s=>s.id);
+  MYSUBS=((D.staff.find(x=>x.id===ME)||{}).subs)||[];
   SKILLS=D.skills||null; SKLOG=(D.skillLog||[]).map(r=>({at:String(r[0]), who:String(r[1]), code:String(r[2]), from:r[3]===''?null:+r[3], to:r[4]===''?null:+r[4]}));
   // деньги: закрытые заказы, выплаты, режим лимита аванса
   CLOSED=new Set(); ONAME={}; DONE=[]; D.orders.forEach(r=>{ const id=String(r[0]).trim(); if(!id||id.startsWith('пример')) return; ONAME[id]=String(r[1])+' · '+String(r[2]);
@@ -1334,10 +1338,14 @@ function vPayRequests(){ const req=PAYS.filter(x=>x.st==='запрос'); if(!re
   return UI.sec('Запросы аванса', UI.list(req.map(x=>{ const m=money(x.who);
     return UI.row(`${esc(PEOPLE[x.who]||x.who)} · <b class="num">${fmt0(x.amt)} ₾</b>`, `${ddmm(x.at)}${x.note?' · '+esc(x.note):''} · ${m.mode==='free'?'без лимита':'доступно '+fmt0(m.closed+m.open-m.paid)+' ₾'}`+
       `<div class="kb" style="margin-top:4px"><button class="btn small undo" data-act="payDecide" data-row="${x.row}" data-v="отклонено">Отклонить</button><button class="btn small" data-act="payDecide" data-row="${x.row}" data-v="выдано">Выдать</button></div>`); }).join('')), chip('warn', String(req.length))); }
+/* свои уведомления бота (руководитель / админ) */
+const NTYPES={arrive:'Пришёл / вернулся сотрудник', leave:'Ушёл сотрудник — итог дня', buy_new:'Новая закупка — сразу', buy_morning:'Список закупки утром', adv:'Запрос аванса', ask:'Просится помощником', lag:'Заказ отстаёт от срока'};
+function vNotifySet(){ return UI.sec('', UI.fold('Мои уведомления от бота', `<div class="nlist">${Object.entries(NTYPES).map(([k,n])=>`<label class="chk nrow" for="ns-${k}"><input id="ns-${k}" type="checkbox" data-act="nset" data-k="${k}" ${MYSUBS.includes(k)?'checked':''}> ${n}</label>`).join('')}</div>`+
+  UI.note('Настройка только для тебя. Сотрудникам бот пишет как раньше; вне смены — беззвучно.'), S.nsetOpen, `<span class="small mute num">${MYSUBS.length} из ${Object.keys(NTYPES).length}</span>`)); }
 function vBossStaff(){
   if(S.skills) return vSkills();
   const from=weekStart(), e=earnedBy(from), hh=hoursBy(from), wk=shiftsSince(from);
-  return UI.h('Сотрудники · неделя')+vPayRequests()+`<button class="btn small" data-act="skOpen" style="margin-bottom:10px">Карта навыков</button>`+WORKERS.map(p=>{ const ea=e[p]||0, h=hh[p]||0, perH=h?ea/h:0, tone=perH>=RATE_H?'good':perH>=RATE_H*0.6?'warn':'low';
+  return UI.h('Сотрудники · неделя')+vPayRequests()+vNotifySet()+`<button class="btn small" data-act="skOpen" style="margin-bottom:10px">Карта навыков</button>`+WORKERS.map(p=>{ const ea=e[p]||0, h=hh[p]||0, perH=h?ea/h:0, tone=perH>=RATE_H?'good':perH>=RATE_H*0.6?'warn':'low';
     const late=wk.filter(r=>String(r[1])===p&&num(r[6])>5).length;
     return UI.sec(esc(PEOPLE[p]), `<div class="grid2">${UI.kpi('₾/ч', h?fmt(perH):'—', `норма ${RATE_H}`, h?tone:'', true)}${UI.kpi('заработал', fmt0(ea)+' ₾', `мог ${fmt0(h*RATE_H)} · ${fmt(h)} ч`, '', true)}</div>
       <div class="bar"><i class="${perH<RATE_H*0.6?'late':''}" style="width:${Math.min(100,perH/RATE_H*100)}%"></i></div>
@@ -1641,6 +1649,8 @@ document.addEventListener('change',e=>{
     const off=o.lines.flatMap(x=>{ const s=(catL(x)[x.cat].ops||[]).map(y=>y[0]); return x.only?s.filter(y=>!x.only.includes(y)).map(y=>x.cat+'.'+y):[]; });
     const keep=(o.offRaw||[]).filter(x=>!o.lines.some(l=>l.cat===x.split('.')[0])); o.offRaw=keep.concat(off);
     api('orderSet',{order:o.id, col:22, value:o.offRaw.join(', ')}).catch(fail); }
+  if(el.dataset.act==='nset'){ MYSUBS=[...document.querySelectorAll('[data-act="nset"]')].filter(x=>x.checked).map(x=>x.dataset.k); S.nsetOpen=true;
+    api('notifySet',{types:MYSUBS}).then(()=>toast(el.checked?'Включено: '+NTYPES[el.dataset.k]:'Выключено: '+NTYPES[el.dataset.k])).catch(fail); return; }
   if(el.dataset.act==='shopPct'){ const o=ORDERS[+el.dataset.o], v=Math.max(0,Math.min(100,Math.round(+el.value||0))); el.value=v; o.shopPct=v; o.shopPctRaw=String(v); S.openCompose=o.id;
     api('orderSet',{order:o.id, col:26, value:v}).then(()=>{ toast(v>=100?'Сборка — вся в цеху':`В цеху ${v}%, на объекте ${100-v}%`); render(); }).catch(fail); }
   if(el.dataset.act==='master'){ const o=ORDERS[+el.dataset.o]; o.master=el.value; S.openCompose=o.id; api('orderSet',{order:o.id, col:25, value:el.value}).then(()=>toast('Мастер сохранён')).catch(fail); }
@@ -1696,7 +1706,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793141359';
+const BUILD='1793173526';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
