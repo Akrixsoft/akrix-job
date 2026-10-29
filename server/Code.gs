@@ -8,7 +8,7 @@
 const APP_URL = 'https://akrixsoft.github.io/akrix-job/';   // адрес мини-приложения (GitHub Pages)
 const TZ = 'Asia/Tbilisi';
 const SH = { params:'Параметры', staff:'Сотрудники', orders:'Заказы', extras:'Доп. обработки', modules:'Модули', tasks:'Задачи',
-  ops:'Операции', lib:'Библиотека монтажа', shifts:'Смены', marks:'Отметки', plans:'Планы', takes:'Взятые задачи', kit:'Комплект', notes:'Заметки монтажа', buy:'Закупка', buyCat:'Справочник закупки', time:'Время', skills:'Навыки', pays:'Выплаты', skillLog:'Навыки — история' };
+  ops:'Операции', lib:'Библиотека монтажа', shifts:'Смены', marks:'Отметки', plans:'Планы', takes:'Взятые задачи', kit:'Комплект', notes:'Заметки монтажа', buy:'Закупка', buyCat:'Справочник закупки', time:'Время', skills:'Навыки', pays:'Выплаты', skillLog:'Навыки — история', fix:'Доделки' };
 const ORD = { id:0, client:1, product:2, sys:3, kind:4, cost:5, term:6, ship:7, ceh:8, done:9, team:10, status:11, mat0:12, matN:21, off:21, mountAt:22, prisManual:23, master:24, shopPct:25 };
 const BOSS_ROLES = ['руководитель', 'администратор'];   // полный доступ: заказы, фонд, люди, закупка
 
@@ -120,7 +120,7 @@ const API = {
       orders: read_(SH.orders, 2, 26),
       extras: read_(SH.extras, 2, 5), modules: read_(SH.modules, 2, 5), tasks: read_(SH.tasks, 2, 5), lib: read_(SH.lib, 2, 2),
       shifts: read_(SH.shifts, 2, 12), marks: read_(SH.marks, 2, 12).filter(r => r[11] !== 'да'),
-      plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [], time: sh_(SH.time) ? read_(SH.time, 2, 7) : [], skills: skills_(), skillLog: sh_(SH.skillLog) ? read_(SH.skillLog, 2, 6) : [] };
+      plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [], time: sh_(SH.time) ? read_(SH.time, 2, 7) : [], skills: skills_(), skillLog: sh_(SH.skillLog) ? read_(SH.skillLog, 2, 6) : [], fixes: sh_(SH.fix) ? read_(SH.fix, 2, 11).filter(r => r[5] !== 'удалена') : [] };
   },
   /* ---- смена ---- */
   shiftStart(me, b){   // смена = одна строка в день; ушёл и вернулся — новый отрезок в колонке L «Отрезки»
@@ -266,6 +266,23 @@ const API = {
     const type = b.type === 'аванс' ? 'аванс' : 'зарплата';
     const row = append_(SH.pays, [now_(), b.who, type, a, 'выдано', me.id, now_(), String(b.note || ''), b.order ? "'" + b.order : '']);
     notifyOne_(String(b.who), (type === 'аванс' ? 'Выдан аванс ' : 'Выплачена зарплата ') + a + ' ₾.', 'pay_info'); return { row }; }),
+  /* ---- доделки: хвосты, «взять с собой», гарантия — по любому заказу, в т.ч. сданному; оплата — отметкой на исполнителя при «сделано» ---- */
+  fixAdd(me, b){ const t = String(b.text || '').trim(); if (!t) throw new Error('Впиши, что сделать'); if (!String(b.order || '').trim()) throw new Error('Нет заказа');
+    const type = ['хвост', 'взять', 'гарантия'].indexOf(b.type) >= 0 ? b.type : 'хвост', who = me.boss ? String(b.who || '') : '', pay = me.boss ? Math.max(0, Math.round(+b.pay || 0)) : 0;
+    const row = append_(fixSh_(), [now_(), "'" + String(b.order).trim(), me.id, t, type, 'открыта', '', '', who, pay || '', '']);
+    if (who && who !== me.id) notifyOne_(who, '🔧 Доделка' + (pay ? ' · ' + pay + ' ₾' : '') + ': ' + t + ' · заказ ' + b.order + '.', 'fix_info'); return { row }; },
+  fixEdit: bossOnly_(function(me, b){ const s = sh_(SH.fix), r = s.getRange(+b.row, 1, 1, 11).getValues()[0]; if (r[5] !== 'открыта') throw new Error('Доделка уже закрыта');
+    const who = String(b.who || ''), pay = Math.max(0, Math.round(+b.pay || 0)); s.getRange(+b.row, 9, 1, 2).setValues([[who, pay || '']]);
+    if (who && who !== me.id && (who !== String(r[8]) || pay !== (+r[9] || 0))) notifyOne_(who, '🔧 Доделка' + (pay ? ' · ' + pay + ' ₾' : '') + ': ' + r[3] + ' · заказ ' + r[1] + '.', 'fix_info'); return {}; }),
+  fixDone(me, b){ const s = sh_(SH.fix), r = s.getRange(+b.row, 1, 1, 11).getValues()[0]; if (r[5] !== 'открыта') return {};
+    const pay = +r[9] || 0, who = String(r[8] || ''); let mk = '';
+    if (pay > 0 && who) mk = append_(SH.marks, [now_(), who, "'" + String(r[1]).trim(), 'korpus', 'fix' + b.row, 'доделка: ' + String(r[3]).slice(0, 60), 100, pay, 0, '', '', '']);
+    s.getRange(+b.row, 6, 1, 6).setValues([['сделана', now_(), me.id, who, pay || '', mk]]); return { mark: mk }; },
+  fixUndo: bossOnly_(function(me, b){ const s = sh_(SH.fix), r = s.getRange(+b.row, 1, 1, 11).getValues()[0];
+    if (r[10]) sh_(SH.marks).getRange(+r[10], 12).setValue('да');   // оплата снимается
+    s.getRange(+b.row, 6, 1, 6).setValues([['открыта', '', '', r[8], r[9], '']]); return {}; }),
+  fixDel: bossOnly_(function(me, b){ const s = sh_(SH.fix), r = s.getRange(+b.row, 1, 1, 11).getValues()[0]; if (r[10]) sh_(SH.marks).getRange(+r[10], 12).setValue('да');
+    s.getRange(+b.row, 6).setValue('удалена'); return {}; }),
   /* премия по заказу — отдельная отметка «премия»: входит в заработок по этому заказу */
   bonusAdd: bossOnly_(function(me, b){ const a = Math.round(+b.amount || 0); if (!(a > 0)) throw new Error('Впиши сумму');
     const row = append_(SH.marks, [now_(), b.who, "'" + b.order, 'korpus', 'premia', 'премия', 100, a, 0, '', '', '']);
@@ -394,7 +411,7 @@ const NDEF_ = ['arrive', 'buy_new', 'buy_morning', 'adv', 'ask'];
 function subsOf_(v){ v = String(v || '').trim(); if (!v) return NDEF_.slice(); return v.split(',').map(x => x.trim()).filter(Boolean); }
 /* напоминания сотруднику: включены, пока не выключил сам */
 const ETYPES_ = { plan_remind: 'Напоминание о плане на завтра', close_remind: 'Напоминание закрыть смену', morning_remind: 'Незакрытая вчерашняя смена', task_msg: '«Мои задачи» в чате бота',
-  pay_info: 'Аванс и выплаты', bonus_info: 'Премии', ask_me: 'Просятся ко мне помощником', lag_master: 'Мой заказ отстаёт (я мастер)' };
+  pay_info: 'Аванс и выплаты', bonus_info: 'Премии', splash: 'Пиздюли по утрам', ask_me: 'Просятся ко мне помощником', fix_info: 'Мне назначили доделку', lag_master: 'Мой заказ отстаёт (я мастер)' };
 function empOn_(id, type){ const r = read_(SH.staff, 2, 10).find(x => String(x[0]) === String(id)); return !r || String(r[9] || '').split(',').map(x => x.trim()).indexOf('-' + type) < 0; }
 function isBoss_(id){ const r = read_(SH.staff, 2, 5).find(x => String(x[0]) === String(id)); return !!r && BOSS_ROLES.indexOf(String(r[4]).trim()) >= 0; }
 function wants_(id, type){ const r = read_(SH.staff, 2, 10).find(x => String(x[0]) === String(id)); return !!r && subsOf_(r[9]).indexOf(type) >= 0; }
@@ -487,6 +504,7 @@ function notifyBosses_(type, text){ const rows = read_(SH.staff, 2, 10).filter(r
   rows.forEach(r => subs[String(r[0])] = subsOf_(r[9])); const ids = rows.map(r => String(r[0]));
   if (typeof text === 'function'){ staffTg_().filter(x => ids.indexOf(x.id) >= 0).forEach(x => send_(x.tg, text(subs[x.id]), 'Открыть')); return; }
   staffTg_().filter(x => ids.indexOf(x.id) >= 0).forEach(x => send_(x.tg, text, 'Открыть')); }
+function fixSh_(){ if (!sh_(SH.fix)){ const s = book_().insertSheet(SH.fix); s.appendRow(['Создана', 'Заказ', 'Кто добавил', 'Что сделать', 'Тип', 'Статус', 'Сделана', 'Кто отметил', 'Исполнитель', 'Оплата, ₾', 'Строка отметки']); } return SH.fix; }
 function notifyOne_(id, text, type){ if (type && !empOn_(id, type)) return; const x = staffTg_().find(y => y.id === id); if (x) send_(x.tg, text, 'Открыть'); }
 /* сотрудникам — со звуком только на смене; вне смены сообщение приходит беззвучно. Руководству и админам — всегда со звуком */
 let QUIET_ = null;
