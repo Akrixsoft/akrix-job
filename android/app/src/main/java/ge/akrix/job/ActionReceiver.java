@@ -11,7 +11,7 @@ public class ActionReceiver extends BroadcastReceiver {
         final Context c = ctx.getApplicationContext();
         final String act = in.getStringExtra("act");
         final PendingResult pr = goAsync();
-        if (act != null && !"refresh".equals(act)) Shade.sending(c);
+        if (act != null && !"refresh".equals(act) && !"poll".equals(act)) Shade.sending(c);
         new Thread(() -> {
             try {
                 if ("workStart".equals(act)) {
@@ -19,7 +19,7 @@ public class ActionReceiver extends BroadcastReceiver {
                     Api.call(c, "workStart", b);
                 } else if ("workStop".equals(act)) Api.call(c, "workStop", null);
                 else if ("shiftStart".equals(act)) { JSONObject b = new JSONObject(); b.put("geo", ""); Api.call(c, "shiftStart", b); }
-                Shade.refresh(c);
+                Shade.refresh(c, !("refresh".equals(act) || "poll".equals(act)));
             } catch (Exception e) { Shade.postCached(c, "⚠ " + e.getMessage()); }
             finally { pr.finish(); }
         }).start();

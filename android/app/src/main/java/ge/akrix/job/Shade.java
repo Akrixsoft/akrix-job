@@ -32,11 +32,17 @@ public final class Shade {
     /** обновить карточку в фоне */
     static void refreshAsync(Context c) { final Context a = c.getApplicationContext(); new Thread(() -> refresh(a)).start(); }
 
-    static void refresh(Context c) {
+    static void refresh(Context c) { refresh(c, true); }
+
+    /** force=false — сначала дешёвый опрос счётчика: ничего не менялось — карточку не трогаем */
+    static void refresh(Context c, boolean force) {
         if (Api.key(c).isEmpty()) { c.getSystemService(NotificationManager.class).cancel(ID); return; }
+        if (!force) { long v = Api.ver(c); if (v >= 0 && v == Api.prefs(c).getLong("ver", -2)) { next(c); return; } }
         try {
+            long v0 = Api.ver(c);
             JSONObject m = Api.call(c, "mini", null);
-            Api.prefs(c).edit().putString("mini", m.toString()).apply();
+            Api.prefs(c).edit().putString("mini", m.toString()).putLong("ver", v0).apply();
+            next(c);
             post(c, m, null);
         } catch (Api.ApiError e) {
             if (e.getMessage() != null && e.getMessage().contains("не подключён")) { Api.prefs(c).edit().remove("key").apply(); posted(c, "Телефон отключён", "Открой Akrix Job и введи новый код", new Notification.Action[0]); }
@@ -111,6 +117,15 @@ public final class Shade {
         Intent i = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         if (go != null) i.putExtra("go", go);
         return PendingIntent.getActivity(c, go == null ? 1 : 2, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
+    /** на смене — следующая проверка через 3 мин (в режиме сна Android может отложить до ~10 мин) */
+    static void next(Context c) {
+        boolean on = false; try { String s = Api.prefs(c).getString("mini", null); if (s != null) on = new JSONObject(s).optBoolean("onShift"); } catch (Exception ignored) {}
+        Intent i = new Intent(c, ActionReceiver.class).setAction("ge.akrix.job.poll").putExtra("act", "poll");
+        PendingIntent p = PendingIntent.getBroadcast(c, 8, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        AlarmManager am = c.getSystemService(AlarmManager.class);
+        if (on) am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + 180000, p); else am.cancel(p);
     }
 
     /** обновление раз в 15 минут (на случай, если смену меняли в Telegram) */

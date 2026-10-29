@@ -93,20 +93,26 @@ function doPost(e){
   let out;
   if (e && e.parameter && e.parameter.tg){   // вебхук Telegram: кнопки и команды в чате бота
     if (e.parameter.tg === tgSecret_()){ const lock = LockService.getScriptLock(); lock.waitLock(20000);
-      try { handleTg_(JSON.parse(e.postData.contents)); } catch (err) {} finally { lock.releaseLock(); } }
+      try { handleTg_(JSON.parse(e.postData.contents)); bump_(); } catch (err) {} finally { lock.releaseLock(); } }
     return HtmlService.createHtmlOutput('ok'); }   // HtmlService: без редиректа 302, иначе Telegram повторяет обновления
   try {
     const b = JSON.parse(e.postData.contents);
+    if (b.action === 'ver') return ContentService.createTextOutput(JSON.stringify({ ok: true, ver: ver_() })).setMimeType(ContentService.MimeType.JSON);   // быстрый опрос: менялось ли что-нибудь
     if (b.action === 'pair') return ContentService.createTextOutput(JSON.stringify({ ok: true, data: pair_(b.code) })).setMimeType(ContentService.MimeType.JSON);
     const me = b.key && !b.init ? whoByKey_(b.key) : whoAmI_(verify_(b.init));
     const fn = API[b.action]; if (!fn) throw new Error('Нет действия ' + b.action);
     if (fn.boss && !me.boss) throw new Error('Только для руководителя');
     const lock = LockService.getScriptLock(); lock.waitLock(20000);
-    try { out = { ok: true, data: fn(me, b) }; } finally { lock.releaseLock(); }
+    try { out = { ok: true, data: fn(me, b) }; out.ver = RO_[b.action] ? ver_() : bump_(); } finally { lock.releaseLock(); }
   } catch (err) { out = { ok: false, error: String(err && err.message || err) }; }
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
 }
 function bossOnly_(f){ f.boss = true; return f; }
+/* ===== BLOCK: SYNC — счётчик изменений: любая запись +1; клиенты опрашивают его и перечитывают таблицу только при изменении ===== */
+const RO_ = { boot: 1, mini: 1, pairCode: 1 };
+function ver_(){ return +(PropertiesService.getScriptProperties().getProperty('VER') || 0); }
+function bump_(){ const pr = PropertiesService.getScriptProperties(), v = (+(pr.getProperty('VER') || 0)) + 1; pr.setProperty('VER', String(v)); return v; }
+/* ===== END BLOCK: SYNC ===== */
 
 const API = {
   /* ---- загрузка всего для приложения ---- */

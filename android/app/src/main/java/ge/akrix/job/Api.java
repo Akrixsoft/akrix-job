@@ -34,6 +34,11 @@ public final class Api {
         return d instanceof JSONObject ? (JSONObject) d : new JSONObject();
     }
 
+    /** счётчик изменений на сервере (без входа, мгновенно); -1 — нет связи */
+    public static long ver(Context c) {
+        try { return new JSONObject(post(api(c), "{\"action\":\"ver\"}")).optLong("ver", -1); } catch (Exception e) { return -1; }
+    }
+
     private static String post(String url, String json) throws Exception {
         HttpURLConnection h = (HttpURLConnection) new URL(url).openConnection();
         h.setInstanceFollowRedirects(false);
