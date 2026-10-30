@@ -235,6 +235,17 @@ const API = {
   mountStart(me, b){ const r = findOrderRow_(b.order); const at = now_(); sh_(SH.orders).getRange(r, ORD.mountAt + 1).setValue("'" + at); return { at }; },
   noteAdd(me, b){ append_(SH.notes, [now_(), b.order, me.id, b.text, b.next ? 'да' : '']); return { at: now_() }; },
   /* ---- руководитель: состав заказа и сроки ---- */
+  /* ---- новый заказ из приложения: строка в «Заказах»; состав (группы) добавляется уже в карточке ---- */
+  orderAdd: bossOnly_(function(me, b){ const id = String(b.id || '').trim(); if (!id) throw new Error('Впиши № заказа');
+    const s = sh_(SH.orders), ids = s.getRange(1, 1, s.getLastRow(), 1).getDisplayValues().map(x => String(x[0]).trim());
+    if (ids.indexOf(id) >= 0) throw new Error('Заказ № ' + id + ' уже есть');
+    if (!String(b.client || '').trim()) throw new Error('Впиши клиента');
+    const row = new Array(26).fill(''); const d = v => /^\d{4}-\d\d-\d\d$/.test(String(v || '')) ? v : '';
+    row[ORD.id] = "'" + id; row[ORD.client] = String(b.client).trim(); row[ORD.product] = String(b.product || '').trim(); row[ORD.sys] = b.sys === 'm2' ? 'м²' : '%';
+    row[ORD.kind] = String(b.kind || 'Кухни, комоды'); row[ORD.cost] = Math.round(+b.cost || 0) || ''; row[ORD.term] = b.hard ? 'жёсткий' : 'мягкий';
+    row[ORD.ship] = d(b.ship); row[ORD.ceh] = d(b.ceh); row[ORD.done] = d(b.done); row[ORD.status] = 'в работе'; row[ORD.master] = String(b.master || '');
+    if (b.sys !== 'm2' && +b.cost > 0) row[ORD.mat0] = Math.round(+b.cost);   // «Готовые плиты» на всю стоимость — по умолчанию, правится в составе
+    s.appendRow(row); return { id }; }),
   orderSet: bossOnly_(function(me, b){ // b.col — номер колонки 1..24 (только разрешённые)
     const allowed = [ORD.ship + 1, ORD.ceh + 1, ORD.done + 1, ORD.off + 1, ORD.prisManual + 1, ORD.team + 1, ORD.status + 1, ORD.master + 1, ORD.shopPct + 1];
     for (let c = ORD.mat0 + 1; c <= ORD.mat0 + 9; c++) allowed.push(c);
