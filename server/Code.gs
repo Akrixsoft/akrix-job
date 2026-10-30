@@ -126,7 +126,7 @@ const API = {
       orders: read_(SH.orders, 2, 26),
       extras: read_(SH.extras, 2, 5), modules: read_(SH.modules, 2, 5), tasks: read_(SH.tasks, 2, 5), lib: read_(SH.lib, 2, 2),
       shifts: read_(SH.shifts, 2, 12), marks: read_(SH.marks, 2, 12).filter(r => r[11] !== 'да'),
-      plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [], time: sh_(SH.time) ? read_(SH.time, 2, 7) : [], skills: skills_(), skillLog: sh_(SH.skillLog) ? read_(SH.skillLog, 2, 6) : [], fixes: sh_(SH.fix) ? read_(SH.fix, 2, 11).filter(r => r[5] !== 'удалена') : [] };
+      plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [], time: sh_(SH.time) ? read_(SH.time, 2, 11) : [], skills: skills_(), skillLog: sh_(SH.skillLog) ? read_(SH.skillLog, 2, 6) : [], fixes: sh_(SH.fix) ? read_(SH.fix, 2, 11).filter(r => r[5] !== 'удалена') : [] };
   },
   /* ---- смена ---- */
   shiftStart(me, b){   // смена = одна строка в день; ушёл и вернулся — новый отрезок в колонке L «Отрезки»
@@ -170,13 +170,14 @@ const API = {
     const lbl = (o, op) => { const t = list.find(x => x.order === o && x.op === op); if (t) return t.label; const r = read_(SH.orders, 2, 3).find(x => String(x[0]).trim() === o); return (r ? r[1] + ' · ' + r[2] + ' · ' : '') + opName_(o, op); };
     const active = run ? { order: String(run[2]).trim(), op: String(run[3]).trim(), label: lbl(String(run[2]).trim(), String(run[3]).trim()), startMs: utcMs_(cell_(run[0])) } : null;
     return { name: me.name, onShift: onShift_(me.id), active, tasks: list.slice(0, 8) }; },
-  timeAdd(me, b){ const m = Math.round(+b.minutes || 0); if (!(m > 0)) throw new Error('Впиши время');
-    const t = today_(), days = read_(SH.shifts, 2, 12).filter(r => String(r[0]).slice(0, 10) === t && String(r[1]) === me.id);
-    if (!days.length) throw new Error('Ручное время — только в свою смену сегодня');
-    const shiftMin = days.reduce((a, d) => a + segMin_(segs_(d), hm_()), 0), nowMs = Date.now();   // все отрезки смены за день
-    const used = read_(SH.time, 2, 6).filter(r => String(r[1]) === me.id && String(r[0]).slice(0, 10) === t).reduce((a, r) => a + (r[4] ? +r[5] || 0 : Math.max(0, (nowMs - utcMs_(r[0])) / 6e4)), 0);
-    if (m > shiftMin - used + 1) throw new Error('Можно добавить не больше ' + Math.max(0, Math.floor(shiftMin - used)) + ' мин — столько осталось от твоей смены');
-    append_(SH.time, [now_(), me.id, b.order, b.op, now_(), m, 'вручную']); return {}; },
+  /* время вручную: любой день (тестовый режим — без ограничений, с пометкой); за себя — каждый, за других — взявший задачу или руководитель; минус — поправка */
+  timeAdd(me, b){ const m = Math.round(+b.minutes || 0); if (!m) throw new Error('Впиши время');
+    const who = String(b.who || me.id), day = /^\d{4}-\d\d-\d\d$/.test(String(b.date || '')) ? b.date : today_();
+    if (who !== me.id && !me.boss && !tookTask_(me.id, b.order, b.op)) throw new Error('Время за другого вписывает тот, кто взял задачу, или руководитель');
+    if (m < 0){ const have = read_(SH.time, 2, 6).filter(r => String(r[1]) === who && String(r[2]).trim() === String(b.order).trim() && String(r[3]) === b.op).reduce((a, r) => a + (+r[5] || 0), 0);
+      if (have + m < 0) throw new Error('Нельзя убрать больше, чем есть: ' + Math.round(have) + ' мин'); }
+    const at = day + ' 12:00', late = day !== today_() ? 'позже' : '';
+    append_(SH.time, [at, who, b.order, b.op, at, m, 'вручную', '', '', '', me.id + ' ' + now_() + (late ? ' · внесено позже' : '')]); return {}; },
   shiftLate(me){ // «работаю дальше» — вечерняя смена, больше не напоминать
     const t = today_(), r = read_(SH.shifts, 2, 11).reverse().find(x => String(x[0]).slice(0, 10) === t && String(x[1]) === me.id && !x[3]);
     if (r) sh_(SH.shifts).getRange(r[11], 11).setValue('да'); return {};
@@ -348,6 +349,10 @@ function latestPlan_(who, date){
 }
 function canEditPlan_(d){ const p = params_(), t = today_();
   const diff = dayDiff_(d, t); return diff > 1 || (diff === 1 && toMin_(hm_()) < toMin_(p.planTo)); }
+function tookTask_(id, order, op){ order = String(order).trim(); let took = false;
+  read_(SH.takes, 2, 5).forEach(r => { if (String(r[1]) !== id || String(r[2]).trim() !== order || String(r[3]).trim() !== op) return; const a = String(r[4]); if (a === 'взял') took = true; else if (a === 'отменил') took = false; });
+  if (!took) took = read_(SH.tasks, 2, 5).some(r => String(r[0]).trim() === order && String(r[1]).trim() === op && String(r[2]).trim() === id);
+  return took; }
 function stopWork_(who){ const s = sh_(SH.time); if (!s) return; const now = new Date();
   read_(SH.time, 2, 6).forEach(r => { if (String(r[1]) === who && !r[4]){ const st = utcMs_(r[0]); s.getRange(r[6], 5, 1, 2).setValues([[now_(), Math.max(0, Math.round((now - st) / 6e4))]]); } }); }
 function utcMs_(s){ const p = String(s).split(/[- :]/).map(Number); return Date.UTC(p[0], p[1] - 1, p[2], p[3] || 0, p[4] || 0) - 4 * 3600e3; }   // время таблицы — Тбилиси (UTC+4)
