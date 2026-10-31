@@ -126,7 +126,9 @@ const API = {
       orders: read_(SH.orders, 2, 26),
       extras: read_(SH.extras, 2, 5), modules: read_(SH.modules, 2, 5), tasks: read_(SH.tasks, 2, 5), lib: read_(SH.lib, 2, 2),
       shifts: read_(SH.shifts, 2, 12), marks: read_(SH.marks, 2, 12).filter(r => r[11] !== 'да'),
-      plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [], time: sh_(SH.time) ? read_(SH.time, 2, 11) : [], skills: skills_(), skillLog: sh_(SH.skillLog) ? read_(SH.skillLog, 2, 6) : [], fixes: sh_(SH.fix) ? read_(SH.fix, 2, 11).filter(r => r[5] !== 'удалена') : [] };
+      plans: read_(SH.plans, 2, 6), takes: read_(SH.takes, 2, 5), kit: read_(SH.kit, 2, 7).filter(r => r[6] !== 'да'), notes: read_(SH.notes, 2, 5), buy: read_(SH.buy, 2, 8), buyCat: sh_(SH.buyCat) ? read_(SH.buyCat, 2, 2) : [], time: sh_(SH.time) ? read_(SH.time, 2, 11) : [], skills: skills_(), skillLog: sh_(SH.skillLog) ? read_(SH.skillLog, 2, 6) : [], fixes: sh_(SH.fix) ? read_(SH.fix, 2, 11).filter(r => r[5] !== 'удалена') : [],
+      parts: sh_(SH.parts) ? read_(SH.parts, 2, 8).map(r => [String(r[0]).trim(), String(r[2]), String(r[3]), String(r[6])]) : [],
+      drilled: sh_(SH.drill) ? read_(SH.drill, 2, 16).map(r => [String(r[2]).trim(), String(r[6]), String(r[12]), String(r[9]), String(r[15])]) : [] };
   },
   /* ---- смена ---- */
   shiftStart(me, b){   // смена = одна строка в день; ушёл и вернулся — новый отрезок в колонке L «Отрезки»
@@ -241,7 +243,12 @@ const API = {
   },
   /* ---- отметки работы: галочка = запись в расчёт ---- */
   mark(me, b){
-    const row = append_(SH.marks, [now_(), me.id, b.order, b.grp, b.op, b.unit, b.pct, b.amount, 0, b.partner || '', b.mode || '', '']);
+    let who = me.id;
+    if (b.auto){   // автоотметка по станку: без дублей (отметка модуля уже есть — вернуть её), исполнитель — оператор станка
+      const ex = read_(SH.marks, 2, 12).find(r => r[11] !== 'да' && String(r[2]).trim() === String(b.order).trim() && String(r[3]) === String(b.grp) && String(r[4]) === String(b.op) && String(r[5]) === String(b.unit));
+      if (ex) return { row: ex[12], dup: true };
+      if (b.who && staffById_(b.who)) who = String(b.who); }
+    const row = append_(SH.marks, [now_(), who, b.order, b.grp, b.op, b.unit, b.pct, b.amount, 0, b.partner || '', b.mode || '', '']);
     taskMsg_(me.id); return { row, at: hm_() };
   },
   unmark(me, b){
