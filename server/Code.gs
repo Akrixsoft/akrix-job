@@ -199,6 +199,11 @@ const API = {
         if (ex){ sm.getRange(ex[7], 6, 1, 2).setValues([[String(m.code || ''), String(m.id || '')]]); linked++; }
         else if (m.jobName){ unmatched.push({ name: String(m.jobName), side: 'job', reason: 'нет такого модуля в Job' }); }
         else { sm.appendRow(["'" + oid, String(m.group || 'korpus'), String(m.name || m.code || 'модуль'), +m.area || 1, 'из проекта', String(m.code || ''), String(m.id || '')]); added++; } });
+      // группы, которых нет в составе заказа: детали не учитываются, пока группу не добавят в «Составе заказа»
+      const hdr = so.getRange(1, ORD.mat0 + 1, 1, 9).getDisplayValues()[0], vals = so.getRange(row, ORD.mat0 + 1, 1, 9).getValues()[0], has = {};
+      hdr.forEach((h, i) => { const c = String(h).split('·').pop().trim(); if (c && +String(vals[i]).replace(',', '.') > 0) has[c] = 1; });
+      const miss = {}; (o.modules || []).forEach(m => (m.parts || []).forEach(p => { const g = String(p.group || m.group || 'korpus'); if (!has[g]) miss[g] = (miss[g] || 0) + 1; }));
+      Object.keys(miss).forEach(g => unmatched.push({ name: oid + ': группа ' + g + ' (' + miss[g] + ' дет.)', side: 'project', reason: 'группы нет в составе заказа — добавь её в карточке заказа, иначе детали не учитываются' }));
       // детали модуля из других групп (другой материал) — свой модуль в той группе: то же имя, площадь = сумма деталей
       const nowM = read_(SH.modules, 2, 7).filter(x => String(x[0]).trim() === oid);
       (o.modules || []).forEach(m => { const g0 = String(m.group || 'korpus'), nm = String(m.jobName || m.name || m.code || 'модуль'), byG = {};
