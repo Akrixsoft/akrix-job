@@ -8,7 +8,7 @@
 const APP_URL = 'https://akrixsoft.github.io/akrix-job/';   // адрес мини-приложения (GitHub Pages)
 const TZ = 'Asia/Tbilisi';
 const SH = { params:'Параметры', staff:'Сотрудники', orders:'Заказы', extras:'Доп. обработки', modules:'Модули', tasks:'Задачи',
-  ops:'Операции', lib:'Библиотека монтажа', shifts:'Смены', marks:'Отметки', plans:'Планы', takes:'Взятые задачи', kit:'Комплект', notes:'Заметки монтажа', buy:'Закупка', buyCat:'Справочник закупки', time:'Время', skills:'Навыки', pays:'Выплаты', skillLog:'Навыки — история', fix:'Доделки' };
+  ops:'Операции', lib:'Библиотека монтажа', shifts:'Смены', marks:'Отметки', plans:'Планы', takes:'Взятые задачи', kit:'Комплект', notes:'Заметки монтажа', buy:'Закупка', buyCat:'Справочник закупки', time:'Время', skills:'Навыки', pays:'Выплаты', skillLog:'Навыки — история', fix:'Доделки', drill:'Станок — журнал' };
 const ORD = { id:0, client:1, product:2, sys:3, kind:4, cost:5, term:6, ship:7, ceh:8, done:9, team:10, status:11, mat0:12, matN:21, off:21, mountAt:22, prisManual:23, master:24, shopPct:25 };
 const BOSS_ROLES = ['руководитель', 'администратор'];   // полный доступ: заказы, фонд, люди, закупка
 
@@ -162,6 +162,18 @@ const API = {
     append_(SH.time, [Utilities.formatDate(at, TZ, 'yyyy-MM-dd HH:mm'), me.id, b.order, b.op, '', '', '', pl > 0 ? pl : '', '', dl && b.ping ? 'ждёт' : '']);
     if (dl && b.ping) pingAt_(at); taskMsg_(me.id); return {}; },
   workStop(me){ stopWork_(me.id); taskMsg_(me.id); return {}; },
+  /* ---- Drilling: журнал присадки по деталям (пока копится; автоотметки по модулям — после передачи модулей из конструктора) ---- */
+  drillEvents(me, b){ const ev = (b.events || []).slice(0, 200); if (!ev.length) return { accepted: 0, mismatches: [] };
+    if (!sh_(SH.drill)){ const s0 = book_().insertSheet(SH.drill); s0.appendRow(['Получено', 'eid', 'Заказ', 'Проект', 'Версия проекта', 'Модуль', 'Деталь', 'Название', 'Начало', 'Конец', 'Станок, с', 'Источник', 'Оператор', 'Компьютер', 'Переделка', 'Отметка', 'Отправил']); }
+    const s = sh_(SH.drill), seen = {}; if (s.getLastRow() > 1) s.getRange(2, 2, s.getLastRow() - 1, 1).getValues().forEach(r => seen[String(r[0])] = 1);
+    const orders = {}; read_(SH.orders, 2, 1).forEach(r => orders[String(r[0]).trim()] = 1);
+    const rows = [], mism = [], at = now_();
+    ev.forEach(e => { const id = String(e.eid || ''); if (!id || seen[id]) return; seen[id] = 1;
+      const o = String(e.order || '').trim(); if (o && !orders[o]) mism.push({ module: e.module || '', part: e.part || '', reason: 'заказа ' + o + ' нет в Job' });
+      rows.push([at, id, "'" + o, String(e.project || ''), e.projectVer == null ? '' : String(e.projectVer), String(e.module || ''), String(e.part || ''), String(e.partName || ''),
+        "'" + String(e.start || ''), "'" + String(e.end || ''), +e.machineSec || 0, String(e.source || ''), String(e.operator || ''), String(e.pc || ''), e.redo ? 'да' : '', String(e.mark || ''), me.id]); });
+    if (rows.length) s.getRange(s.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+    return { accepted: rows.length, duplicates: ev.length - rows.length, mismatches: mism }; },
   /* ---- внешние программы (Drilling, конструктор): список сотрудников для выбора оператора ---- */
   staffList(me){ return { staff: read_(SH.staff, 2, 7).filter(r => String(r[0]).trim() && String(r[6]).trim() !== 'нет').map(r => ({ id: String(r[0]).trim(), name: String(r[1]), role: String(r[4]).trim() })) }; },
   /* ---- Android: код подключения и компактное состояние для шторки ---- */
