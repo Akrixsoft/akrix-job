@@ -641,14 +641,14 @@ function payParts(amount, op, pct){
 }
 
 /* ============ BLOCK: DATA (строится из таблицы в build()) ============ */
-let FIXES=[], PARTS={}, DRILLED={}; let TIMEJ=[], FACT={}, PART={}, BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[], SKILLS=null, PLANS=[], PLANNED={}, PAYS=[], PAYMODE={}, CLOSED=new Set(), ONAME={}, DONE=[], OPSKILL={}, SHARE={}, SKLOG=[], MYSUBS=[], MYOFF=[];
+let CAPS=[], FIXES=[], PARTS={}, DRILLED={}; let TIMEJ=[], FACT={}, PART={}, BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[], SKILLS=null, PLANS=[], PLANNED={}, PAYS=[], PAYMODE={}, CLOSED=new Set(), ONAME={}, DONE=[], OPSKILL={}, SHARE={}, SKLOG=[], MYSUBS=[], MYOFF=[];
 let TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const SEC={furn:'Фурнитура',tools:'Инструменты',other:'Прочее'}, SEC_BACK={'Фурнитура':'furn','Инструменты':'tools','Прочее':'other'};
 const num = v => typeof v==='number' ? v : parseFloat(String(v).replace(/\s/g,'').replace(',','.'));
 const d10 = v => String(v||'').slice(0,10);
 
 function build(D){
-  P=D.params; RATE_H=P.rateH||15; ME=D.me.id; IS_BOSS=D.me.boss; PLAN.to=toMin(P.planTo||'18:00'); PLAN.hoursPerDay=P.hoursDay||8;
+  CAPS=D.caps||[]; P=D.params; RATE_H=P.rateH||15; ME=D.me.id; IS_BOSS=D.me.boss; PLAN.to=toMin(P.planTo||'18:00'); PLAN.hoursPerDay=P.hoursDay||8;
   const rp=String(P.remindPlan||'').split(',').map(s=>s.trim()).filter(Boolean); PLAN.remind=rp.length?toMin(rp[rp.length-1]):PLAN.to-30;
   TODAY=fromIso(D.today);
   PEOPLE={}; ROLE={}; D.staff.forEach(s=>{ PEOPLE[s.id]=s.name||s.id; ROLE[s.id]=s.role; });
@@ -1049,6 +1049,29 @@ function closeTasks(){ const t0=iso(TODAY), keys=new Set(); TIMEJ.forEach(t=>{ i
   ORDERS.forEach(o=>o.tasks.forEach(t=>{ const f=findOp(o,t.op); if(f.op&&(f.line.prog[f.op[0]]||0)<100) keys.add(o.id+'|'+t.op); }));   // взятые и ещё не выполненные
   return [...keys].map(k=>{ const [oid,op]=k.split('|'), o=oById(oid), f=o&&findOp(o,op); return f&&f.op?{k,o,op,name:f.op[1]}:null; }).filter(Boolean); }
 function dayCounted(){ const t0=iso(TODAY); return TIMEJ.filter(t=>t.who===ME&&String(t.start).slice(0,10)===t0).reduce((a,t)=>a+(t.end?t.min:Math.max(0,(Date.now()-tsMs(t.start))/6e4)),0); }
+/* ===== BLOCK: ЗА СОТРУДНИКА — руководитель закрывает чужую смену и разносит его время по задачам (S.cf={p, at, alloc, close}) ===== */
+function cfTasks(p){ const t0=iso(TODAY), keys=new Set(); TIMEJ.forEach(t=>{ if(t.who===p&&String(t.start).slice(0,10)===t0) keys.add(t.order+'|'+t.op); });
+  Object.entries(TAKEN).forEach(([k,w])=>{ if(w!==p) return; const [oid,op]=k.split('|'), o=oById(oid), f=o&&findOp(o,op); if(f&&f.op&&(f.line.prog[f.op[0]]||0)<100) keys.add(k); });
+  return [...keys].map(k=>{ const [oid,op]=k.split('|'), o=oById(oid), f=o&&findOp(o,op); return f&&f.op?{k,o,op,name:f.op[1]}:null; }).filter(Boolean); }
+function cfShift(p){ return SHIFTS.filter(r=>d10(r[0])===iso(TODAY)&&String(r[1])===p).pop(); }
+function cfShiftMin(p, at){ const r=cfShift(p); if(!r) return 0; const e=at?toMin(at):nowMin();
+  return segsOf(r).reduce((a,g)=>a+Math.max(0,Math.min(g.e?toMin(g.e):e, e)-toMin(g.s)),0); }
+function cfCounted(p, at){ const t0=iso(TODAY), lim=at?new Date(iso(TODAY)+'T'+at).getTime():Date.now();
+  return TIMEJ.filter(t=>t.who===p&&String(t.start).slice(0,10)===t0).reduce((a,t)=>a+(t.end?num(t.min):Math.max(0,(Math.min(Date.now(),lim)-tsMs(t.start))/6e4)),0); }
+function vCloseFor(){ const c=S.cf, p=c.p, at=c.close?c.at:null, sh=cfShiftMin(p, at), cnt=cfCounted(p, at), al=c.alloc, alSum=Object.values(al).reduce((a,b)=>a+b,0), free=Math.max(0,sh-cnt-alSum), pc=sh?Math.round((cnt+alSum)/sh*100):0;
+  const fh=m=>m>=60?fmt(m/60)+' ч':Math.round(m)+' мин';
+  const rows=cfTasks(p).map(x=>`<div class="prow"><span class="pn">${esc(x.name)}<span class="ps">${esc(x.o.client)} · ${esc(x.o.product)}</span></span>
+      <button class="btn small ghost stp" data-act="cfAlloc" data-k="${esc(x.k)}" data-d="-30" ${al[x.k]?'':'disabled'}>−</button><b class="num stv">${al[x.k]?'+'+fh(al[x.k]):'—'}</b><button class="btn small ghost stp" data-act="cfAlloc" data-k="${esc(x.k)}" data-d="30">+</button></div>`).join('');
+  return `<div class="pbox closesum"><div class="pbh"><b>${c.close?'Закрыть смену':'Время по задачам'} · ${esc(PEOPLE[p]||p)}</b><span class="num">${fh(sh)}</span></div>
+    ${c.close?`<label>Ушёл в<input id="cf-at" type="time" value="${c.at}" max="${hm(nowMin())}" onchange="cfAt(this.value)"></label>`:''}
+    <div class="bar"><i class="${pc<60?'late':''}" style="width:${Math.min(100,pc)}%"></i></div>
+    <div class="small">По задачам учтено <b class="num">${fh(cnt+alSum)}</b> (${pc}%) · без задачи <b class="num">${fh(free)}</b></div>
+    ${rows?`<div class="small mute" style="margin:6px 0 2px">Добавить время по задачам (шаг 30 мин, пометка ✎):</div>${rows}`:UI.note('Задач у сотрудника нет — время вписывается в карточке задачи')}
+    ${c.close?'<label for="cf-misc">Хозработы<input id="cf-misc" type="text" placeholder="уборка, порядок инструмента…"></label>':''}
+    <div class="grid2"><button class="btn ghost" data-act="cfCancel">Отмена</button><button class="btn" data-act="cfSubmit">${c.close?'Закрыть смену':'Записать'}</button></div></div>`; }
+function cfAt(v){ if(!S.cf||!/^\d\d:\d\d$/.test(v)) return; const r=cfShift(S.cf.p), g=r&&segsOf(r).pop();
+  if(g&&v<g.s){ toast('Раньше прихода ('+g.s+')'); v=g.s; } if(v>hm(nowMin())) v=hm(nowMin()); S.cf.at=v; render(); }
+/* ===== END BLOCK: ЗА СОТРУДНИКА ===== */
 function vClosePanel(){
   const sh=segMin(), cnt=dayCounted(), al=S.alloc||{}, alSum=Object.values(al).reduce((a,b)=>a+b,0), free=Math.max(0,sh-cnt-alSum), pc=sh?Math.round((cnt+alSum)/sh*100):0;
   const fh=m=>m>=60?fmt(m/60)+' ч':Math.round(m)+' мин';
@@ -1437,7 +1460,8 @@ function vBossTomorrow(){
     const st=s?(s[3]?['n',`${s[2]}–${s[3]}`]:['ok','на смене с '+s[2]]):pl&&!pl.off?['warn','план '+pl.at]:['n','нет'];
     const run=TIMEJ.filter(t=>t.who===p&&!t.end).pop(), o=run&&oById(run.order), f=o&&findOp(o,run.op), fut=run&&tsMs(run.start)>Date.now();
     const cur=run?`<div class="pcur">${fut?'⏳':'🟢'} <b>${esc(f&&f.op?f.op[1]:run.op)}</b> · ${o?esc(o.client)+' · '+esc(o.product):esc(run.order)} · ${fut?'старт в':'с'} ${String(run.start).slice(11,16)}</div>`:(s&&!s[3]?'<div class="pcur mute">задача не выбрана</div>':'');
-    return UI.row(esc(PEOPLE[p]), (s&&num(s[6])>5?`опоздание ${s[6]} мин`:'')+cur, chip(st[0]+' num',st[1])); }).join('');
+    const btn=s&&p!==ME&&!S.cf&&CAPS.includes('closeFor')?`<div class="grid2 pmini">${!s[3]?`<button class="btn small ghost" data-act="cfOpen" data-p="${esc(p)}" data-close="1">🏁 Закрыть смену</button>`:'<span></span>'}<button class="btn small ghost" data-act="cfOpen" data-p="${esc(p)}">⏱ Время по задачам</button></div>`:'';
+    return UI.row(esc(PEOPLE[p]), (s&&num(s[6])>5?`опоздание ${s[6]} мин`:'')+cur, chip(st[0]+' num',st[1]))+btn+(S.cf&&S.cf.p===p?vCloseFor():''); }).join('');
   const dl=[...DEADLINES].sort((a,b)=>a.date<b.date?-1:1).map(d=>{ const st=dlStatus(d);
     return UI.row(`${d.label} · ${oLabel(d.order)}`, dlLine(st.need, d.date, st.o, d.scope), chip(st.cls,st.txt)); }).join('');
   const wk=shiftsSince(weekStart());
@@ -1788,6 +1812,15 @@ document.addEventListener('click',e=>{
     Object.entries(S.alloc||{}).forEach(([k,m])=>{ const [oid,op]=k.split('|'); const now=iso(new Date())+' '+hm(nowMin()); TIMEJ.push({start:now, who:ME, order:oid, op, end:now, min:m, manual:true}); api('timeAdd',{order:oid, op, minutes:m}).catch(fail); }); S.alloc=null;
     stopWork(true); geo().then(g=>api('shiftEnd',{misc, geo:g})).then(r=>{ S.onShift=false; S.shiftDone=true; S.leftAt=r.at; S.closing=false; const g=(S.segs||[])[S.segs.length-1]; if(g) g.e=r.at; toast('Смена закрыта'); render(); }).catch(fail); return; }
   if(a==='cancelClose'){ S.closing=false; }
+  if(a==='cfOpen'){ S.cf={p:b.dataset.p, close:!!b.dataset.close, at:hm(nowMin()), alloc:{}}; render(); return; }
+  if(a==='cfCancel'){ S.cf=null; render(); return; }
+  if(a==='cfAlloc'){ const k=b.dataset.k, d=+b.dataset.d, al=S.cf.alloc; al[k]=Math.max(0,(al[k]||0)+d); if(!al[k]) delete al[k]; renderKeep(`[data-act="cfAlloc"][data-k="${CSS.escape(k)}"][data-d="${d}"]`, b); return; }
+  if(a==='cfSubmit'){ const c=S.cf, p=c.p, misc=((document.getElementById('cf-misc')||{}).value||'').trim(), now=iso(TODAY)+' '+(c.close?c.at:hm(nowMin())); b.disabled=true;
+    const jobs=Object.entries(c.alloc).map(([k,m])=>{ const [oid,op]=k.split('|'); TIMEJ.push({start:now, who:p, order:oid, op, end:now, min:m, manual:true}); return api('timeAdd',{order:oid, op, minutes:m, who:p}); });
+    if(!c.close){ Promise.all(jobs).then(()=>toast('Записано · '+(PEOPLE[p]||p)+' · пометка ✎')).catch(fail); S.cf=null; render(); return; }
+    Promise.all(jobs).then(()=>api('shiftEnd',{who:p, at:c.at, misc})).then(r=>{ const sr=cfShift(p); if(sr){ sr[3]=r.at; const g=segsOf(sr); g[g.length-1].e=r.at; sr[11]=g.map(x=>x.s+'–'+x.e).join(', '); }
+      TIMEJ.forEach(t=>{ if(t.who===p&&!t.end){ t.end=iso(TODAY)+' '+r.at; t.min=Math.max(0,(new Date(iso(TODAY)+'T'+r.at)-tsMs(t.start))/6e4); } });
+      S.cf=null; toast('Смена '+(PEOPLE[p]||p)+' закрыта · '+r.at); render(); }).catch(e=>{ b.disabled=false; fail(e); }); return; }
   if(a==='newOrd'){ S.newOrd={sys:'pct', hard:false}; }
   if(a==='newOrdClose'){ S.newOrd=null; }
   if(a==='newOrdSys'||a==='newOrdHard'){ const keep={}; document.querySelectorAll('.nosheet input,.nosheet select').forEach(x=>keep[x.id]=x.value); if(a==='newOrdSys') S.newOrd.sys=b.dataset.v; else S.newOrd.hard=b.dataset.v==='1';
@@ -2002,7 +2035,7 @@ function splash(){ const d=new Date(Date.now()-6*3600e3), key=iso(d);   // «с�
 
 /* ============ BLOCK: ЗАГРУЗКА И ОБНОВЛЕНИЕ ============ */
 let loading=false;
-function sheetOpen(){ return !!(S.startPick||S.newOrd||S.joinOpen||S.closing); }
+function sheetOpen(){ return !!(S.startPick||S.newOrd||S.joinOpen||S.closing||S.cf); }
 function busy(){ const a=document.activeElement; return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); }
 const GO=new URLSearchParams(location.search).get('go');   // из кнопок бота: close — закрыть смену, late — работаю дальше
 function reload(){ if(loading) return Promise.resolve(); loading=true;
@@ -2015,7 +2048,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793443821';
+const BUILD='1793452148';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
