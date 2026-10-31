@@ -2048,7 +2048,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793453676';
+const BUILD='1793453802';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
@@ -2060,6 +2060,7 @@ function start(){
     const other=id=>{ if(id&&id!==IID){ try{ TG.close(); }catch(e){} } };
     claim(); if(bc){ bc.onmessage=e=>other(e.data); bc.postMessage(IID); }
     window.addEventListener('storage', e=>{ if(e.key===KEY) other(e.newValue); });
+    setInterval(()=>{ try{ other(localStorage.getItem(KEY)); }catch(e){} }, 2000);   // Android: storage-событие в свёрнутую копию может не прийти
     TG.onEvent&&TG.onEvent('activated', ()=>{ claim(); if(bc) bc.postMessage(IID); });   // развернули старую копию — она главная, остальные закрываются
   }catch(e){} }
   /* ===== END BLOCK: ОДНА КОПИЯ ===== */
