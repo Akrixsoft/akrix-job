@@ -109,7 +109,7 @@ function doPost(e){
 }
 function bossOnly_(f){ f.boss = true; return f; }
 /* ===== BLOCK: SYNC — счётчик изменений: любая запись +1; клиенты опрашивают его и перечитывают таблицу только при изменении ===== */
-const RO_ = { boot: 1, mini: 1, pairCode: 1 };
+const RO_ = { boot: 1, mini: 1, pairCode: 1, staffList: 1 };
 function ver_(){ return +(PropertiesService.getScriptProperties().getProperty('VER') || 0); }
 function bump_(){ const pr = PropertiesService.getScriptProperties(), v = (+(pr.getProperty('VER') || 0)) + 1; pr.setProperty('VER', String(v)); return v; }
 /* ===== END BLOCK: SYNC ===== */
@@ -162,6 +162,8 @@ const API = {
     append_(SH.time, [Utilities.formatDate(at, TZ, 'yyyy-MM-dd HH:mm'), me.id, b.order, b.op, '', '', '', pl > 0 ? pl : '', '', dl && b.ping ? 'ждёт' : '']);
     if (dl && b.ping) pingAt_(at); taskMsg_(me.id); return {}; },
   workStop(me){ stopWork_(me.id); taskMsg_(me.id); return {}; },
+  /* ---- внешние программы (Drilling, конструктор): список сотрудников для выбора оператора ---- */
+  staffList(me){ return { staff: read_(SH.staff, 2, 7).filter(r => String(r[0]).trim() && String(r[6]).trim() !== 'нет').map(r => ({ id: String(r[0]).trim(), name: String(r[1]), role: String(r[4]).trim() })) }; },
   /* ---- Android: код подключения и компактное состояние для шторки ---- */
   pairCode(me){ if (me.viaKey) throw new Error('Код выдаётся в Telegram'); const pr = PropertiesService.getScriptProperties();
     let c; do { c = String(100000 + Math.floor(Math.random() * 900000)); } while (pr.getProperty('PC_' + c));
