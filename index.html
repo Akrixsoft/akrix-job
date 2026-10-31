@@ -2048,12 +2048,21 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793452148';
+const BUILD='1793453676';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
 function start(){
   if(TG){ try{ TG.ready(); TG.expand(); TG.setHeaderColor && TG.setHeaderColor('#eef0f3'); }catch(e){} }
+  /* ===== BLOCK: ОДНА КОПИЯ — открыли заново из кнопки бота/меню: свёрнутые старые копии закрываются сами ===== */
+  if(TG&&TG.initData&&!AND){ try{ const IID=Date.now()+'-'+Math.random().toString(36).slice(2,8), KEY='akx_inst';
+    const claim=()=>{ try{ localStorage.setItem(KEY, IID); }catch(e){} }, bc=window.BroadcastChannel?new BroadcastChannel('akx_inst'):null;
+    const other=id=>{ if(id&&id!==IID){ try{ TG.close(); }catch(e){} } };
+    claim(); if(bc){ bc.onmessage=e=>other(e.data); bc.postMessage(IID); }
+    window.addEventListener('storage', e=>{ if(e.key===KEY) other(e.newValue); });
+    TG.onEvent&&TG.onEvent('activated', ()=>{ claim(); if(bc) bc.postMessage(IID); });   // развернули старую копию — она главная, остальные закрываются
+  }catch(e){} }
+  /* ===== END BLOCK: ОДНА КОПИЯ ===== */
   if(!window.MOCK_API&&(!API_URL||(!(TG&&TG.initData) && !window.DEV_INIT && !KEY))){ document.getElementById('view').innerHTML=UI.sec('Akrix Job', UI.note(`Откройте приложение через бота <b>@${BOT}</b> в Telegram — кнопка «Akrix Job» внизу чата.`)); return; }
   document.getElementById('view').innerHTML=UI.sec('', UI.note('Загрузка…'));
   reload(); checkUpdate(); hsInit();
