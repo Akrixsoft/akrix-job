@@ -8,7 +8,7 @@
 const APP_URL = 'https://akrixsoft.github.io/akrix-job/';   // адрес мини-приложения (GitHub Pages)
 const TZ = 'Asia/Tbilisi';
 const SH = { params:'Параметры', staff:'Сотрудники', orders:'Заказы', extras:'Доп. обработки', modules:'Модули', tasks:'Задачи',
-  ops:'Операции', lib:'Библиотека монтажа', shifts:'Смены', marks:'Отметки', plans:'Планы', takes:'Взятые задачи', kit:'Комплект', notes:'Заметки монтажа', buy:'Закупка', buyCat:'Справочник закупки', time:'Время', skills:'Навыки', pays:'Выплаты', skillLog:'Навыки — история', fix:'Доделки', drill:'Станок — журнал' };
+  ops:'Операции', lib:'Библиотека монтажа', shifts:'Смены', marks:'Отметки', plans:'Планы', takes:'Взятые задачи', kit:'Комплект', notes:'Заметки монтажа', buy:'Закупка', buyCat:'Справочник закупки', time:'Время', skills:'Навыки', pays:'Выплаты', skillLog:'Навыки — история', fix:'Доделки', drill:'Станок — журнал', parts:'Детали' };
 const ORD = { id:0, client:1, product:2, sys:3, kind:4, cost:5, term:6, ship:7, ceh:8, done:9, team:10, status:11, mat0:12, matN:21, off:21, mountAt:22, prisManual:23, master:24, shopPct:25 };
 const BOSS_ROLES = ['руководитель', 'администратор'];   // полный доступ: заказы, фонд, люди, закупка
 
@@ -109,7 +109,7 @@ function doPost(e){
 }
 function bossOnly_(f){ f.boss = true; return f; }
 /* ===== BLOCK: SYNC — счётчик изменений: любая запись +1; клиенты опрашивают его и перечитывают таблицу только при изменении ===== */
-const RO_ = { boot: 1, mini: 1, pairCode: 1, staffList: 1 };
+const RO_ = { boot: 1, mini: 1, pairCode: 1, staffList: 1, orderList: 1 };
 function ver_(){ return +(PropertiesService.getScriptProperties().getProperty('VER') || 0); }
 function bump_(){ const pr = PropertiesService.getScriptProperties(), v = (+(pr.getProperty('VER') || 0)) + 1; pr.setProperty('VER', String(v)); return v; }
 /* ===== END BLOCK: SYNC ===== */
@@ -174,6 +174,44 @@ const API = {
         "'" + String(e.start || ''), "'" + String(e.end || ''), +e.machineSec || 0, String(e.source || ''), String(e.operator || ''), String(e.pc || ''), e.redo ? 'да' : '', String(e.mark || ''), me.id]); });
     if (rows.length) s.getRange(s.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
     return { accepted: rows.length, duplicates: ev.length - rows.length, mismatches: mism }; },
+  /* ---- конструктор: список заказов с модулями и привязка проекта (mode 'link') ---- */
+  orderList(me){ const mods = sh_(SH.modules), mr = read_(SH.modules, 2, 7), marks = read_(SH.marks, 2, 12).filter(r => r[11] !== 'да');
+    const opsN = {}; read_(SH.ops, 2, 5).forEach(r => { const g = String(r[1]).trim(); if (g && r[4]) (opsN[g] = opsN[g] || {})[String(r[4]).trim()] = 1; });
+    const done = {}; marks.forEach(r => { const k = String(r[2]).trim() + '|' + String(r[3]).trim() + '|' + String(r[5]).trim(); (done[k] = done[k] || {})[String(r[4]).trim()] = 1; });
+    const code = n => { const m = String(n).match(/[СC]\d+\s*·\s*[МM]\d+|[МM]\d+/); return m ? m[0].replace(/\s/g, '') : ''; };
+    const orders = read_(SH.orders, 2, 27).filter(r => String(r[0]).trim() && String(r[11]).trim() !== 'сдан' && !/^пример/.test(String(r[0])));
+    return { orders: orders.map(r => { const id = String(r[0]).trim();
+      return { id, client: String(r[1]), product: String(r[2]), project: String(r[26] || ''), state: String(r[11] || ''),
+        modules: mr.filter(m => String(m[0]).trim() === id).map(m => { const g = String(m[1]).trim(), d = done[id + '|' + g + '|' + String(m[2]).trim()] || {}, n = Object.keys(opsN[g] || {}).length;
+          return { name: String(m[2]), code: String(m[5] || '') || code(m[2]), id: String(m[6] || ''), group: g, area: +String(m[3]).replace(',', '.') || 0, done: n ? Math.round(Object.keys(d).length / n * 100) / 100 : 0, pris: !!d.pris, note: String(m[4] || '') }; }) }; }) }; },
+  orderPush: bossOnly_(function(me, b){ if (b.mode !== 'link') throw new Error('Пока поддерживается только mode:link');
+    const pid = String((b.project || {}).id || ''); if (!pid) throw new Error('Нет id проекта');
+    const so = sh_(SH.orders), sm = sh_(SH.modules); if (!String(so.getRange(1, 27).getValue())) so.getRange(1, 27).setValue('Проект');
+    if (!String(sm.getRange(1, 6).getValue())) sm.getRange(1, 6, 1, 2).setValues([['Код', 'id конструктора']]);
+    let sp = sh_(SH.parts); if (!sp){ sp = book_().insertSheet(SH.parts); sp.appendRow(['Заказ', 'id модуля', 'Модуль', 'Деталь (key)', 'Код', 'Материал', 'Группа', 'Площадь', 'Проект']); }
+    let linked = 0, added = 0; const unmatched = [];
+    (b.orders || []).forEach(o => { const oid = String(o.id || '').trim(), row = findOrderRow_(oid); const cur = String(so.getRange(row, 27).getValue() || '');
+      if (cur && cur !== pid) throw new Error('Заказ ' + oid + ' уже связан с другим проектом');
+      so.getRange(row, 27).setValue(pid);
+      const mr = read_(SH.modules, 2, 7).filter(m => String(m[0]).trim() === oid), byName = {}; mr.forEach(m => byName[String(m[2]).trim().toLowerCase()] = m);
+      const byId = {}; mr.forEach(m => { if (m[6]) byId[String(m[6])] = m; });
+      (o.modules || []).forEach(m => { const ex = (m.jobName && byName[String(m.jobName).trim().toLowerCase()]) || byId[String(m.id)];
+        if (ex){ sm.getRange(ex[7], 6, 1, 2).setValues([[String(m.code || ''), String(m.id || '')]]); linked++; }
+        else if (m.jobName){ unmatched.push({ name: String(m.jobName), side: 'job', reason: 'нет такого модуля в Job' }); }
+        else { sm.appendRow(["'" + oid, String(m.group || 'korpus'), String(m.name || m.code || 'модуль'), +m.area || 1, 'из проекта', String(m.code || ''), String(m.id || '')]); added++; } });
+      // детали модуля из других групп (другой материал) — свой модуль в той группе: то же имя, площадь = сумма деталей
+      const nowM = read_(SH.modules, 2, 7).filter(x => String(x[0]).trim() === oid);
+      (o.modules || []).forEach(m => { const g0 = String(m.group || 'korpus'), nm = String(m.jobName || m.name || m.code || 'модуль'), byG = {};
+        (m.parts || []).forEach(p => { const g = String(p.group || g0); if (g !== g0) byG[g] = (byG[g] || 0) + (+p.area || 0); });
+        Object.keys(byG).forEach(g => { if (nowM.some(x => String(x[1]).trim() === g && (String(x[6]) === String(m.id) || String(x[2]).trim() === nm))) return;
+          sm.appendRow(["'" + oid, g, nm, Math.round(byG[g] * 1000) / 1000 || 1, 'из проекта · детали ' + g, String(m.code || ''), String(m.id || '')]); added++; }); });
+      (o.unmatchedJob || []).forEach(n => { const ex = byName[String(n).trim().toLowerCase()]; if (ex){ sm.getRange(ex[7], 5).setValue('нет в проекте'); unmatched.push({ name: String(n), side: 'job' }); } });
+      // детали заказа — перезаписываются целиком
+      const all = sp.getLastRow() > 1 ? sp.getRange(2, 1, sp.getLastRow() - 1, 9).getValues() : [], keep = all.filter(r => String(r[0]).trim() !== oid);
+      (o.modules || []).forEach(m => (m.parts || []).forEach(p => keep.push(["'" + oid, String(m.id || ''), String(m.jobName || m.name || ''), String(p.key || ''), String(p.code || ''), String(p.mat || ''), String(p.group || m.group || ''), +p.area || 0, pid])));
+      if (all.length) sp.getRange(2, 1, all.length, 9).clearContent();
+      if (keep.length) sp.getRange(2, 1, keep.length, 9).setValues(keep); });
+    return { linked, added, unmatched }; }),
   /* ---- внешние программы (Drilling, конструктор): список сотрудников для выбора оператора ---- */
   staffList(me){ return { staff: read_(SH.staff, 2, 7).filter(r => String(r[0]).trim() && String(r[6]).trim() !== 'нет').map(r => ({ id: String(r[0]).trim(), name: String(r[1]), role: String(r[4]).trim() })) }; },
   /* ---- Android: код подключения и компактное состояние для шторки ---- */
