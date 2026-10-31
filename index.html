@@ -1126,7 +1126,7 @@ function autoDrill(){ if(autoBusy||!ME) return; const jobs=[];
   Promise.all(jobs.map(({o,l,opP,u,d})=>{ const tot=l.units.reduce((s,x)=>s+x.a,0), ppct=prisPct(o,l,opP), pp=payParts(opAmount(o,l,opP)*u.a/tot,opP,ppct), who=(d.last&&d.last.op)||'';
     u.done[opP[0]]={who:who||ME, mode:'станок'}; syncProg(l);
     return api('mark',{order:o.id, grp:l.cat, op:opP[0], unit:u.name, pct:Math.round(u.a/tot*10000)/100, amount:Math.round(pp.fix*100)/100, partner:'', mode:'станок', auto:true, who}).catch(()=>{}); }))
-    .then(()=>{ autoBusy=false; toast('🤖 Присадка по станку: '+jobs.length+' мод.'); reload(); }); }
+    .then(()=>{ autoBusy=false; toast('🤖 Присадка по станку: '+jobs.length+' мод.'); if(!sheetOpen()) reload(); }); }
 /* ===== END BLOCK: СТАНОК → ПРИСАДКА ===== */
 function tickUnit(oi, key, ui, on, quiet){
   const o=ORDERS[oi], {line,op}=findOp(o,key), u=line.units[ui], tot=line.units.reduce((s,x)=>s+x.a,0);
@@ -1296,8 +1296,9 @@ function render(){
   if(IS_BOSS){ const other=badges(S.role==='boss'?'emp':'boss'), tot=Object.values(other).reduce((a,x)=>a+x,0);
     document.getElementById(S.role==='boss'?'role-emp':'role-boss').classList.toggle('hasdot', tot>0); document.getElementById(S.role==='boss'?'role-boss':'role-emp').classList.remove('hasdot'); }
   const v={today:vToday,orders:vOrders,borders:vBossOrders,fund:vBossFund,staff:vBossStaff,norms:vBossNorms,tomorrow:vBossTomorrow,cal:vCal,mount:vMountTab,buy:vBuy}[S.tab];
+  const tapeX={}; document.querySelectorAll('.ptape').forEach(x=>tapeX[x.id]=x.scrollLeft);
   document.getElementById('view').innerHTML=v()+(S.role==='emp'?vStartPick():'')+(S.role==='boss'?vNewOrder():'');
-  stickTops();
+  stickTops(); document.querySelectorAll('.ptape').forEach(x=>{ if(tapeX[x.id]!=null) x.scrollLeft=tapeX[x.id]; });
   bindUnits(); bindPlan();
 }
 
@@ -1775,9 +1776,11 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]'); if(!b||b.tagName==='SELECT'||b.tagName==='INPUT') return;
   const a=b.dataset.act;
   if(a==='shift'){
-    if(!S.onShift){ b.disabled=true; toast('Начинаю смену…');
-      geo().then(g=>api('shiftStart',{geo:g})).then(r=>{ const again=S.segs&&S.segs.length; S.segs=(S.segs||[]).concat([{s:r.at,e:''}]); S.onShift=true; S.shiftDone=false;
-        if(!again){ S.startAt=r.at; S.arrLate=+r.late||0; S.arrNote=r.plan?'план':''; } toast(again?'С возвращением — смена продолжается':'Смена начата'); if(S.role==='emp'&&!S.active&&myOpenTasks().length) S.startPick={list:true}; render(); }).catch(fail); return; }
+    if(!S.onShift){   // сразу: смена на экране и выбор задачи; запись на сервер — в фоне
+      const at=hm(nowMin()), again=S.segs&&S.segs.length, seg={s:at,e:''}; S.segs=(S.segs||[]).concat([seg]); S.onShift=true; S.shiftDone=false; if(!again) S.startAt=at;
+      toast(again?'С возвращением — смена продолжается':'Смена начата'); if(S.role==='emp'&&!S.active&&myOpenTasks().length) S.startPick={list:true}; render();
+      geo().then(g=>api('shiftStart',{geo:g})).then(r=>{ seg.s=r.at; if(!again){ S.startAt=r.at; S.arrLate=+r.late||0; S.arrNote=r.plan?'план':''; } if(!sheetOpen()) render(); })
+        .catch(e=>{ S.segs=S.segs.filter(x=>x!==seg); S.onShift=false; S.startPick=null; fail(e); }); return; }
     else { S.closing=true; }
   }
   if(a==='alloc'){ const k=b.dataset.k, d=+b.dataset.d; S.alloc=S.alloc||{}; S.alloc[k]=Math.max(0,(S.alloc[k]||0)+d); if(!S.alloc[k]) delete S.alloc[k]; renderKeep(`[data-act="alloc"][data-k="${CSS.escape(k)}"][data-d="${d}"]`, b); return; }
@@ -1999,6 +2002,7 @@ function splash(){ const d=new Date(Date.now()-6*3600e3), key=iso(d);   // «с�
 
 /* ============ BLOCK: ЗАГРУЗКА И ОБНОВЛЕНИЕ ============ */
 let loading=false;
+function sheetOpen(){ return !!(S.startPick||S.newOrd||S.joinOpen||S.closing); }
 function busy(){ const a=document.activeElement; return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); }
 const GO=new URLSearchParams(location.search).get('go');   // из кнопок бота: close — закрыть смену, late — работаю дальше
 function reload(){ if(loading) return Promise.resolve(); loading=true;
@@ -2011,7 +2015,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793438728';
+const BUILD='1793441039';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
@@ -2023,9 +2027,10 @@ function start(){
   // синхронизация: каждые 12 с спрашиваем счётчик изменений (мгновенно) — перечитываем таблицу только если кто-то что-то записал; полная перечитка — раз в 5 мин
   let lastFull=Date.now();
   setInterval(()=>{ if(busy()||S.closing||document.visibilityState!=='visible'||window.MOCK_API) return;
+    if(sheetOpen()) return;   // открыт лист / окно — не перерисовывать под пальцем
     if(Date.now()-lastFull>300000){ lastFull=Date.now(); reload(); return; }
-    fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'ver'})}).then(r=>r.json()).then(j=>{ if(j&&j.ver!=null&&j.ver!==VER&&!busy()){ lastFull=Date.now(); reload(); } }).catch(()=>{}); }, 12000);
-  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&!busy()) reload(); });
+    fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'ver'})}).then(r=>r.json()).then(j=>{ if(j&&j.ver!=null&&j.ver!==VER&&!busy()&&!sheetOpen()){ lastFull=Date.now(); reload(); } }).catch(()=>{}); }, 12000);
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&!busy()&&!sheetOpen()) reload(); });
 }
 start();
 </script></body></html>
