@@ -118,7 +118,7 @@ const API = {
   /* ---- загрузка всего для приложения ---- */
   boot(me){ ensureTriggers_(); ensureWebhook_();
     const o = sh_(SH.orders);
-    return { me, params: params_(), today: today_(), now: hm_(),
+    return { me, caps: ['closeFor'], params: params_(), today: today_(), now: hm_(),
       staff: read_(SH.staff, 2, 10).map(r => ({ id: String(r[0]), name: String(r[1]), role: String(r[4]).trim(), helperRate: r[5], active: String(r[6]).trim() !== 'нет', tg: !!r[3], payMode: String(r[8] || '').trim() === 'без лимита' ? 'free' : 'earned', subs: subsOf_(r[9]), subsRaw: String(r[9] || '') })),
       pays: sh_(SH.pays) ? read_(SH.pays, 2, 9) : [],
       ops: read_(SH.ops, 2, 11),
@@ -146,16 +146,22 @@ const API = {
       : '✅ ' + me.name + ' пришёл в ' + at + '.');
     taskMsg_(me.id, true); return { at, late, plan };
   },
-  shiftEnd(me, b){ // b.date — закрыть смену прошлого дня с указанным временем ухода b.at
+  shiftEnd(me, b){ // b.date — закрыть смену прошлого дня с указанным временем ухода b.at; b.who — руководитель закрывает смену сотрудника
+    const by = me; if (b.who && String(b.who) !== me.id){ if (!me.boss) throw new Error('Закрыть чужую смену может только руководитель');
+      const st = staffById_(b.who); if (!st) throw new Error('Нет сотрудника'); me = { id: String(st[0]), name: String(st[1]), boss: false }; }
+    const other = by !== me;
     const t = b.date || today_(), rows = read_(SH.shifts, 2, 12), r = rows.reverse().find(x => String(x[0]).slice(0, 10) === t && String(x[1]) === me.id && !x[3]);
     if (!r) throw new Error('Открытой смены нет');
     if (t !== today_() && !/^\d\d:\d\d$/.test(String(b.at || ''))) throw new Error('Укажи, во сколько ушёл');
-    const at = t !== today_() ? b.at : hm_(), g = segs_(r); g[g.length - 1].e = at;
+    let at = t !== today_() ? b.at : hm_();
+    if (other && t === today_() && /^\d\d:\d\d$/.test(String(b.at || '')) && b.at < at) at = b.at;   // руководитель указал время ухода раньше «сейчас»
+    const g = segs_(r); if (at < g[g.length - 1].s) throw new Error('Время ухода раньше начала отрезка ' + g[g.length - 1].s); g[g.length - 1].e = at;
     const h = Math.round(segMin_(g) / 60 * 100) / 100;   // сумма отрезков, перерывы не считаются
-    stopWork_(me.id); const s = sh_(SH.shifts); s.getRange(r[12], 4, 1, 2).setValues([["'" + at, h]]); s.getRange(r[12], 9, 1, 2).setValues([[b.geo || '', b.misc || '']]);
+    stopWork_(me.id, t === today_() ? at : null); const s = sh_(SH.shifts); s.getRange(r[12], 4, 1, 2).setValues([["'" + at, h]]); s.getRange(r[12], 9, 1, 2).setValues([[b.geo || '', (b.misc || '') + (other ? (b.misc ? ' · ' : '') + 'закрыл ' + by.name : '')]]);
     s.getRange(r[12], 12).setValue("'" + segStr_(g));
-    if (!me.boss) notifyBosses_('leave', '🏁 ' + me.name + ' ушёл в ' + at + (t !== today_() ? ' (смена ' + t.slice(8, 10) + '.' + t.slice(5, 7) + ', закрыта задним числом)' : '') + ' · на смене ' + String(h).replace('.', ',') + ' ч.');
-    if (t === today_()) taskMsgClose_(me.id);
+    if (other) notifyOne_(me.id, '🏁 ' + by.name + ' закрыл твою смену: уход ' + at + ' · на смене ' + String(h).replace('.', ',') + ' ч.');
+    else if (!me.boss) notifyBosses_('leave', '🏁 ' + me.name + ' ушёл в ' + at + (t !== today_() ? ' (смена ' + t.slice(8, 10) + '.' + t.slice(5, 7) + ', закрыта задним числом)' : '') + ' · на смене ' + String(h).replace('.', ',') + ' ч.');
+    if (t === today_() || !onShift_(me.id)) taskMsgClose_(me.id);
     return { at, hours: h };
   },
   /* ---- счётчик времени: одна активная операция на человека ---- */
@@ -428,8 +434,9 @@ function tookTask_(id, order, op){ order = String(order).trim(); let took = fals
   read_(SH.takes, 2, 5).forEach(r => { if (String(r[1]) !== id || String(r[2]).trim() !== order || String(r[3]).trim() !== op) return; const a = String(r[4]); if (a === 'взял') took = true; else if (a === 'отменил') took = false; });
   if (!took) took = read_(SH.tasks, 2, 5).some(r => String(r[0]).trim() === order && String(r[1]).trim() === op && String(r[2]).trim() === id);
   return took; }
-function stopWork_(who){ const s = sh_(SH.time); if (!s) return; const now = new Date();
-  read_(SH.time, 2, 6).forEach(r => { if (String(r[1]) === who && !r[4]){ const st = utcMs_(r[0]); s.getRange(r[6], 5, 1, 2).setValues([[now_(), Math.max(0, Math.round((now - st) / 6e4))]]); } }); }
+function stopWork_(who, endAt){ const s = sh_(SH.time); if (!s) return; let now = new Date(), endS = now_();   // endAt 'HH:mm' сегодня — остановить задним числом (не позже «сейчас»)
+  if (endAt){ const e = utcMs_(today_() + ' ' + endAt); if (e < now.getTime()){ now = new Date(e); endS = today_() + ' ' + endAt; } }
+  let hit = false; read_(SH.time, 2, 6).forEach(r => { if (String(r[1]) === who && !r[4]){ hit = true; const st = utcMs_(r[0]); if (st > now.getTime()){ s.getRange(r[6], 5, 1, 2).setValues([[cell_(r[0]), 0]]); return; } s.getRange(r[6], 5, 1, 2).setValues([[endS, Math.max(0, Math.round((now - st) / 6e4))]]); } }); if (hit) msgDrop_(who); }
 function utcMs_(s){ const p = String(s).split(/[- :]/).map(Number); return Date.UTC(p[0], p[1] - 1, p[2], p[3] || 0, p[4] || 0) - 4 * 3600e3; }   // время таблицы — Тбилиси (UTC+4)
 function canAssign_(me, order){ if (me.boss) return;
   const m = sh_(SH.orders).getRange(findOrderRow_(order), ORD.master + 1).getDisplayValue().trim();
@@ -460,8 +467,14 @@ function checkTimers(){ const s = sh_(SH.time); if (!s) return; const now = Date
     const st = staffById_(r[1]); s.getRange(r[9], 9).setValue(now_()); if (!st || !st[3]) return;
     const o = read_(SH.orders, 2, 3).find(x => String(x[0]).trim() === String(r[2]).trim()), lbl = (o ? o[1] + ' · ' + o[2] + ' · ' : '') + opName_(r[2], r[3]);
     const h = Math.floor(el / 60), m = Math.round(el % 60);
-    tg_('sendMessage', { chat_id: String(st[3]), text: '⏱ ' + lbl + '\nПрошло ' + (h ? h + ' ч ' : '') + (m ? m + ' мин' : '') + ' — продолжаешь?',
-      reply_markup: { inline_keyboard: [[{ text: '+30 мин', callback_data: 'tx:30:' + r[9] }, { text: '+1 ч', callback_data: 'tx:60:' + r[9] }, { text: '+2 ч', callback_data: 'tx:120:' + r[9] }], [{ text: '⏸ Пауза', callback_data: 'p' }]] } }); }); }
+    const q = tg_('sendMessage', { chat_id: String(st[3]), text: '⏱ ' + lbl + '\nПрошло ' + (h ? h + ' ч ' : '') + (m ? m + ' мин' : '') + ' — продолжаешь?',
+      reply_markup: { inline_keyboard: [[{ text: '+30 мин', callback_data: 'tx:30:' + r[9] }, { text: '+1 ч', callback_data: 'tx:60:' + r[9] }, { text: '+2 ч', callback_data: 'tx:120:' + r[9] }], [{ text: '⏸ Пауза', callback_data: 'p' }]] } });
+    if (q && q.ok) msgKeep_('TQ_' + st[0], st[3], q.result.message_id); }); }
+/* сообщения бота с кнопками для идущей задачи (вопрос таймера, «Пора») — после паузы/закрытия кнопки снимаются */
+function msgKeep_(key, chat, id){ try { const pr = PropertiesService.getScriptProperties(); let a = []; try { a = JSON.parse(pr.getProperty(key) || '[]'); } catch (e) {}
+  a.push({ c: String(chat), id }); pr.setProperty(key, JSON.stringify(a.slice(-10))); } catch (e) {} }
+function msgDrop_(who){ try { const pr = PropertiesService.getScriptProperties(); ['TQ_' + who].forEach(key => { const v = pr.getProperty(key); if (!v) return; pr.deleteProperty(key);
+  JSON.parse(v).forEach(x => tg_('editMessageReplyMarkup', { chat_id: x.c, message_id: x.id, reply_markup: { inline_keyboard: [] } })); }); } catch (e) {} }
 /* ===== BLOCK: START PING — отложенный старт: напоминание точно ко времени (Время: J «Напомнить о старте» = ждёт/отправлено) ===== */
 function pingAt_(at){ try { const has = ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'startPing').length;
   if (has < 5) ScriptApp.newTrigger('startPing').timeBased().at(new Date(at.getTime() + 20e3)).create(); } catch (e) {} }
@@ -470,7 +483,8 @@ function startPing(){ const s = sh_(SH.time); if (!s) return; const now = Date.n
     if (st > now + 60e3){ next = next ? Math.min(next, st) : st; return; }
     s.getRange(r[10], 10).setValue('отправлено'); const p = staffById_(r[1]); if (!p || !p[3]) return;
     const o = read_(SH.orders, 2, 3).find(x => String(x[0]).trim() === String(r[2]).trim());
-    tg_('sendMessage', { chat_id: String(p[3]), text: '▶ Пора: ' + (o ? o[1] + ' · ' + o[2] + ' · ' : '') + opName_(r[2], r[3]) + '\nВремя пошло.', reply_markup: { inline_keyboard: [[{ text: '⏸ Пауза', callback_data: 'p' }]] } }); });
+    const q = tg_('sendMessage', { chat_id: String(p[3]), text: '▶ Пора: ' + (o ? o[1] + ' · ' + o[2] + ' · ' : '') + opName_(r[2], r[3]) + '\nВремя пошло.', reply_markup: { inline_keyboard: [[{ text: '⏸ Пауза', callback_data: 'p' }]] } });
+    if (q && q.ok) msgKeep_('TQ_' + p[0], p[3], q.result.message_id); });
   try { ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'startPing').forEach(t => ScriptApp.deleteTrigger(t)); } catch (e) {}
   if (next) pingAt_(new Date(next)); }
 /* ===== END BLOCK: START PING ===== */
@@ -570,7 +584,8 @@ function taskView_(id){ const list = myTasks_(id), run = runningOf_(id);
   kb.push([{ text: 'Открыть Akrix Job', web_app: { url: appUrl_() } }]); return { text, kb }; }
 function taskMsg_(id, create){ try { const st = staffById_(id); if (!st || !st[3]) return; if (create && !empOn_(id, 'task_msg')) return; const chat = String(st[3]), pr = PropertiesService.getScriptProperties(), key = 'TM_' + id;
     const v = taskView_(id); let m = null; try { m = JSON.parse(pr.getProperty(key) || 'null'); } catch (e) {}
-    if (m && m.d === today_()){ const r = tg_('editMessageText', { chat_id: chat, message_id: m.id, text: v.text, parse_mode: 'HTML', reply_markup: { inline_keyboard: v.kb } });
+    if (m && m.d !== today_() && create){ taskMsgClose_(id); m = null; }   // вчерашнее закреплённое — закрыть, сегодня новое
+    if (m){ const r = tg_('editMessageText', { chat_id: chat, message_id: m.id, text: v.text, parse_mode: 'HTML', reply_markup: { inline_keyboard: v.kb } });
       if (r && (r.ok || /not modified/.test(r.description || ''))) return; if (!create) return; }
     if (!create) return;
     const r = tg_('sendMessage', { chat_id: chat, text: v.text, parse_mode: 'HTML', reply_markup: { inline_keyboard: v.kb }, disable_notification: true });
