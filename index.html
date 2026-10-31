@@ -585,6 +585,7 @@ details.kpk[open]>summary.ksum{margin:0 -8px;padding:0 8px}
 
 .nosheet{max-height:88vh;overflow-y:auto} .nosheet .cadd input,.nosheet .cadd select{min-height:42px;font-size:15px}
 .nodates{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px} .nof{font-size:12px;color:var(--mute);display:flex;flex-direction:column;gap:3px} .nof input{min-height:40px;font-size:13px;padding:4px 6px;width:100%}
+.pcur{font-size:13px;margin-top:2px;color:var(--ink)} .pcur.mute{color:var(--mute)}
 .who{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
 </style></head><body>
 <div class="app">
@@ -1415,7 +1416,9 @@ function vBossTomorrow(){
       (pl&&pl.off?'':`<div class="pboss">${vPlanTasks(p,t,true)}</div>`); }).join('');
   const now=people.map(p=>{ const s=SHIFTS.filter(r=>d10(r[0])===today&&String(r[1])===p).pop(), pl=(CAL[p]||{})[today];
     const st=s?(s[3]?['n',`${s[2]}–${s[3]}`]:['ok','на смене с '+s[2]]):pl&&!pl.off?['warn','план '+pl.at]:['n','нет'];
-    return UI.row(esc(PEOPLE[p]), s&&num(s[6])>5?`опоздание ${s[6]} мин`:'', chip(st[0]+' num',st[1])); }).join('');
+    const run=TIMEJ.filter(t=>t.who===p&&!t.end).pop(), o=run&&oById(run.order), f=o&&findOp(o,run.op), fut=run&&tsMs(run.start)>Date.now();
+    const cur=run?`<div class="pcur">${fut?'⏳':'🟢'} <b>${esc(f&&f.op?f.op[1]:run.op)}</b> · ${o?esc(o.client)+' · '+esc(o.product):esc(run.order)} · ${fut?'старт в':'с'} ${String(run.start).slice(11,16)}</div>`:(s&&!s[3]?'<div class="pcur mute">задача не выбрана</div>':'');
+    return UI.row(esc(PEOPLE[p]), (s&&num(s[6])>5?`опоздание ${s[6]} мин`:'')+cur, chip(st[0]+' num',st[1])); }).join('');
   const dl=[...DEADLINES].sort((a,b)=>a.date<b.date?-1:1).map(d=>{ const st=dlStatus(d);
     return UI.row(`${d.label} · ${oLabel(d.order)}`, dlLine(st.need, d.date, st.o, d.scope), chip(st.cls,st.txt)); }).join('');
   const wk=shiftsSince(weekStart());
@@ -1990,7 +1993,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793354898';
+const BUILD='1793434331';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
