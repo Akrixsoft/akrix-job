@@ -641,7 +641,7 @@ function payParts(amount, op, pct){
 }
 
 /* ============ BLOCK: DATA (строится из таблицы в build()) ============ */
-let FIXES=[]; let TIMEJ=[], FACT={}, PART={}, BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[], SKILLS=null, PLANS=[], PLANNED={}, PAYS=[], PAYMODE={}, CLOSED=new Set(), ONAME={}, DONE=[], OPSKILL={}, SHARE={}, SKLOG=[], MYSUBS=[], MYOFF=[];
+let FIXES=[], PARTS={}, DRILLED={}; let TIMEJ=[], FACT={}, PART={}, BUY=[], BUYCAT=[], ASSIGN={}, CAT_M2={}, CAT_PCT={}, PEOPLE={}, ROLE={}, ME='', IS_BOSS=false, ORDERS=[], LIB={furn:[],tools:[]}, CAL={}, DEADLINES=[], TAKEN={}, MARKS=[], SHIFTS=[], WORKERS=[], SKILLS=null, PLANS=[], PLANNED={}, PAYS=[], PAYMODE={}, CLOSED=new Set(), ONAME={}, DONE=[], OPSKILL={}, SHARE={}, SKLOG=[], MYSUBS=[], MYOFF=[];
 let TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const SEC={furn:'Фурнитура',tools:'Инструменты',other:'Прочее'}, SEC_BACK={'Фурнитура':'furn','Инструменты':'tools','Прочее':'other'};
 const num = v => typeof v==='number' ? v : parseFloat(String(v).replace(/\s/g,'').replace(',','.'));
@@ -704,6 +704,8 @@ function build(D){
     Object.entries(last).forEach(([k,act])=>{ const [oid,op,who]=k.split('|'); if(act==='взял'||act.startsWith('подключ')) addP(oid,op,who); }); }
   // отметки → прогресс и «сделано сегодня»
   MARKS=D.marks; S.todayLines=[]; S.todayEarned=0;
+  PARTS={}; (D.parts||[]).forEach(([oid,mod,key,g])=>{ const k=oid+'|'+g+'|'+mod; (PARTS[k]=PARTS[k]||[]).push(key); });   // детали модуля по группе (из конструктора)
+  DRILLED={}; (D.drilled||[]).forEach(([oid,key,op,end,mk])=>{ DRILLED[oid+'|'+key]={op, end, hand:mk==='hand'}; });   // журнал станка: отсверленные детали
   FIXES=(D.fixes||[]).map(r=>({at:String(r[0]), order:String(r[1]).trim(), by:String(r[2]), text:String(r[3]), type:String(r[4]||'хвост'), st:String(r[5]||'открыта'), doneAt:String(r[6]||''), doneBy:String(r[7]||''), who:String(r[8]||''), pay:num(r[9])||0, row:r[11]}));
   D.marks.forEach(r=>{ const [dt,who,oid,grp,opc,unit,pct,amount,,partner,mode,,row]=r, o=ord(oid), l=lineOf(o,grp); if(!l) return;
     let ui=l.units.findIndex(u=>u.name===String(unit)); if(ui<0&&l.units.length===1) ui=0;
@@ -1000,9 +1002,10 @@ function vUnits(o,oi,l,op,self,bare){
   if(op[0]==='kompl'||op[0]==='mont') return vKitMount(o,oi,l,op,self);
   const tot=l.units.reduce((s,u)=>s+u.a,0), ppct=prisPct(o,l,op);
   const rows=l.units.map((u,i)=>{ const dn=u.done[op[0]], done=!!dn, mineToday=S.todayLines.some(d=>d.own&&d.o===o&&d.line===l&&d.op[0]===op[0]&&d.ui===i);
-    const pp=payParts(opAmount(o,l,op)*u.a/tot,op,ppct), byOther=done&&!mineToday?(dn.who===ME?'раньше':PEOPLE[dn.who]||dn.who):'';
+    const pp=payParts(opAmount(o,l,op)*u.a/tot,op,ppct), byOther=done&&!mineToday?(dn.mode==='станок'?'🤖 станок · '+(PEOPLE[dn.who]||dn.who):dn.who===ME?'раньше':PEOPLE[dn.who]||dn.who):'';
+    const dr=isPris(op)?drillOf(o.id,l.cat,u.name):null, drTxt=dr&&!done?` <span class="ua">· 🤖 ${dr.n} из ${dr.all} дет.</span>`:'';
     return `<label class="urow" for="u-${i}"><input type="checkbox" class="ochk" id="u-${i}" data-u="${i}" data-o="${oi}" data-op="${l.cat}.${op[0]}" ${done?'checked':''} ${(done&&!mineToday)||!S.onShift?'disabled':''}>
-      <span class="un">${esc(u.name)}${byOther?` <span class="ua">· ${esc(byOther)}</span>`:''}</span><span class="ua num">${l.sys==='m2'?fmt(unitArea(o,l,u))+' м² · ':''}${fmt0(pp.fix)} ₾</span></label>`; }).join('');
+      <span class="un">${esc(u.name)}${byOther?` <span class="ua">· ${esc(byOther)}</span>`:''}${drTxt}</span><span class="ua num">${l.sys==='m2'?fmt(unitArea(o,l,u))+' м² · ':''}${fmt0(pp.fix)} ₾</span></label>`; }).join('');
   const top=S.onShift?'':'<div class="flag warn">Начни смену, чтобы отмечать</div>';
   const foot=self?`<button class="btn small undo" data-act="untake" data-o="${oi}" data-op="${l.cat}.${op[0]}" style="align-self:flex-start;margin:6px 0 2px">Отменить взятое</button>`:'';
   const pm=isPris(op)?`<div class="small mute" style="padding:2px 0 4px">Присадка: ${fmt(ppct)}% пула${ppct>P.prisAuto+0.01?' (с бонусом)':''}</div>`:'';
@@ -1112,6 +1115,19 @@ function bossTick(oi,key,on){ const o=ORDERS[oi], {line,op}=findOp(o,key), tot=l
 function tickWhole(oi,key,on){ const o=ORDERS[oi], {line,op}=findOp(o,key), e0=S.todayEarned;
   if(op[0]==='kompl'){ Object.values(o.kit).forEach(list=>list.forEach(x=>x.packed=on)); api('kitPackAll',{order:o.id, packed:on}).catch(fail); }
   line.units.forEach((u,i)=>tickUnit(oi,key,i,on,true)); const dv=S.todayEarned-e0; if(dv) toast((dv>0?'Записано · +':'Снято · −')+fmt0(Math.abs(dv))+' ₾'); }
+/* ===== BLOCK: СТАНОК → ПРИСАДКА — модуль отсверлен целиком (все детали из конструктора есть в журнале станка) → отметка «присадка» ===== */
+function drillOf(oid, g, uname){ const keys=PARTS[oid+'|'+g+'|'+uname]; if(!keys||!keys.length) return null;
+  const ev=keys.map(k=>DRILLED[oid+'|'+k]).filter(Boolean); ev.sort((a,b)=>a.end<b.end?-1:1); return {all:keys.length, n:ev.length, last:ev[ev.length-1]||null}; }
+let autoBusy=false;
+function autoDrill(){ if(autoBusy||!ME) return; const jobs=[];
+  ORDERS.forEach(o=>o.lines.forEach(l=>{ const opP=opsOf(o,l).find(x=>isPris(x)); if(!opP) return;
+    l.units.forEach((u,ui)=>{ if(u.done[opP[0]]) return; const d=drillOf(o.id,l.cat,u.name); if(!d||d.n<d.all) return; jobs.push({o,l,opP,u,ui,d}); }); }));
+  if(!jobs.length) return; autoBusy=true;
+  Promise.all(jobs.map(({o,l,opP,u,d})=>{ const tot=l.units.reduce((s,x)=>s+x.a,0), ppct=prisPct(o,l,opP), pp=payParts(opAmount(o,l,opP)*u.a/tot,opP,ppct), who=(d.last&&d.last.op)||'';
+    u.done[opP[0]]={who:who||ME, mode:'станок'}; syncProg(l);
+    return api('mark',{order:o.id, grp:l.cat, op:opP[0], unit:u.name, pct:Math.round(u.a/tot*10000)/100, amount:Math.round(pp.fix*100)/100, partner:'', mode:'станок', auto:true, who}).catch(()=>{}); }))
+    .then(()=>{ autoBusy=false; toast('🤖 Присадка по станку: '+jobs.length+' мод.'); reload(); }); }
+/* ===== END BLOCK: СТАНОК → ПРИСАДКА ===== */
 function tickUnit(oi, key, ui, on, quiet){
   const o=ORDERS[oi], {line,op}=findOp(o,key), u=line.units[ui], tot=line.units.reduce((s,x)=>s+x.a,0);
   if(on){ if(u.done[op[0]]) return;
@@ -1986,7 +2002,7 @@ let loading=false;
 function busy(){ const a=document.activeElement; return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); }
 const GO=new URLSearchParams(location.search).get('go');   // из кнопок бота: close — закрыть смену, late — работаю дальше
 function reload(){ if(loading) return Promise.resolve(); loading=true;
-  return api('boot').then(D=>{ const y=window.scrollY, first=!ORDERS.length&&!ME; build(D); lagSnap(); if(first&&!MYOFF.includes('splash')) splash(); if(first&&IS_BOSS&&!GO){ S.role='boss'; S.tab='borders'; }
+  return api('boot').then(D=>{ const y=window.scrollY, first=!ORDERS.length&&!ME; build(D); lagSnap(); if(first&&!MYOFF.includes('splash')) splash(); setTimeout(autoDrill,400); if(first&&IS_BOSS&&!GO){ S.role='boss'; S.tab='borders'; }
     if(first&&GO==='buy'){ S.role=IS_BOSS?'boss':'emp'; S.tab='buy'; }
     else if(first&&GO){ S.role='emp'; S.tab='today';
       if(GO==='close'&&S.onShift) S.closing=true;
@@ -1995,7 +2011,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793437126';
+const BUILD='1793438728';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
