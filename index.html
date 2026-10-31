@@ -706,8 +706,10 @@ function build(D){
   MARKS=D.marks; S.todayLines=[]; S.todayEarned=0;
   FIXES=(D.fixes||[]).map(r=>({at:String(r[0]), order:String(r[1]).trim(), by:String(r[2]), text:String(r[3]), type:String(r[4]||'хвост'), st:String(r[5]||'открыта'), doneAt:String(r[6]||''), doneBy:String(r[7]||''), who:String(r[8]||''), pay:num(r[9])||0, row:r[11]}));
   D.marks.forEach(r=>{ const [dt,who,oid,grp,opc,unit,pct,amount,,partner,mode,,row]=r, o=ord(oid), l=lineOf(o,grp); if(!l) return;
-    let ui=l.units.findIndex(u=>u.name===String(unit)); if(ui<0&&l.units.length===1) ui=0; if(ui<0) return;
-    l.units[ui].done[opc]={who:String(who),row,partner:String(partner||''),mode:String(mode||'')};
+    let ui=l.units.findIndex(u=>u.name===String(unit)); if(ui<0&&l.units.length===1) ui=0;
+    if(ui<0&&/^Весь объём/.test(String(unit))){ l.units.forEach(u=>{ if(!u.done[opc]) u.done[opc]={who:String(who),row,partner:String(partner||''),mode:String(mode||''),whole:true}; }); ui=0; }   // отметка «весь объём», сделанная до разбивки на модули (привязка проекта), — на все модули
+    if(ui<0) return;
+    if(!l.units[ui].done[opc]||l.units[ui].done[opc].whole) l.units[ui].done[opc]={who:String(who),row,partner:String(partner||''),mode:String(mode||'')};
     const k=(shares(o.id, grp+'.'+opc, String(who), String(partner||''), String(mode||''))[ME])||0;
     if(d10(dt)===D.today && k>0){
       const op=opsOf(o,l).find(x=>x[0]===opc)||[opc,opc,0];
@@ -1993,7 +1995,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793434331';
+const BUILD='1793437126';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
