@@ -1538,7 +1538,7 @@ function vNotifySet(){ const on=Object.keys(NTYPES).filter(k=>MYSUBS.includes(k)
   UI.note('Настройка только для тебя. Вне смены сотрудникам сообщения приходят беззвучно.'), S.nsetOpen, `<span class="small mute num">${on} из ${Object.keys(NTYPES).length}</span>`)); }
 /* ===== BLOCK: ANDROID — подключение телефона к приложению со шторкой ===== */
 const APK_URL='https://akrixsoft.github.io/akrix-job/apk/akrix-job.apk';
-function vAndroid(){ const c=S.pairCode;
+function vAndroid(){ if(AND) return ''; const c=S.pairCode;
   return UI.sec('', UI.fold(AND?'🔑 Код подключения (Drilling, конструктор, телефон)':'📱 Android-приложение · код подключения', `<div class="small" style="margin-bottom:8px">Работа прямо из шторки: текущая задача с идущим временем, ▶ / ⏸, начать и закрыть смену.</div>
     <div class="${AND?'':'grid2'}">${AND?'':'<button class="btn ghost" data-act="apkGet">Скачать APK</button>'}<button class="btn" data-act="pairCode" ${AND?'style="width:100%"':''}>${c?'Новый код':'Получить код'}</button></div>
     ${c?`<div class="pcode num">${c.slice(0,3)} ${c.slice(3)}</div><div class="small mute" style="text-align:center">Введи код в приложении · действует 10 минут</div>`:''}`, S.andOpen||!!c, '')); }
@@ -2015,7 +2015,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793443808';
+const BUILD='1793443821';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
