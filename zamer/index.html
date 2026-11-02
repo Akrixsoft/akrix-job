@@ -112,7 +112,7 @@ const DCODES = Object.entries(DICT).map(([id, b]) => ({ id: +id, b: b.split('').
 
 /* ═══ [BLOCK] СОСТОЯНИЕ ═══ */
 const S = { frames: [], sol: null, mosaic: null, tool: 'view', rulers: [], pend: null, view: { s: 0.2, ox: 0, oy: 0 }, show: -1,
-  sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'roz', und: [] };   /* v2: замер, разметка */
+  sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'sel', und: [] };   /* v4: mk 'sel' — выбор и правка */   /* v2: замер, разметка */
 const $ = id => document.getElementById(id);
 function setNum(id) { const v = $(id).value.trim(); if (!v) return null; try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) && r > 0 ? r : null } catch (e) { return null } }
 function sizeOf(id) { return id >= 100 ? (setNum('sA5') || 120) : (setNum('sA4') || 180) }
@@ -513,7 +513,7 @@ cv.addEventListener('pointerdown', e => {
   if (ptr.size === 1) {
     gest = { t: performance.now(), p0: p, last: p, moved: false, drag: null };
     if (S.tool === 'rul' && S.show < 0) gest.drag = hitHandle(p);
-    if (S.tool === 'mk' && S.show < 0) { gest.ldrag = S.pend ? null : lnHit(p); const h = gest.ldrag ? null : mkHit(p); gest.edrag = h && h.id === S.sel ? h : null }   /* конец линии; выделенный элемент */
+    if (S.tool === 'mk' && S.show < 0 && S.mk === 'sel') { gest.hdrag = hHit(p); gest.ldrag = gest.hdrag ? null : lnHit(p); gest.edrag = gest.hdrag || gest.ldrag ? null : mkHit(p) }   /* v4: ручки размера, концы линий, элемент — только в «выбор» */
   } else if (ptr.size === 2) { const [a, b] = [...ptr.values()]; gest = { pinch: true, d0: Math.hypot(a[0] - b[0], a[1] - b[1]), v0: { ...S.view }, c0: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] } }
 });
 cv.addEventListener('pointermove', e => {
@@ -524,6 +524,7 @@ cv.addEventListener('pointermove', e => {
   }
   if (gest.pinch) return;
   if (Math.hypot(p[0] - gest.p0[0], p[1] - gest.p0[1]) > 8 * d) gest.moved = true;
+  if (gest.hdrag) { if (gest.moved) hDrag(gest, p); return }   /* v4: размер элемента */
   if (gest.ldrag) { if (gest.moved) lnDrag(gest, p); return }   /* v3: конец линии — угол */
   if (gest.edrag) { if (gest.moved) mkDrag(gest, p); return }   /* выделенный элемент — тянется, вид не двигается */
   if (gest.drag) { const [ri, end] = gest.drag; S.rulers[ri][end] = toPl(p[0], p[1] - 60 * d); S.loupe = [p[0], p[1] - 60 * d]; updRul(); draw(); return }
@@ -531,9 +532,10 @@ cv.addEventListener('pointermove', e => {
 });
 function pend(e) {
   if (!ptr.has(e.pointerId)) return; const d = devicePixelRatio || 1, p = ptr.get(e.pointerId); ptr.delete(e.pointerId);
-  if (gest && !gest.pinch && !gest.moved && performance.now() - gest.t < 500 && !gest.drag && !gest.ldrag) tap(p);
+  if (gest && !gest.pinch && !gest.moved && performance.now() - gest.t < 500 && !gest.drag) tap(p);
   if (gest && gest.drag) { S.loupe = null; draw(); saveSess() }
   if (gest && gest.edrag && gest.moved) { S.loupe = null; mkPanel(); draw(); saveSess() }
+  if (gest && gest.hdrag && gest.moved) { S.loupe = null; mkPanel(); draw(); saveSess() }
   if (gest && gest.ldrag) { S.loupe = null; if (gest.moved) { if (gest.ldrag[0] === 'floor') setRot(viewRot()); mkPanel(); status(); saveSess() } draw() }
   if (!ptr.size) gest = null;
 }
@@ -740,12 +742,15 @@ function wallLine() {
 /* ─── [SUB] панель инструментов разметки ─── */
 function mkChips() {
   const el = $('ch'); el.innerHTML = '';
+  { const c = document.createElement('button'); c.className = 'chip' + (S.mk === 'sel' ? ' on' : ''); c.dataset.k = 'sel'; c.title = 'Выбор и правка: касание — выбрать; тянуть элемент, его углы (размер), концы линий (угол)'; c.innerHTML = '↖ выбор';
+    c.onclick = () => { S.mk = 'sel'; S.pend = null; mkChips(); mkPanel(); draw() }; el.appendChild(c);
+    const sp = document.createElement('span'); sp.className = 'chip sep'; sp.textContent = '|'; el.appendChild(sp) }   /* v4 */
   KINDS.forEach((k, i) => {
     if (i === 4 || i === 13) { const s = document.createElement('span'); s.className = 'chip sep'; s.textContent = '|'; el.appendChild(s) }
     const c = document.createElement('button'); c.className = 'chip' + (S.mk === k.k ? ' on' : ''); c.dataset.k = k.k;
     c.title = k.line ? `${k.n}: два касания по линии` : k.pt ? `${k.n}: касание в центр — размер рамки подбирается по фото` : `${k.n}: два касания — противоположные углы`;
     c.innerHTML = `<b style="background:${k.c}"></b>${k.n}${k.line && S.lines[k.k] ? ' ✓' : ''}`;
-    c.onclick = () => { S.mk = k.k; S.pend = null; S.sel = null; mkChips(); mkPanel(); draw() };
+    c.onclick = () => { S.mk = k.k; S.pend = null; mkChips(); mkPanel(); draw() };
     el.appendChild(c);
   });
 }
@@ -770,11 +775,12 @@ function mkHit(p) {                            // элемент под паль
 function mkDrag(g, p) {
   const e = S.els.find(x => x.id === g.edrag.id); if (!e) return;
   if (!g.edrag.snapped) { snap(); g.edrag.snapped = true }
-  const q = toPl(...p); e.c = add(g.edrag.c0, sub(q, g.edrag.q0)); S.sel = e.id; draw();
+  const q = toPl(...p); e.c = add(g.edrag.c0, sub(q, g.edrag.q0)); if (S.sel !== e.id) { S.sel = e.id; mkPanel() } draw();
 }
 function mkTap(p) {
-  const q = toPl(...p), K = KD[S.mk], hit = mkHit(p);
-  if (hit && !S.pend) { S.sel = hit.id; mkPanel(); draw(); return }
+  const q = toPl(...p);
+  if (S.mk === 'sel') { const hit = mkHit(p); S.sel = hit ? hit.id : null; mkPanel(); draw(); return }   /* v4 */
+  const K = KD[S.mk];
   if (K.line) {
     if (!S.pend) { S.pend = q } else { snap(); S.lines[K.k] = [S.pend, q]; S.pend = null; mkChips(); status(); saveSess(); if (K.k === 'floor') { mkPanel(); return fit() } }
   } else if (K.pt) {
@@ -810,6 +816,22 @@ function autofit(q) {
   if (l == null || r == null || d == null || t == null) return null;
   const c = toW(q, W), cw = [c[0] + (r - l) / 2, c[1] + (t - d) / 2];
   return { c: fromW(cw, W), W: r1(l + r), H: r1(d + t) };
+}
+/* ─── [SUB] ручки размера выделенного элемента (v4) ─── */
+function hHit(p) {
+  const e = S.els.find(x => x.id === S.sel); if (!e) return null;
+  const d = devicePixelRatio || 1; let best = null, bd = 24 * d;
+  const cs = toScr(...e.c), dc = Math.hypot(cs[0] - p[0], cs[1] - p[1]);
+  elRect(e).forEach((q, i) => { const s = toScr(...q), dd = Math.hypot(s[0] - p[0], s[1] - p[1]); if (dd < bd && dd < 0.5 * dc) { bd = dd; best = { i, off: sub(s, p) } } });   /* у мелкого элемента центр — перенос, не размер */
+  return best;
+}
+function hDrag(g, p) {
+  const e = S.els.find(x => x.id === S.sel); if (!e) return;
+  if (!g.hsnap) { snap(); g.hsnap = true }
+  const W = wf(), K = KD[e.k], R = elRect(e, W), o = toW(R[(g.hdrag.i + 2) % 4], W), sp = add(p, g.hdrag.off), q = toW(toPl(...sp), W);
+  const N = Math.max(1, Math.round(+e.N || 1)), st = +e.st || 0, tw = Math.max(5, Math.abs(q[0] - o[0])), h = Math.max(5, Math.abs(q[1] - o[1]));
+  e.W = r1(K.pt && N > 1 && st ? Math.max(5, tw - (N - 1) * st) : tw); e.H = r1(h);
+  e.c = fromW([(q[0] + o[0]) / 2, (q[1] + o[1]) / 2], W); S.loupe = sp; draw();
 }
 /* ─── [SUB] правка концов линий (v3) ─── */
 function lnHit(p) {
@@ -861,13 +883,14 @@ function drawMarkup() {
     const a = toScr(...add(L[0], e, -big)), b = toScr(...add(L[0], e, big));
     cx.strokeStyle = KD[k].c; cx.lineWidth = 2 * d; cx.setLineDash(k === 'ceil' || k === 'right' ? [8 * d, 5 * d] : []);
     cx.beginPath(); cx.moveTo(...a); cx.lineTo(...b); cx.stroke(); cx.setLineDash([]);
-    for (const p of L) { const s = toScr(...p); cx.beginPath(); cx.arc(s[0], s[1], (S.tool === 'mk' ? 7 : 4) * d, 0, 7); cx.stroke() }   /* в разметке — ручки концов */
+    for (const p of L) { const s = toScr(...p); cx.beginPath(); cx.arc(s[0], s[1], (S.tool === 'mk' && S.mk === 'sel' ? 8 : 4) * d, 0, 7); cx.stroke() }   /* в разметке — ручки концов */
   }
   if (W.floor || W.left) { const o = toScr(...W.O), ux = toScr(...add(W.O, W.u, 300)), ny = toScr(...add(W.O, W.n, 300)); cx.strokeStyle = '#fff'; cx.lineWidth = 2 * d; cx.beginPath(); cx.moveTo(...ux); cx.lineTo(...o); cx.lineTo(...ny); cx.stroke() }
   for (const e of S.els) {
     const K = KD[e.k] || KD.roz, R = elRect(e, W).map(p => toScr(...p)), sel = e.id === S.sel;
     cx.lineWidth = (sel ? 3 : 2) * d; cx.strokeStyle = sel ? '#fff' : K.c; cx.fillStyle = K.c + '33';
     cx.setLineDash(K.rc ? [6 * d, 4 * d] : []); cx.beginPath(); R.forEach((p, i) => i ? cx.lineTo(...p) : cx.moveTo(...p)); cx.closePath(); cx.fill(); cx.stroke(); cx.setLineDash([]);
+    if (sel && S.mk === 'sel') { cx.fillStyle = '#fff'; for (const q of R) cx.fillRect(q[0] - 5 * d, q[1] - 5 * d, 10 * d, 10 * d) }   /* v4: ручки размера */
     if (K.pt) {
       const N = Math.max(1, Math.round(+e.N || 1)), st = +e.st || 0, w = +e.W || 60, c = toW(e.c, W);
       if (N > 1 && st) for (let i = 1; i < N; i++) { const x = c[0] - ((N - 1) * st) / 2 + i * st - st / 2; const a = toScr(...fromW([x, c[1] - (+e.H || 60) / 2], W)), b = toScr(...fromW([x, c[1] + (+e.H || 60) / 2], W)); cx.beginPath(); cx.moveTo(...a); cx.lineTo(...b); cx.stroke() }
