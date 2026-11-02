@@ -95,7 +95,8 @@ body.mk #rl{top:96px}
   <div><span>Сторона маркера A4, мм</span><input id="sA4" inputmode="decimal" placeholder="180"></div>
   <div><span>Сторона маркера A5, мм</span><input id="sA5" inputmode="decimal" placeholder="120"></div>
   <div><span>Макс. сторона кадра, px</span><input id="sMax" inputmode="numeric" placeholder="4096"></div>
-  <small>Сторона — фактическая, по рулетке на распечатке. № 1–99 — A4, № 101+ — A5. Пусто — значение по умолчанию. Ноль координат — центр маркера с меньшим номером, оси — по нему.</small>
+  <div><span>Дисторсия объектива</span><select id="sDist" style="height:32px;background:#121416;border:1px solid var(--ln);border-radius:6px;color:var(--tx)"><option value="auto">авто</option><option value="off">не учитывать</option><option value="on">учитывать</option></select></div>
+  <small>Авто: учитывается, только если есть кадр с 3+ маркерами и невязка без неё заметно больше.<br>Сторона — фактическая, по рулетке на распечатке. № 1–99 — A4, № 101+ — A5. Пусто — значение по умолчанию. Ноль координат — центр маркера с меньшим номером, оси — по нему.</small>
 </div>
 <div id="ch"></div>
 <div id="pp"></div>
@@ -333,7 +334,7 @@ function rigid(loc, pl) {                      // 2D Прокруст без м�
   for (let i = 0; i < n; i++) { const x = loc[i][0] - ax, y = loc[i][1] - ay, u = pl[i][0] - bx, v = pl[i][1] - by; sc += x * u + y * v; ss += x * v - y * u }
   const t = Math.atan2(ss, sc); return [bx - (Math.cos(t) * ax - Math.sin(t) * ay), by - (Math.sin(t) * ax + Math.cos(t) * ay), t];
 }
-function solve(free) {
+function solve(free, kfix) {   /* kfix — k1 = 0 (дисторсия не учитывается) */
   S.k1 = 0; const F = S.frames; F.forEach(f => { f.h = null; f.rms = null });
   const ids = [...new Set(F.flatMap(f => f.det.map(d => d.id)))].sort((a, b) => a - b);
   if (!ids.length) return null;
@@ -379,7 +380,7 @@ function solve(free) {
       const J = G.map(([i, a1, b1]) => [i, A11 * a1 + A12 * b1, A12 * a1 + A22 * b1]); J.push([kI, pu * r2, pv * r2]);
       for (const [i, ui, vi] of J) { Jtr[i] += ui * ru + vi * rv; for (const [j, uj, vj] of J) JtJ[i][j] += ui * uj + vi * vj }
     }
-    const lp = 1e-9; e += lp * x[kI] * x[kI]; if (wantJ) { JtJ[kI][kI] += lp; Jtr[kI] += lp * x[kI] }   // слабая привязка k1 к 0
+    const lp = kfix ? 1e6 : 1e-9; e += lp * x[kI] * x[kI]; if (wantJ) { JtJ[kI][kI] += lp; Jtr[kI] += lp * x[kI] }   // слабая привязка k1 к 0
     return { e, JtJ, Jtr, res };
   };
   let lam = 1e-3, cur = evalR(x, true);
@@ -512,7 +513,7 @@ cv.addEventListener('pointerdown', e => {
   if (ptr.size === 1) {
     gest = { t: performance.now(), p0: p, last: p, moved: false, drag: null };
     if (S.tool === 'rul' && S.show < 0) gest.drag = hitHandle(p);
-    if (S.tool === 'mk' && S.show < 0) { const h = mkHit(p); gest.edrag = h && h.id === S.sel ? h : null }   /* тянется только выделенный */
+    if (S.tool === 'mk' && S.show < 0) { gest.ldrag = S.pend ? null : lnHit(p); const h = gest.ldrag ? null : mkHit(p); gest.edrag = h && h.id === S.sel ? h : null }   /* конец линии; выделенный элемент */
   } else if (ptr.size === 2) { const [a, b] = [...ptr.values()]; gest = { pinch: true, d0: Math.hypot(a[0] - b[0], a[1] - b[1]), v0: { ...S.view }, c0: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] } }
 });
 cv.addEventListener('pointermove', e => {
@@ -523,15 +524,17 @@ cv.addEventListener('pointermove', e => {
   }
   if (gest.pinch) return;
   if (Math.hypot(p[0] - gest.p0[0], p[1] - gest.p0[1]) > 8 * d) gest.moved = true;
+  if (gest.ldrag) { if (gest.moved) lnDrag(gest, p); return }   /* v3: конец линии — угол */
   if (gest.edrag) { if (gest.moved) mkDrag(gest, p); return }   /* выделенный элемент — тянется, вид не двигается */
   if (gest.drag) { const [ri, end] = gest.drag; S.rulers[ri][end] = toPl(p[0], p[1] - 60 * d); S.loupe = [p[0], p[1] - 60 * d]; updRul(); draw(); return }
   S.view.ox += p[0] - gest.last[0]; S.view.oy += p[1] - gest.last[1]; gest.last = p; draw();
 });
 function pend(e) {
   if (!ptr.has(e.pointerId)) return; const d = devicePixelRatio || 1, p = ptr.get(e.pointerId); ptr.delete(e.pointerId);
-  if (gest && !gest.pinch && !gest.moved && performance.now() - gest.t < 500 && !gest.drag) tap(p);
+  if (gest && !gest.pinch && !gest.moved && performance.now() - gest.t < 500 && !gest.drag && !gest.ldrag) tap(p);
   if (gest && gest.drag) { S.loupe = null; draw(); saveSess() }
   if (gest && gest.edrag && gest.moved) { S.loupe = null; mkPanel(); draw(); saveSess() }
+  if (gest && gest.ldrag) { S.loupe = null; if (gest.moved) { if (gest.ldrag[0] === 'floor') setRot(viewRot()); mkPanel(); status(); saveSess() } draw() }
   if (!ptr.size) gest = null;
 }
 cv.addEventListener('pointerup', pend); cv.addEventListener('pointercancel', pend);
@@ -596,7 +599,12 @@ async function addFiles(files, store) {   /* store — ключи уже сох�
 }
 async function recompute() {
   $('busy').classList.add('on'); $('busy').textContent = 'уравнивание…'; await tick();
-  const ctl = solve(true) || []; S.sol = solve(); if (S.sol) S.sol.ctrl = ctl; S.mosaic = null;
+  const dm = $('sDist').value, many = S.frames.some(f => f.det.length >= 3); let kf = dm === 'off', why = dm === 'off' ? 'выкл' : dm === 'on' ? 'вкл' : '';
+  if (dm === 'auto') {   /* авто: свободный k1 — только при кадре с 3+ маркерами и заметном выигрыше */
+    const a = solve(false, true), b = many ? solve(false, false) : null;
+    kf = !(b && a && b.rms * 1.5 < a.rms); why = kf ? (many ? 'авто: не нужна' : 'авто: мало маркеров в кадре') : 'авто';
+  }
+  const ctl = solve(true, kf) || []; S.sol = solve(false, kf); if (S.sol) { S.sol.ctrl = ctl; S.sol.kwhy = why } S.mosaic = null;
   if (S.sol) { $('busy').textContent = 'развёртка…'; await tick(); S.mosaic = buildMosaic() }
   $('busy').classList.remove('on'); $('busy').textContent = 'обработка…';
   strip(); status(); if (S.show >= S.frames.length) S.show = -1; fit();
@@ -607,7 +615,7 @@ function status() {
   if (!sol) { st.innerHTML = '<span class="er">Маркеры не найдены ни в одном кадре.</span>'; return }
   const bad = S.frames.filter(f => !f.h).length, c = sol.ctrl.length ? sol.ctrl.reduce((a, b) => Math.abs(b.d) > Math.abs(a.d) ? b : a) : null;  /* контроль: сторона маркера по снимкам при свободном размере, против заданной */
   st.innerHTML = `Маркеров <b>${sol.mks.length}</b> · кадров <b>${S.frames.length - bad}</b>${bad ? ` <span class="er">· не связаны ${bad}</span>` : ''} · невязка СКО <b>${f1(sol.rms)}</b>, макс <b>${f1(sol.max)}</b> мм<br>` +
-    wallLine() + (c ? `контроль сторон: № ${c.id} — ${f1(c.side)} (${c.d >= 0 ? '+' : ''}${f1(c.d)} мм)` : 'контроль: нужно ≥ 2 маркеров') + ` · ноль — центр № ${sol.ref} · дисторсия k1 ${(sol.k1 || 0).toFixed(4)}` + (S.mosaic ? ` · ${f1(S.mosaic.r)} мм/px` : '');
+    wallLine() + (c ? `контроль сторон: № ${c.id} — ${f1(c.side)} (${c.d >= 0 ? '+' : ''}${f1(c.d)} мм)` : 'контроль: нужно ≥ 2 маркеров') + ` · ноль — центр № ${sol.ref} · дисторсия k1 ${(sol.k1 || 0).toFixed(4)} (${sol.kwhy || ''})` + (S.mosaic ? ` · ${f1(S.mosaic.r)} мм/px` : '');
 }
 function strip() {
   const el = $('fr'); el.innerHTML = '';
@@ -650,7 +658,7 @@ let saveT = 0;
 function saveSess() {
   ensureSess(); clearTimeout(saveT);
   saveT = setTimeout(() => {
-    const o = S.sess; Object.assign(o, { upd: Date.now(), frames: S.frames.filter(f => f.key).map(f => ({ key: f.key, name: f.name })), lines: S.lines, man: S.man, els: S.els, rulers: S.rulers, set: { a4: $('sA4').value, a5: $('sA5').value, max: $('sMax').value }, q: S.sol ? { rms: S.sol.rms, mk: S.sol.mks.length } : null });
+    const o = S.sess; Object.assign(o, { upd: Date.now(), frames: S.frames.filter(f => f.key).map(f => ({ key: f.key, name: f.name })), lines: S.lines, man: S.man, els: S.els, rulers: S.rulers, set: { a4: $('sA4').value, a5: $('sA5').value, max: $('sMax').value, dist: $('sDist').value }, q: S.sol ? { rms: S.sol.rms, mk: S.sol.mks.length } : null });
     dbPut('sess', JSON.parse(JSON.stringify(o))).catch(() => { });
   }, 300);
 }
@@ -674,13 +682,13 @@ const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 function clearAll() { S.frames = []; S.sol = null; S.mosaic = null; S.rulers = []; S.pend = null; S.show = -1; S.lines = {}; S.man = {}; S.els = []; S.sel = null; S.und = []; S.sess = null; updRul(); strip(); status(); mkPanel(); draw() }
 async function newSess(obj, name) {
   clearAll(); S.sess = { id: 's' + Date.now(), obj: obj || '', name: name || 'Плоскость', created: Date.now(), frames: [] };
-  for (const id of ['sA4', 'sA5', 'sMax']) $(id).value = '';
+  for (const id of ['sA4', 'sA5', 'sMax']) $(id).value = ''; $('sDist').value = 'auto';
   await dbPut('sess', JSON.parse(JSON.stringify(S.sess))).catch(() => { }); sessList(false); title();
 }
 async function openSess(id) {
   const o = await dbGet('sess', id); if (!o) return;
   clearAll(); S.sess = o; S.lines = o.lines || {}; S.man = o.man || {}; S.els = o.els || []; S.rulers = o.rulers || [];
-  const st = o.set || {}; $('sA4').value = st.a4 || ''; $('sA5').value = st.a5 || ''; $('sMax').value = st.max || '';
+  const st = o.set || {}; $('sA4').value = st.a4 || ''; $('sA5').value = st.a5 || ''; $('sMax').value = st.max || ''; $('sDist').value = st.dist || 'auto';
   sessList(false); title();
   const files = [], keys = [];
   for (const f of o.frames || []) { const b = await dbGet('img', f.key); if (b) { files.push(b instanceof File ? b : new File([b], f.name || 'кадр.jpg', { type: b.type || 'image/jpeg' })); keys.push(f.key) } }
@@ -803,6 +811,46 @@ function autofit(q) {
   const c = toW(q, W), cw = [c[0] + (r - l) / 2, c[1] + (t - d) / 2];
   return { c: fromW(cw, W), W: r1(l + r), H: r1(d + t) };
 }
+/* ─── [SUB] правка концов линий (v3) ─── */
+function lnHit(p) {
+  const d = devicePixelRatio || 1; let best = null, bd = 26 * d;
+  for (const k of ['floor', 'ceil', 'left', 'right']) { const L = S.lines[k]; if (!L) continue; L.forEach((q, i) => { const s = toScr(...q), dd = Math.hypot(s[0] - p[0], s[1] - p[1]); if (dd < bd) { bd = dd; best = [k, i, sub(s, p)] } }) }
+  return best;
+}
+function lnDrag(g, p) {
+  const [k, i, off] = g.ldrag; if (!g.lsnap) { snap(); g.lsnap = true }
+  const sp = add(p, off); S.lines[k][i] = toPl(...sp); S.loupe = sp; mkChips(); draw();
+}
+function setRot(r) {                           /* поворот вида вокруг центра экрана без смены масштаба */
+  const W = cv.width, H = cv.height, C = toPl(W / 2, H / 2); S.view.rot = r;
+  const q = toScr(...C); S.view.ox += W / 2 - q[0]; S.view.oy += H / 2 - q[1];
+}
+/* ─── [SUB] размерные линии: стена и выделенный элемент (v3) ─── */
+function dimLine(a, b, side, txt, col) {       /* a, b — точки плоскости; side — сдвиг на экране (px) влево от направления a→b */
+  const d = devicePixelRatio || 1, A = toScr(...a), B = toScr(...b), v = sub(B, A), l = Math.hypot(...v); if (l < 12 * d) return;
+  const n = [-v[1] / l, v[0] / l], o = side * d, A2 = add(A, n, o), B2 = add(B, n, o);
+  cx.strokeStyle = col; cx.fillStyle = col; cx.lineWidth = 1.2 * d;
+  cx.beginPath(); cx.moveTo(...add(A, n, o * 0.25)); cx.lineTo(...add(A, n, o * 1.15)); cx.moveTo(...add(B, n, o * 0.25)); cx.lineTo(...add(B, n, o * 1.15)); cx.moveTo(...A2); cx.lineTo(...B2); cx.stroke();
+  for (const [P, s] of [[A2, 1], [B2, -1]]) { const u = [v[0] / l * s, v[1] / l * s]; cx.beginPath(); cx.moveTo(...P); cx.lineTo(...add(add(P, u, 9 * d), n, 3 * d)); cx.lineTo(...add(add(P, u, 9 * d), n, -3 * d)); cx.closePath(); cx.fill() }
+  let ang = Math.atan2(v[1], v[0]); if (ang > Math.PI / 2) ang -= Math.PI; if (ang < -Math.PI / 2) ang += Math.PI;
+  const m = [(A2[0] + B2[0]) / 2, (A2[1] + B2[1]) / 2]; cx.save(); cx.translate(...m); cx.rotate(ang);
+  cx.font = 'bold ' + (13 * d) + 'px system-ui'; const tw = cx.measureText(txt).width;
+  cx.fillStyle = 'rgba(16,18,20,.85)'; cx.fillRect(-tw / 2 - 4 * d, -9 * d, tw + 8 * d, 18 * d); cx.fillStyle = col; cx.textBaseline = 'middle'; cx.fillText(txt, -tw / 2, 0); cx.restore();
+}
+function drawDims() {
+  if (S.tool === 'view' && !S.lines.floor) return;
+  const L = S.lines, P = (a, b) => a && b ? lnInter(a[0], sub(a[1], a[0]), b) : null, dd = dims(), m = S.man;
+  const fl = P(L.left, L.floor), fr = P(L.right, L.floor), cl = P(L.left, L.ceil), cr = P(L.right, L.ceil);
+  const tv = k => m[k] != null ? f1(m[k]) + ' ✎' : f1(dd[k]);
+  if (fl && fr) dimLine(fl, fr, 34, tv('Lb'), '#36c2d9');      /* под полом */
+  if (cl && cr) dimLine(cr, cl, 34, tv('Lt'), '#36c2d9');      /* над потолком */
+  if (fl && cl) dimLine(cl, fl, 34, tv('Hl'), '#d65ad6');      /* слева */
+  if (fr && cr) dimLine(fr, cr, 34, tv('Hr'), '#d65ad6');      /* справа */
+  const e = S.els.find(x => x.id === S.sel); if (!e) return;
+  const W = wf(), K = KD[e.k], c = toW(e.c, W), w = +e.W || 0, h = +e.H || 0, X = K.rc ? c[0] - w / 2 : c[0], Y = K.rc ? c[1] - h / 2 : c[1];
+  if (W.left) dimLine(fromW([0, Y], W), fromW([X, Y], W), 16, f1(X), '#fff');
+  if (W.floor) dimLine(fromW([X, Y], W), fromW([X, 0], W), 16, f1(Y), '#fff');
+}
 /* ─── [SUB] рисование разметки ─── */
 function drawMarkup() {
   const d = devicePixelRatio || 1, W = wf(), M = S.mosaic; if (!M) return;
@@ -813,7 +861,7 @@ function drawMarkup() {
     const a = toScr(...add(L[0], e, -big)), b = toScr(...add(L[0], e, big));
     cx.strokeStyle = KD[k].c; cx.lineWidth = 2 * d; cx.setLineDash(k === 'ceil' || k === 'right' ? [8 * d, 5 * d] : []);
     cx.beginPath(); cx.moveTo(...a); cx.lineTo(...b); cx.stroke(); cx.setLineDash([]);
-    for (const p of L) { const s = toScr(...p); cx.beginPath(); cx.arc(s[0], s[1], 4 * d, 0, 7); cx.stroke() }
+    for (const p of L) { const s = toScr(...p); cx.beginPath(); cx.arc(s[0], s[1], (S.tool === 'mk' ? 7 : 4) * d, 0, 7); cx.stroke() }   /* в разметке — ручки концов */
   }
   if (W.floor || W.left) { const o = toScr(...W.O), ux = toScr(...add(W.O, W.u, 300)), ny = toScr(...add(W.O, W.n, 300)); cx.strokeStyle = '#fff'; cx.lineWidth = 2 * d; cx.beginPath(); cx.moveTo(...ux); cx.lineTo(...o); cx.lineTo(...ny); cx.stroke() }
   for (const e of S.els) {
@@ -827,6 +875,7 @@ function drawMarkup() {
       if (e.W === '' && e.H === '' && !e.D) { cx.strokeStyle = '#e0524a'; cx.beginPath(); cx.arc(s[0], s[1], 9 * d, 0, 7); cx.stroke() }   // размер не определён
     }
   }
+  drawDims();
   if (S.pend && S.tool === 'mk') { const s = toScr(...S.pend); cx.strokeStyle = (KD[S.mk] || {}).c || '#fff'; cx.lineWidth = 2 * d; cx.beginPath(); cx.arc(s[0], s[1], 7 * d, 0, 7); cx.stroke() }
 }
 /* ─── [SUB] панель свойств: элемент или размеры стены ─── */
@@ -897,12 +946,13 @@ $('fGal').onchange = e => { addFiles([...e.target.files]); e.target.value = '' }
 function tool(t) { S.tool = t; S.pend = null; $('bView').classList.toggle('on', t === 'view'); $('bRul').classList.toggle('on', t === 'rul'); $('bMk').classList.toggle('on', t === 'mk'); document.body.classList.toggle('mk', t === 'mk'); $('ch').classList.toggle('on', t === 'mk'); if (t !== 'mk') S.sel = null; mkPanel(); if (t === 'rul' && S.show >= 0) { S.show = -1; strip(); fit() } draw() }
 $('bView').onclick = () => tool('view'); $('bRul').onclick = () => tool('rul'); $('bMk').onclick = () => tool('mk'); $('bFit').onclick = fit;
 $('bSet').onclick = () => $('set').classList.toggle('on');
-for (const id of ['sA4', 'sA5', 'sMax']) $(id).addEventListener('change', () => saveSess());
+for (const id of ['sA4', 'sA5', 'sMax', 'sDist']) $(id).addEventListener('change', () => saveSess());
+$('sDist').addEventListener('change', () => { if (S.frames.length) recompute() });
 for (const id of ['sA4', 'sA5']) $(id).addEventListener('change', () => { if (S.frames.length) recompute() });
 $('sMax').addEventListener('change', async () => { const fs = S.frames.map(f => f.file).filter(Boolean), ks = S.frames.map(f => f.key); if (!fs.length) return; S.frames = []; await addFiles(fs, ks) });
 $('bJson').onclick = () => exportJson();
 addEventListener('resize', resize); resize(); mkChips();
-window.PM = { S, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
+window.PM = { S, lnHit, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
 dbOpen().then(() => { if (!/[?&]nolist/.test(location.search)) sessList(true) });
 </script>
