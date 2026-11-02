@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Akrix Замер по фото</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#15171a">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+/* ═══ [BLOCK] СТИЛИ ═══ */
+:root{--bg:#15171a;--pn:#1f2226;--ln:#33373d;--tx:#e6e8eb;--mu:#8b9199;--ac:#f0a020;--ok:#4caf6a;--er:#e0524a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:14px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+#top{position:fixed;left:0;right:0;top:0;height:48px;display:flex;align-items:center;gap:4px;padding:0 6px;background:var(--pn);border-bottom:1px solid var(--ln);z-index:5}
+#top button,#top label{flex:0 0 auto;width:40px;height:38px;border:1px solid var(--ln);border-radius:8px;background:#272b30;color:var(--tx);font-size:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+#top button.on{background:var(--ac);color:#111;border-color:var(--ac)}
+#top button.arm{background:var(--er);border-color:var(--er)}
+#top .sp{flex:1}
+#top input[type=file]{display:none}
+#top a{flex:0 0 auto;width:42px;height:38px;border:1px solid var(--ln);border-radius:8px;background:#272b30;color:var(--tx);font-size:19px;display:flex;align-items:center;justify-content:center;text-decoration:none}
+#cv{position:fixed;left:0;top:48px;width:100vw;height:calc(100vh - 166px);touch-action:none;display:block}
+#bot{position:fixed;left:0;right:0;bottom:0;height:118px;background:var(--pn);border-top:1px solid var(--ln);z-index:5}
+#st{height:40px;padding:3px 8px;font-size:12.5px;color:var(--mu);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#st b{color:var(--tx);font-weight:600}
+#st .er{color:var(--er)} #st .ok{color:var(--ok)}
+#fr{height:76px;display:flex;gap:6px;overflow-x:auto;padding:2px 6px 6px}
+.th{position:relative;flex:0 0 auto;width:92px;height:68px;border:2px solid var(--ln);border-radius:6px;overflow:hidden;background:#000}
+.th.sel{border-color:var(--ac)} .th.bad{border-color:var(--er)}
+.th canvas{width:100%;height:100%;display:block}
+.th span{position:absolute;left:0;right:0;bottom:0;font-size:10.5px;background:rgba(0,0,0,.65);padding:1px 3px;white-space:nowrap;overflow:hidden}
+.th i{position:absolute;right:1px;top:1px;width:22px;height:22px;border-radius:5px;background:rgba(0,0,0,.6);font-style:normal;text-align:center;line-height:22px;font-size:13px}
+.th i.arm{background:var(--er)}
+#set{position:fixed;right:6px;top:54px;width:270px;background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:10px;z-index:6;display:none}
+#set.on{display:block}
+#set div{display:flex;align-items:center;justify-content:space-between;margin:6px 0;gap:8px}
+#set input{width:90px;height:32px;background:#121416;border:1px solid var(--ln);border-radius:6px;color:var(--tx);padding:0 6px;font-size:15px;text-align:right}
+#set small{color:var(--mu);display:block;margin-top:6px;font-size:11.5px}
+#rl{position:fixed;left:6px;top:54px;max-width:62%;background:rgba(31,34,38,.92);border:1px solid var(--ln);border-radius:8px;padding:4px 6px;font-size:12.5px;z-index:4;display:none}
+#rl.on{display:block}
+#rl div{display:flex;gap:6px;align-items:center;padding:2px 0}
+#rl i{font-style:normal;cursor:pointer;padding:0 6px;border-radius:4px}
+#rl i.arm{background:var(--er)}
+#busy{position:fixed;inset:48px 0 118px 0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:7;font-size:16px}
+#busy.on{display:flex}
+/* v2: разметка, панель свойств, экран замеров */
+#ch{position:fixed;left:0;right:0;top:48px;height:42px;display:none;gap:5px;overflow-x:auto;padding:5px 6px;background:rgba(31,34,38,.94);border-bottom:1px solid var(--ln);z-index:4}
+#ch.on{display:flex}
+.chip{flex:0 0 auto;height:31px;padding:0 11px;border-radius:16px;border:1px solid var(--ln);background:#272b30;color:var(--tx);font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--ac);color:#111;border-color:var(--ac)}
+.chip b{width:9px;height:9px;border-radius:2px;display:inline-block}
+.chip.sep{border:none;background:none;padding:0 2px;color:var(--mu)}
+body.mk #rl{top:96px}
+#pp{position:fixed;left:0;right:0;bottom:118px;background:var(--pn);border-top:1px solid var(--ln);padding:6px 8px;z-index:5;display:none;font-size:13px}
+#pp.on{display:block}
+#pp .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:3px 0}
+#pp label{font-size:12px;color:var(--mu);display:flex;align-items:center;gap:3px}
+#pp input,#pp select{height:30px;width:68px;background:#121416;border:1px solid var(--ln);border-radius:6px;color:var(--tx);padding:0 5px;font-size:14px;text-align:right}
+#pp select{width:auto;text-align:left}
+#pp input.wide{width:150px;text-align:left}
+#pp button{height:30px;min-width:34px;border:1px solid var(--ln);border-radius:6px;background:#272b30;color:var(--tx);font-size:15px;padding:0 6px}
+#pp button.arm{background:var(--er);border-color:var(--er)}
+#pp .t{color:var(--tx);font-weight:600}
+#pp .mu{color:var(--mu)}
+#ss{position:fixed;left:0;right:0;top:48px;bottom:0;background:var(--bg);z-index:8;display:none;padding:10px;overflow:auto}
+#ss.on{display:block}
+#ss .nw{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+#ss input{height:36px;flex:1 1 120px;background:#121416;border:1px solid var(--ln);border-radius:8px;color:var(--tx);padding:0 8px;font-size:15px}
+#ss button{height:36px;border:1px solid var(--ac);border-radius:8px;background:var(--ac);color:#111;font-size:15px;padding:0 12px}
+#ss .it{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--ln);border-radius:10px;margin:6px 0;background:var(--pn)}
+#ss .it div{flex:1;min-width:0}
+#ss .it small{color:var(--mu);display:block}
+#ss .it i{font-style:normal;width:34px;height:34px;border-radius:8px;border:1px solid var(--ln);display:flex;align-items:center;justify-content:center}
+#ss .it i.arm{background:var(--er)}
+</style>
+</head>
+<body>
+<!-- ═══ [BLOCK] РАЗМЕТКА ═══ -->
+<div id="top">
+  <button id="bSes" title="Замеры: список, новый, открыть">☰</button>
+  <label title="Снять кадр камерой">📷<input id="fCam" type="file" accept="image/*" capture="environment"></label>
+  <label title="Добавить кадры из галереи (несколько)">🖼<input id="fGal" type="file" accept="image/*" multiple></label>
+  <button id="bView" class="on" title="Просмотр: двигать и масштабировать">✋</button>
+  <button id="bRul" title="Линейка: два касания — отрезок, концы перетаскиваются">📏</button>
+  <button id="bMk" title="Разметка: пол, потолок, края, коммуникации, проёмы">⌖</button>
+  <button id="bFit" title="Показать всё">⤢</button>
+  <span class="sp"></span>
+  <button id="bJson" title="Отправить / сохранить замер (.json для Akrix)">⇪</button>
+  <button id="bSet" title="Настройки">⚙</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="rl"></div>
+<div id="set">
+  <div><span>Сторона маркера A4, мм</span><input id="sA4" inputmode="decimal" placeholder="180"></div>
+  <div><span>Сторона маркера A5, мм</span><input id="sA5" inputmode="decimal" placeholder="120"></div>
+  <div><span>Макс. сторона кадра, px</span><input id="sMax" inputmode="numeric" placeholder="4096"></div>
+  <small>Сторона — фактическая, по рулетке на распечатке. № 1–99 — A4, № 101+ — A5. Пусто — значение по умолчанию. Ноль координат — центр маркера с меньшим номером, оси — по нему.</small>
+</div>
+<div id="ch"></div>
+<div id="pp"></div>
+<div id="ss"><div class="nw"><input id="nObj" placeholder="Объект (клиент, адрес)"><input id="nPl" placeholder="Плоскость (С1, колонна К1…)"><button id="bNew" title="Новый замер">＋ Новый</button></div><div id="sl"></div><div style="margin-top:14px;color:var(--mu);font-size:13px"><a href="akrix_markers.pdf" target="_blank" style="color:var(--ac)">Маркеры для печати (PDF)</a> · A4 № 1–30, A5 № 101–130 · печать 100 %</div></div>
+<div id="busy">обработка…</div>
+<div id="bot"><div id="st">Добавьте кадры: 📷 или 🖼. На каждой плоскости — маркеры; соседние кадры — с общим маркером.</div><div id="fr"></div></div>
+
+<script>
+'use strict';
+/* ═══ [BLOCK] СЛОВАРЬ МАРКЕРОВ (ArUco 6×6, № 1–30 A4, № 101–130 A5) ═══ */
+const DICT = {"1":"000011101111101110100011100010010001","2":"000101011001000001111110101011001101","3":"110010010001101100110000011010011110","4":"110101100000011111010110111000010101","5":"110110001110100011100000111001101000","6":"010000100110100010110100000111110101","7":"100010001010010100001111001010011010","8":"001100000111110101010010010011111101","9":"001111000010111100110100101100111100","10":"010001011101111111000111010011100011","11":"010010001101100001011011001001010111","12":"011100010000010101011000111111000110","13":"100001101101110011111010110100000111","14":"100011010111001010101001001111110110","15":"101000101011100010011101110011011110","16":"000010011111110100011110100111000100","17":"000101010100110110111101000110001111","18":"001100000000101000110001000011100010","19":"010010000000011111101111101011111101","20":"010101101101111100010001110110110110","21":"011001101000100000110010011101001100","22":"011101101110100011001011011110000001","23":"100110100101001111011001110011110011","24":"101010011100101110000100000000100100","25":"110001100111010101001001010010010000","26":"110000011101001010001000100101000001","27":"111001110100100000001000010100101011","28":"111010100010111111001010100001001000","29":"111010010110001110110111011110110001","30":"111110100011011001100101001010101111","101":"010110110111010000101010011000110010","102":"011001010000111110100011001110101110","103":"011001011101001100010111010111001100","104":"011010101001110000100100010110101110","105":"011010011100010111110011000001000010","106":"011010011101001001001000010011101010","107":"011101000111100111100010110111100110","108":"011100101100111100100011111010101011","109":"011101111011000111011100010000010100","110":"011111100000110000000111001000010111","111":"011110100110100101110000011001000111","112":"011110001011001011011000011100000111","113":"011110011100010110000101011110010100","114":"100001100110111101011001111111000110","115":"100000101111011001110010011111110101","116":"100001010100111000101111010000010100","117":"100110100001000110000101100100110100","118":"100111000111000101100000110010010111","119":"100111011101000110010100111111011000","120":"101000100001111000010010111000111000","121":"101011100111000000011100100000101100","122":"101011010000000100100001100111000001","123":"101100000011010100011111100111101110","124":"101101100100101011011000000011010100","125":"101101010011011100110001010010110100","126":"101111101010101011000111111000111011","127":"101110110110100000111101101111001111","128":"110001100111001011110111001011000001","129":"110000011110011101001101101110101011","130":"110010110101010111101110010110011101"};
+const DCODES = Object.entries(DICT).map(([id, b]) => ({ id: +id, b: b.split('').map(Number) }));
+
+/* ═══ [BLOCK] СОСТОЯНИЕ ═══ */
+const S = { frames: [], sol: null, mosaic: null, tool: 'view', rulers: [], pend: null, view: { s: 0.2, ox: 0, oy: 0 }, show: -1,
+  sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'roz', und: [] };   /* v2: замер, разметка */
+const $ = id => document.getElementById(id);
+function setNum(id) { const v = $(id).value.trim(); if (!v) return null; try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) && r > 0 ? r : null } catch (e) { return null } }
+function sizeOf(id) { return id >= 100 ? (setNum('sA5') || 120) : (setNum('sA4') || 180) }
+function maxSide() { return Math.round(setNum('sMax') || 4096) }
+
+/* ═══ [BLOCK] ЛИНЕЙНАЯ АЛГЕБРА ═══ */
+function solveLin(A, b) {             // A — массив строк n×n, b — n; Гаусс с выбором ведущего
+  const n = b.length, M = A.map((r, i) => r.concat([b[i]]));
+  for (let c = 0; c < n; c++) {
+    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    if (Math.abs(M[p][c]) < 1e-300) return null;
+    [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++) { const f = M[r][c] / M[c][c]; if (f) for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k] }
+  }
+  const x = new Array(n);
+  for (let r = n - 1; r >= 0; r--) { let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r] }
+  return x;
+}
+function hApply(h, x, y) { const w = h[6] * x + h[7] * y + 1; return [(h[0] * x + h[1] * y + h[2]) / w, (h[3] * x + h[4] * y + h[5]) / w, w] }
+function hDLT(src, dst) {             // src, dst — [[x,y]…], ≥4; h33 = 1
+  const A = [], b = [];
+  for (let i = 0; i < src.length; i++) {
+    const [x, y] = src[i], [u, v] = dst[i];
+    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u);
+    A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v);
+  }
+  const N = Array.from({ length: 8 }, () => new Array(8).fill(0)), g = new Array(8).fill(0);
+  for (let r = 0; r < A.length; r++) for (let i = 0; i < 8; i++) { g[i] += A[r][i] * b[r]; for (let j = 0; j < 8; j++) N[i][j] += A[r][i] * A[r][j] }
+  return solveLin(N, g);
+}
+function hInv(h) {
+  const a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], k = h[7], i = 1;
+  const A = e * i - f * k, B = -(d * i - f * g), C = d * k - e * g;
+  const det = a * A + b * B + c * C;
+  const m = [A, -(b * i - c * k), b * f - c * e, B, a * i - c * g, -(a * f - c * d), C, -(a * k - b * g), a * e - b * d].map(v => v / det);
+  return m.slice(0, 8).map(v => v / m[8]);
+}
+function hDet(h) { return h[0] * (h[4] - h[5] * h[7]) - h[1] * (h[3] - h[5] * h[6]) + h[2] * (h[3] * h[7] - h[4] * h[6]) }
+
+/* ═══ [BLOCK] ЗАГРУЗКА КАДРА ═══ */
+async function loadFrame(file) {
+  const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  const k = Math.min(1, maxSide() / Math.max(bmp.width, bmp.height));
+  const W = Math.round(bmp.width * k), H = Math.round(bmp.height * k);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d', { willReadFrequently: true }); g.imageSmoothingQuality = 'high'; g.drawImage(bmp, 0, 0, W, H);
+  const rgba = g.getImageData(0, 0, W, H).data, gray = new Uint8Array(W * H);
+  for (let i = 0, j = 0; i < gray.length; i++, j += 4) gray[i] = (rgba[j] * 77 + rgba[j + 1] * 150 + rgba[j + 2] * 29) >> 8;
+  const t = document.createElement('canvas'); t.width = 184; t.height = Math.round(184 * H / W); t.getContext('2d').drawImage(bmp, 0, 0, t.width, t.height);
+  bmp.close && bmp.close();
+  return { name: file.name || ('кадр ' + (S.frames.length + 1)), W, H, rgba, gray, thumb: t, det: [] };
+}
+
+/* ═══ [BLOCK] ПОИСК МАРКЕРОВ ═══ */
+/* ─── [SUB] уменьшенная копия, адаптивный порог, связные области ─── */
+function detect(fr) {
+  const k = Math.min(1, 2000 / Math.max(fr.W, fr.H)), w = Math.round(fr.W * k), h = Math.round(fr.H * k);
+  const g = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) { const sy = Math.min(fr.H - 1, Math.round((y + 0.5) / k - 0.5)) * fr.W; for (let x = 0; x < w; x++) g[y * w + x] = fr.gray[sy + Math.min(fr.W - 1, Math.round((x + 0.5) / k - 0.5))] }
+  const I = new Uint32Array((w + 1) * (h + 1));
+  for (let y = 0; y < h; y++) { let s = 0; for (let x = 0; x < w; x++) { s += g[y * w + x]; I[(y + 1) * (w + 1) + x + 1] = I[y * (w + 1) + x + 1] + s } }
+  const R = Math.max(10, Math.round(Math.max(w, h) / 60)), m = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    const y0 = Math.max(0, y - R), y1 = Math.min(h, y + R + 1);
+    for (let x = 0; x < w; x++) {
+      const x0 = Math.max(0, x - R), x1 = Math.min(w, x + R + 1);
+      const s = I[y1 * (w + 1) + x1] - I[y0 * (w + 1) + x1] - I[y1 * (w + 1) + x0] + I[y0 * (w + 1) + x0];
+      m[y * w + x] = g[y * w + x] * (x1 - x0) * (y1 - y0) < (s - 7 * (x1 - x0) * (y1 - y0)) ? 1 : 0;
+    }
+  }
+  const lab = new Int32Array(w * h), st = new Int32Array(w * h), rmin = new Int32Array(h).fill(1e9), rmax = new Int32Array(h).fill(-1);
+  const out = []; let L = 0;
+  for (let p0 = 0; p0 < w * h; p0++) {
+    if (!m[p0] || lab[p0]) continue;
+    L++; let n = 0, top = 0; st[top++] = p0; lab[p0] = L;
+    let bx0 = 1e9, bx1 = -1, by0 = 1e9, by1 = -1;
+    const rows = [];
+    while (top) {
+      const p = st[--top], x = p % w, y = (p / w) | 0; n++;
+      if (rmax[y] < 0) rows.push(y);
+      if (x < rmin[y]) rmin[y] = x; if (x > rmax[y]) rmax[y] = x;
+      if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y;
+      if (x > 0 && m[p - 1] && !lab[p - 1]) { lab[p - 1] = L; st[top++] = p - 1 }
+      if (x < w - 1 && m[p + 1] && !lab[p + 1]) { lab[p + 1] = L; st[top++] = p + 1 }
+      if (y > 0 && m[p - w] && !lab[p - w]) { lab[p - w] = L; st[top++] = p - w }
+      if (y < h - 1 && m[p + w] && !lab[p + w]) { lab[p + w] = L; st[top++] = p + w }
+    }
+    const bw = bx1 - bx0 + 1, bh = by1 - by0 + 1;
+    if (bw >= 24 && bh >= 24 && bw < w * 0.7 && bh < h * 0.7 && n > 150) {
+      const pts = [];
+      for (const y of rows) { pts.push([rmin[y], y + 0.5], [rmax[y] + 1, y + 0.5]) }
+      const q = quadOf(pts);
+      if (q) { const mk = decode(g, w, h, q); if (mk) out.push({ id: mk.id, c: mk.c.map(([x, y]) => [x / k, y / k]), ham: mk.ham }) }
+    }
+    for (const y of rows) { rmin[y] = 1e9; rmax[y] = -1 }
+  }
+  // дубли одного № — оставить больший
+  const best = {};
+  for (const d of out) { const a = area(d.c); if (!best[d.id] || a > best[d.id].a) best[d.id] = { d, a } }
+  return Object.values(best).map(o => o.d).map(d => ({ id: d.id, c: refine(fr, d.c), c0: d.c, ham: d.ham }));
+}
+/* ─── [SUB] выпуклая оболочка → четырёхугольник ─── */
+function hull(P) {
+  P = P.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const p of P) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p) }
+  for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p) }
+  up.pop(); lo.pop(); return lo.concat(up);
+}
+function area(q) { let s = 0; for (let i = 0; i < q.length; i++) { const a = q[i], b = q[(i + 1) % q.length]; s += a[0] * b[1] - a[1] * b[0] } return s / 2 }
+function quadOf(pts) {
+  const H = hull(pts); if (H.length < 4) return null;
+  let cx = 0, cy = 0; for (const p of H) { cx += p[0]; cy += p[1] } cx /= H.length; cy /= H.length;
+  const d2 = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2;
+  let a = H[0]; for (const p of H) if (d2(p, [cx, cy]) > d2(a, [cx, cy])) a = p;
+  let c = H[0]; for (const p of H) if (d2(p, a) > d2(c, a)) c = p;
+  const side = p => (c[0] - a[0]) * (p[1] - a[1]) - (c[1] - a[1]) * (p[0] - a[0]);
+  let b = null, d = null;
+  for (const p of H) { const s = side(p); if (s > 0 && (!b || s > side(b))) b = p; if (s < 0 && (!d || s < side(d))) d = p }
+  if (!b || !d) return null;
+  let q = [a, b, c, d]; if (area(q) < 0) q = [a, d, c, b];        // по часовой в координатах экрана (y вниз)
+  const ah = Math.abs(area(H)), aq = Math.abs(area(q));
+  if (aq < 0.85 * ah) return null;
+  const L = q.map((p, i) => Math.sqrt(d2(p, q[(i + 1) % 4])));
+  if (Math.min(...L) < 0.25 * Math.max(...L)) return null;
+  return q;
+}
+/* ─── [SUB] чтение кода (6×6 бит в рамке 8×8) ─── */
+function sampleG(g, w, h, x, y) {
+  x -= 0.5; y -= 0.5; const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
+  if (x0 < 0 || y0 < 0 || x0 >= w - 1 || y0 >= h - 1) return -1;
+  const i = y0 * w + x0;
+  return (g[i] * (1 - fx) + g[i + 1] * fx) * (1 - fy) + (g[i + w] * (1 - fx) + g[i + w + 1] * fx) * fy;
+}
+function decode(g, w, h, q) {
+  const Hm = hDLT([[0, 0], [8, 0], [8, 8], [0, 8]], q); if (!Hm) return null;
+  const cell = (r, c) => { let s = 0, n = 0; for (const dy of [-0.2, 0, 0.2]) for (const dx of [-0.2, 0, 0.2]) { const [x, y] = hApply(Hm, c + 0.5 + dx, r + 0.5 + dy); const v = sampleG(g, w, h, x, y); if (v < 0) return -1; s += v; n++ } return s / n };
+  const V = []; for (let r = 0; r < 8; r++) { V[r] = []; for (let c = 0; c < 8; c++) { const v = cell(r, c); if (v < 0) return null; V[r][c] = v } }
+  const wh = []; for (let i = 0; i < 8; i++) for (const [r, c] of [[-0.75, i], [8.25, i], [i, -0.75], [i, 8.25]]) { const [x, y] = hApply(Hm, c + 0.5, r + 0.5); const v = sampleG(g, w, h, x, y); if (v >= 0) wh.push(v) }
+  if (wh.length < 8) return null;
+  let bm = 0, bn = 0; for (let i = 0; i < 8; i++) for (const [r, c] of [[0, i], [7, i], [i, 0], [i, 7]]) { bm += V[r][c]; bn++ } bm /= bn;
+  wh.sort((a, b) => a - b); const wm = wh[wh.length >> 1];
+  if (wm - bm < 25) return null;
+  const thr = (wm + bm) / 2;
+  let bad = 0; for (let i = 0; i < 8; i++) for (const [r, c] of [[0, i], [7, i], [i, 0], [i, 7]]) if (V[r][c] > thr) bad++;
+  if (bad > 2) return null;
+  const bits = []; for (let r = 1; r < 7; r++) for (let c = 1; c < 7; c++) bits.push(V[r][c] > thr ? 1 : 0);
+  // поворот: k — какой угол q является верхним левым маркера
+  const rot = (b, k) => { let o = b; for (let t = 0; t < k; t++) { const n = new Array(36); for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) n[r * 6 + c] = o[(5 - c) * 6 + r]; o = n } return o };
+  let best = null;
+  for (let k = 0; k < 4; k++) {
+    const bb = rot(bits, k);
+    for (const D of DCODES) { let hd = 0; for (let i = 0; i < 36 && hd <= 3; i++) if (bb[i] !== D.b[i]) hd++; if (hd <= 2 && (!best || hd < best.ham)) best = { id: D.id, ham: hd, k } }
+  }
+  if (!best) return null;
+  // rot(…,k) поворачивает сетку на 90°·k по часовой → верхний левый маркера — угол q[(4−k)%4]
+  const s = (4 - best.k) % 4;
+  return { id: best.id, ham: best.ham, c: [0, 1, 2, 3].map(i => q[(i + s) % 4]) };
+}
+/* ─── [SUB] уточнение углов по краям (полный кадр, субпиксель) ─── */
+function refine(fr, c0) {
+  let c = c0.map(p => p.slice());
+  const side = Math.sqrt(Math.abs(area(c))), R = Math.max(3, Math.min(0.3 * side / 8, 25));
+  for (let it = 0; it < 2; it++) {
+    const lines = [];
+    for (let e = 0; e < 4; e++) {
+      const P = c[e], Q = c[(e + 1) % 4], dx = Q[0] - P[0], dy = Q[1] - P[1], len = Math.hypot(dx, dy);
+      const nx = -dy / len, ny = dx / len, pts = [];
+      for (let t = 0.12; t <= 0.881; t += 0.76 / 23) {
+        const mx = P[0] + dx * t, my = P[1] + dy * t, prof = [];
+        for (let s = -R; s <= R + 1e-9; s += 0.5) prof.push(sampleG(fr.gray, fr.W, fr.H, mx + nx * s, my + ny * s));
+        if (prof.some(v => v < 0)) continue;
+        let bi = -1, bg = 0;
+        for (let i = 1; i < prof.length - 1; i++) { const gv = Math.abs(prof[i + 1] - prof[i - 1]); if (gv > bg) { bg = gv; bi = i } }
+        if (bi < 2 || bi > prof.length - 3 || bg < 10) continue;
+        const gm = Math.abs(prof[bi] - prof[bi - 2]), gp = Math.abs(prof[bi + 2] - prof[bi]);
+        const den = gm - 2 * bg + gp, off = den ? 0.5 * (gm - gp) / den : 0;
+        const s = -R + (bi + Math.max(-0.5, Math.min(0.5, off))) * 0.5;
+        pts.push([mx + nx * s, my + ny * s]);
+      }
+      if (pts.length < 6) return c0;
+      let L = fitLine(pts);
+      const res = pts.map(p => Math.abs((p[0] - L.x) * L.nx + (p[1] - L.y) * L.ny)), md = res.slice().sort((a, b) => a - b)[res.length >> 1];
+      const keep = pts.filter((p, i) => res[i] <= Math.max(0.3, 2.5 * md)); if (keep.length >= 6) L = fitLine(keep);
+      lines.push(L);
+    }
+    const nc = [];
+    for (let i = 0; i < 4; i++) { const A = lines[(i + 3) % 4], B = lines[i]; const p = inter(A, B); if (!p) return c0; nc.push(p) }
+    for (let i = 0; i < 4; i++) if (Math.hypot(nc[i][0] - c0[i][0], nc[i][1] - c0[i][1]) > 2 * R + 4) return c0;
+    c = nc;
+  }
+  return c;
+}
+function fitLine(P) {
+  let mx = 0, my = 0; for (const p of P) { mx += p[0]; my += p[1] } mx /= P.length; my /= P.length;
+  let sxx = 0, sxy = 0, syy = 0; for (const p of P) { const x = p[0] - mx, y = p[1] - my; sxx += x * x; sxy += x * y; syy += y * y }
+  const a = 0.5 * Math.atan2(2 * sxy, sxx - syy);                 // направление линии
+  return { x: mx, y: my, dx: Math.cos(a), dy: Math.sin(a), nx: -Math.sin(a), ny: Math.cos(a) };
+}
+function inter(A, B) {
+  const den = A.dx * B.dy - A.dy * B.dx; if (Math.abs(den) < 1e-9) return null;
+  const t = ((B.x - A.x) * B.dy - (B.y - A.y) * B.dx) / den;
+  return [A.x + A.dx * t, A.y + A.dy * t];
+}
+
+/* ═══ [BLOCK] РЕШЕНИЕ: ПОЛОЖЕНИЕ МАРКЕРОВ И КАДРОВ (уравнивание) ═══ */
+/* Плоскость стены: метры внутри, мм наружу. Ноль — центр маркера с меньшим №, оси — по нему (X вправо, Y вверх). */
+function localC(s) { const a = s / 2000; return [[-a, a], [a, a], [a, -a], [-a, -a]] }   // ВЛ, ВП, НП, НЛ
+function poseC(p, s) { const ca = Math.cos(p[2]), sa = Math.sin(p[2]); return localC(s).map(([a, b]) => [p[0] + ca * a - sa * b, p[1] + sa * a + ca * b]) }
+function dist(x, y) { const k = S.k1 || 0, f = 1 + k * (x * x + y * y); return [x * f, y * f] }
+function undist(x, y) { const k = S.k1 || 0; let a = x, b = y; for (let i = 0; i < 12; i++) { const f = 1 + k * (a * a + b * b); a = x / f; b = y / f } return [a, b] }
+function nrm(fr, u, v) { const F = Math.max(fr.W, fr.H); return [(u - fr.W / 2) / F, (v - fr.H / 2) / F] }
+function den(fr, x, y) { const F = Math.max(fr.W, fr.H); return [x * F + fr.W / 2, y * F + fr.H / 2] }
+function rigid(loc, pl) {                      // 2D Прокруст без масштаба: pl ≈ R·loc + t
+  let ax = 0, ay = 0, bx = 0, by = 0; const n = loc.length;
+  for (let i = 0; i < n; i++) { ax += loc[i][0]; ay += loc[i][1]; bx += pl[i][0]; by += pl[i][1] }
+  ax /= n; ay /= n; bx /= n; by /= n; let sc = 0, ss = 0;
+  for (let i = 0; i < n; i++) { const x = loc[i][0] - ax, y = loc[i][1] - ay, u = pl[i][0] - bx, v = pl[i][1] - by; sc += x * u + y * v; ss += x * v - y * u }
+  const t = Math.atan2(ss, sc); return [bx - (Math.cos(t) * ax - Math.sin(t) * ay), by - (Math.sin(t) * ax + Math.cos(t) * ay), t];
+}
+function solve(free) {
+  S.k1 = 0; const F = S.frames; F.forEach(f => { f.h = null; f.rms = null });
+  const ids = [...new Set(F.flatMap(f => f.det.map(d => d.id)))].sort((a, b) => a - b);
+  if (!ids.length) return null;
+  const ref = ids[0], pose = { [ref]: [0, 0, 0] };
+  // начальное приближение: цепочка по общим маркерам
+  for (let ch = true; ch;) {
+    ch = false;
+    for (const f of F) {
+      if (f.h) continue;
+      const kn = f.det.filter(d => pose[d.id]); if (!kn.length) continue;
+      const src = [], dst = [];
+      for (const d of kn) { poseC(pose[d.id], sizeOf(d.id)).forEach((p, i) => { src.push(p); dst.push(nrm(f, ...d.c[i])) }) }
+      const h = hDLT(src, dst); if (!h) continue;
+      f.h = h; ch = true; const hi = hInv(h);
+      for (const d of f.det) if (!pose[d.id]) { const pl = d.c.map(p => { const q = nrm(f, ...p); return hApply(hi, q[0], q[1]) }); pose[d.id] = rigid(localC(sizeOf(d.id)), pl) }
+    }
+  }
+  // уравнивание (Левенберг — Марквардт)
+  const mk = Object.keys(pose).map(Number).filter(i => i !== ref), fr = F.filter(f => f.h);
+  const st = free ? 4 : 3, pi = {}; mk.forEach((id, i) => pi[id] = i * st); const fo = mk.length * st; fr.forEach((f, i) => f._o = fo + i * 8);
+  const np = fo + fr.length * 8 + 1, kI = np - 1;   /* k1 — радиальная дисторсия объектива, общая для всех кадров сеанса */
+  let x = new Array(np); mk.forEach(id => { x[pi[id]] = pose[id][0]; x[pi[id] + 1] = pose[id][1]; x[pi[id] + 2] = pose[id][2]; if (free) x[pi[id] + 3] = 1 }); fr.forEach(f => f.h.forEach((v, j) => x[f._o + j] = v)); x[kI] = 0;
+  const obs = []; for (const f of fr) for (const d of f.det) if (pose[d.id]) d.c.forEach((p, ci) => obs.push({ f, id: d.id, ci, o: nrm(f, ...p), s: sizeOf(d.id) }));
+  const evalR = (x, wantJ) => {
+    let e = 0; const JtJ = wantJ ? Array.from({ length: np }, () => new Float64Array(np)) : null, Jtr = wantJ ? new Float64Array(np) : null, res = [];
+    for (const ob of obs) {
+      const p = ob.id === ref ? [0, 0, 0] : [x[pi[ob.id]], x[pi[ob.id] + 1], x[pi[ob.id] + 2]];
+      const [a0, b0] = localC(ob.s)[ob.ci], kk = free && ob.id !== ref ? x[pi[ob.id] + 3] : 1, a = a0 * kk, b = b0 * kk, ca = Math.cos(p[2]), sa = Math.sin(p[2]);
+      const X = p[0] + ca * a - sa * b, Y = p[1] + sa * a + ca * b, o = ob.f._o, h = x.slice(o, o + 8);
+      const w = h[6] * X + h[7] * Y + 1, pu = (h[0] * X + h[1] * Y + h[2]) / w, pv = (h[3] * X + h[4] * Y + h[5]) / w;
+      const k1 = x[kI], r2 = pu * pu + pv * pv, fd = 1 + k1 * r2, du = pu * fd, dv = pv * fd;
+      const ru = du - ob.o[0], rv = dv - ob.o[1]; e += ru * ru + rv * rv; res.push([ru, rv]);
+      if (!wantJ) continue;
+      const G = [];   // [индекс, d pu, d pv] — до дисторсии
+      G.push([o, X / w, 0], [o + 1, Y / w, 0], [o + 2, 1 / w, 0], [o + 3, 0, X / w], [o + 4, 0, Y / w], [o + 5, 0, 1 / w], [o + 6, -pu * X / w, -pv * X / w], [o + 7, -pu * Y / w, -pv * Y / w]);
+      if (ob.id !== ref) {
+        const q = pi[ob.id], uX = (h[0] - pu * h[6]) / w, uY = (h[1] - pu * h[7]) / w, vX = (h[3] - pv * h[6]) / w, vY = (h[4] - pv * h[7]) / w;
+        const Xt = -sa * a - ca * b, Yt = ca * a - sa * b;
+        G.push([q, uX, vX], [q + 1, uY, vY], [q + 2, uX * Xt + uY * Yt, vX * Xt + vY * Yt]);
+        if (free) { const Xk = ca * a0 - sa * b0, Yk = sa * a0 + ca * b0; G.push([q + 3, uX * Xk + uY * Yk, vX * Xk + vY * Yk]) }
+      }
+      const A11 = fd + 2 * k1 * pu * pu, A12 = 2 * k1 * pu * pv, A22 = fd + 2 * k1 * pv * pv;
+      const J = G.map(([i, a1, b1]) => [i, A11 * a1 + A12 * b1, A12 * a1 + A22 * b1]); J.push([kI, pu * r2, pv * r2]);
+      for (const [i, ui, vi] of J) { Jtr[i] += ui * ru + vi * rv; for (const [j, uj, vj] of J) JtJ[i][j] += ui * uj + vi * vj }
+    }
+    const lp = 1e-9; e += lp * x[kI] * x[kI]; if (wantJ) { JtJ[kI][kI] += lp; Jtr[kI] += lp * x[kI] }   // слабая привязка k1 к 0
+    return { e, JtJ, Jtr, res };
+  };
+  let lam = 1e-3, cur = evalR(x, true);
+  for (let it = 0; it < 60 && np; it++) {
+    const A = cur.JtJ.map((r, i) => { const a = Array.from(r); a[i] += lam * (r[i] || 1e-12); return a });
+    const dx = solveLin(A, Array.from(cur.Jtr, v => -v)); if (!dx) break;
+    const xn = x.map((v, i) => v + dx[i]), nx = evalR(xn, true);
+    if (nx.e < cur.e) { const imp = (cur.e - nx.e) / Math.max(cur.e, 1e-30); x = xn; cur = nx; lam = Math.max(lam / 4, 1e-9); if (imp < 1e-12) break }
+    else { lam *= 8; if (lam > 1e8) break }
+  }
+  if (free) return mk.map(id => ({ id, side: sizeOf(id) * x[pi[id] + 3], d: sizeOf(id) * (x[pi[id] + 3] - 1) }));
+  // результат
+  mk.forEach(id => pose[id] = [x[pi[id]], x[pi[id] + 1], x[pi[id] + 2]]);
+  fr.forEach(f => f.h = x.slice(f._o, f._o + 8)); S.k1 = x[kI];
+  const fin = evalR(x, false); let s2 = 0, mx = 0, n = 0;
+  fr.forEach(f => { f._e = 0; f._n = 0 });
+  obs.forEach((ob, i) => {
+    const Fm = Math.max(ob.f.W, ob.f.H), [ru, rv] = fin.res[i], px = Math.hypot(ru, rv) * Fm;
+    const P = poseC(ob.id === ref ? [0, 0, 0] : pose[ob.id], ob.s)[ob.ci], sc = scaleAt(ob.f, P[0], P[1]);   // px на мм
+    const mm = px / sc; s2 += mm * mm; n++; mx = Math.max(mx, mm); ob.f._e += mm * mm; ob.f._n++;
+  });
+  fr.forEach(f => f.rms = Math.sqrt(f._e / Math.max(1, f._n)));
+  const mks = Object.keys(pose).map(Number).sort((a, b) => a - b).map(id => ({ id, x: pose[id][0] * 1000, y: pose[id][1] * 1000, a: pose[id][2] * 180 / Math.PI, s: sizeOf(id) }));
+  return { ref, pose, mks, k1: x[kI], rms: Math.sqrt(s2 / Math.max(1, n)), max: mx, nObs: n };
+}
+function scaleAt(f, X, Y) {                    // px изображения на 1 мм плоскости в точке (X,Y — м)
+  const h = f.h, F = Math.max(f.W, f.H), w = h[6] * X + h[7] * Y + 1, u = (h[0] * X + h[1] * Y + h[2]) / w, v = (h[3] * X + h[4] * Y + h[5]) / w;
+  const a = (h[0] - u * h[6]) / w, b = (h[1] - u * h[7]) / w, c = (h[3] - v * h[6]) / w, d = (h[4] - v * h[7]) / w;
+  return Math.sqrt(Math.abs(a * d - b * c)) * F / 1000;
+}
+function img2plane(fi, u, v) { const f = S.frames[fi]; if (!f.h) return null; const q = undist(...nrm(f, u, v)), p = hApply(hInv(f.h), q[0], q[1]); return [p[0] * 1000, p[1] * 1000] }
+
+/* ═══ [BLOCK] ОРТОФОТО (развёртка плоскости по всем кадрам) ═══ */
+function buildMosaic() {
+  const fr = S.frames.filter(f => f.h); if (!fr.length) return null;
+  const mx = S.sol.mks; let bx0 = 1e9, bx1 = -1e9, by0 = 1e9, by1 = -1e9;
+  for (const m of mx) { bx0 = Math.min(bx0, m.x); bx1 = Math.max(bx1, m.x); by0 = Math.min(by0, m.y); by1 = Math.max(by1, m.y) }
+  const lim = [bx0 - 4000, bx1 + 4000, by0 - 3000, by1 + 3000];
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (const f of fr) {
+    const hi = hInv(f.h);
+    for (let i = 0; i <= 40; i++) {
+      const t = i / 40;
+      for (const [u, v] of [[t * f.W, 0], [t * f.W, f.H], [0, t * f.H], [f.W, t * f.H]]) {
+        const q = undist(...nrm(f, u, v)), p = hApply(hi, q[0], q[1]); if (p[2] <= 0) continue;
+        const X = Math.max(lim[0], Math.min(lim[1], p[0] * 1000)), Y = Math.max(lim[2], Math.min(lim[3], p[1] * 1000));
+        x0 = Math.min(x0, X); x1 = Math.max(x1, X); y0 = Math.min(y0, Y); y1 = Math.max(y1, Y);
+      }
+    }
+  }
+  const r = Math.max(1, Math.ceil(Math.max(x1 - x0, y1 - y0) / 2400 * 10) / 10);   // мм на px
+  const W = Math.ceil((x1 - x0) / r), H = Math.ceil((y1 - y0) / r);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'), id = g.createImageData(W, H), D = id.data;
+  const P = fr.map(f => ({ f, h: f.h, F: Math.max(f.W, f.H), dt: Math.abs(hDet(f.h)) })), k1 = S.k1 || 0;
+  for (let j = 0; j < H; j++) {
+    const Y = (y1 - (j + 0.5) * r) / 1000;
+    for (let i = 0; i < W; i++) {
+      const X = (x0 + (i + 0.5) * r) / 1000;
+      let best = null, bq = 0, bu = 0, bv = 0;
+      for (const p of P) {
+        const h = p.h, w = h[6] * X + h[7] * Y + 1; if (w <= 0) continue;
+        const nu = (h[0] * X + h[1] * Y + h[2]) / w, nv = (h[3] * X + h[4] * Y + h[5]) / w, fd = 1 + k1 * (nu * nu + nv * nv);
+        const u = nu * fd * p.F + p.f.W / 2, v = nv * fd * p.F + p.f.H / 2;
+        if (u < 1 || v < 1 || u > p.f.W - 2 || v > p.f.H - 2) continue;
+        const q = p.dt / (w * w * w) * p.F * p.F;
+        if (q > bq) { bq = q; best = p; bu = u; bv = v }
+      }
+      const o = (j * W + i) * 4;
+      if (!best) { D[o] = D[o + 1] = D[o + 2] = 30; D[o + 3] = 255; continue }
+      const f = best.f, xu = bu - 0.5, yv = bv - 0.5, xi = xu | 0, yi = yv | 0, fx = xu - xi, fy = yv - yi, s = (yi * f.W + xi) * 4, s2 = s + f.W * 4, A = f.rgba;
+      for (let k = 0; k < 3; k++) D[o + k] = (A[s + k] * (1 - fx) + A[s + 4 + k] * fx) * (1 - fy) + (A[s2 + k] * (1 - fx) + A[s2 + 4 + k] * fx) * fy;
+      D[o + 3] = 255;
+    }
+  }
+  g.putImageData(id, 0, 0);
+  return { c, x0, y1, r, W, H };
+}
+
+/* ═══ [BLOCK] ВИД: сдвиг, масштаб, касания ═══ */
+const cv = $('cv'), cx = cv.getContext('2d');
+function resize() { const d = devicePixelRatio || 1; cv.width = cv.clientWidth * d; cv.height = cv.clientHeight * d; draw() }
+function toScr(X, Y) { const v = S.view, r = v.rot || 0, c = Math.cos(r), sn = Math.sin(r); return [v.ox + (c * X + sn * Y) * v.s, v.oy - (-sn * X + c * Y) * v.s] }
+function toPl(x, y) { const v = S.view, r = v.rot || 0, c = Math.cos(r), sn = Math.sin(r), a = (x - v.ox) / v.s, b = (v.oy - y) / v.s; return [c * a - sn * b, sn * a + c * b] }
+function mosM() {                               /* матрица холста для развёртки (с поворотом вида) */
+  const v = S.view, M = S.mosaic, r = v.rot || 0, c = Math.cos(r), sn = Math.sin(r), k = v.s * M.r;
+  return [k * c, k * sn, -k * sn, k * c, v.ox + v.s * (c * M.x0 + sn * M.y1), v.oy + v.s * (sn * M.x0 - c * M.y1)];
+}
+function viewRot() { const L = S.lines.floor; if (!L) return 0; const d = sub(L[1], L[0]); let a = Math.atan2(d[1], d[0]); if (Math.abs(a) > Math.PI / 2) a += a > 0 ? -Math.PI : Math.PI; return a }
+function fit() {
+  const d = devicePixelRatio || 1, W = cv.width, H = cv.height;
+  if (S.show >= 0) { const f = S.frames[S.show]; const s = Math.min(W / f.W, H / f.H) * 0.96; S.view = { s, ox: (W - f.W * s) / 2, oy: (H - f.H * s) / 2 }; return draw() }
+  const M = S.mosaic; if (!M) return draw();
+  const rot = viewRot(), c = Math.cos(rot), sn = Math.sin(rot), P = [[M.x0, M.y1], [M.x0 + M.W * M.r, M.y1], [M.x0, M.y1 - M.H * M.r], [M.x0 + M.W * M.r, M.y1 - M.H * M.r]].map(([X, Y]) => [c * X + sn * Y, -sn * X + c * Y]);
+  const ax = Math.min(...P.map(p => p[0])), bx = Math.max(...P.map(p => p[0])), ay = Math.min(...P.map(p => p[1])), by = Math.max(...P.map(p => p[1]));
+  const s = Math.min(W / (bx - ax), H / (by - ay)) * 0.96;
+  S.view = { s, rot, ox: W / 2 - (ax + bx) / 2 * s, oy: H / 2 + (ay + by) / 2 * s };
+  draw();
+}
+function draw() {
+  const d = devicePixelRatio || 1; cx.setTransform(1, 0, 0, 1, 0, 0); cx.fillStyle = '#101214'; cx.fillRect(0, 0, cv.width, cv.height);
+  if (S.show >= 0) return drawFrame(S.frames[S.show]);
+  const M = S.mosaic; if (!M) return;
+  const v = S.view; cx.imageSmoothingEnabled = v.s * M.r < 2;
+  cx.setTransform(...mosM()); cx.drawImage(M.c, 0, 0); cx.setTransform(1, 0, 0, 1, 0, 0);
+  cx.lineWidth = 2 * d; cx.font = (13 * d) + 'px system-ui';
+  for (const m of S.sol.mks) {                                    // контуры маркеров
+    const P = poseC([m.x / 1000, m.y / 1000, m.a * Math.PI / 180], m.s).map(p => toScr(p[0] * 1000, p[1] * 1000));
+    cx.strokeStyle = m.id === S.sol.ref ? '#f0a020' : '#4caf6a'; cx.beginPath(); P.forEach((p, i) => i ? cx.lineTo(...p) : cx.moveTo(...p)); cx.closePath(); cx.stroke();
+    cx.fillStyle = cx.strokeStyle; cx.fillText('№' + m.id, P[0][0], P[0][1] - 4 * d);
+  }
+  drawMarkup(); drawRulers();
+}
+function drawFrame(f) {
+  const v = S.view, d = devicePixelRatio || 1;
+  if (!f._img) { const c = document.createElement('canvas'); c.width = f.W; c.height = f.H; c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(f.rgba), f.W, f.H), 0, 0); f._img = c }
+  cx.setTransform(v.s, 0, 0, v.s, v.ox, v.oy); cx.drawImage(f._img, 0, 0); cx.setTransform(1, 0, 0, 1, 0, 0);
+  cx.lineWidth = 2 * d; cx.font = (13 * d) + 'px system-ui';
+  for (const m of f.det) {
+    const P = m.c.map(p => [v.ox + p[0] * v.s, v.oy + p[1] * v.s]);
+    cx.strokeStyle = '#4caf6a'; cx.beginPath(); P.forEach((p, i) => i ? cx.lineTo(...p) : cx.moveTo(...p)); cx.closePath(); cx.stroke();
+    cx.fillStyle = '#f0a020'; cx.beginPath(); cx.arc(P[0][0], P[0][1], 4 * d, 0, 7); cx.fill(); cx.fillText('№' + m.id, P[0][0], P[0][1] - 6 * d);
+  }
+}
+/* ─── [SUB] касания и жесты ─── */
+const ptr = new Map(); let gest = null;
+cv.addEventListener('pointerdown', e => {
+  cv.setPointerCapture(e.pointerId); const d = devicePixelRatio || 1, p = [e.offsetX * d, e.offsetY * d];
+  ptr.set(e.pointerId, p);
+  if (ptr.size === 1) {
+    gest = { t: performance.now(), p0: p, last: p, moved: false, drag: null };
+    if (S.tool === 'rul' && S.show < 0) gest.drag = hitHandle(p);
+    if (S.tool === 'mk' && S.show < 0) { const h = mkHit(p); gest.edrag = h && h.id === S.sel ? h : null }   /* тянется только выделенный */
+  } else if (ptr.size === 2) { const [a, b] = [...ptr.values()]; gest = { pinch: true, d0: Math.hypot(a[0] - b[0], a[1] - b[1]), v0: { ...S.view }, c0: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] } }
+});
+cv.addEventListener('pointermove', e => {
+  if (!ptr.has(e.pointerId) || !gest) return; const d = devicePixelRatio || 1, p = [e.offsetX * d, e.offsetY * d]; ptr.set(e.pointerId, p);
+  if (gest.pinch && ptr.size === 2) {
+    const [a, b] = [...ptr.values()], dd = Math.hypot(a[0] - b[0], a[1] - b[1]), c = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], k = dd / gest.d0, v0 = gest.v0;
+    S.view = { s: v0.s * k, rot: v0.rot, ox: c[0] - (gest.c0[0] - v0.ox) * k, oy: c[1] - (gest.c0[1] - v0.oy) * k }; return draw();
+  }
+  if (gest.pinch) return;
+  if (Math.hypot(p[0] - gest.p0[0], p[1] - gest.p0[1]) > 8 * d) gest.moved = true;
+  if (gest.edrag) { if (gest.moved) mkDrag(gest, p); return }   /* выделенный элемент — тянется, вид не двигается */
+  if (gest.drag) { const [ri, end] = gest.drag; S.rulers[ri][end] = toPl(p[0], p[1] - 60 * d); S.loupe = [p[0], p[1] - 60 * d]; updRul(); draw(); return }
+  S.view.ox += p[0] - gest.last[0]; S.view.oy += p[1] - gest.last[1]; gest.last = p; draw();
+});
+function pend(e) {
+  if (!ptr.has(e.pointerId)) return; const d = devicePixelRatio || 1, p = ptr.get(e.pointerId); ptr.delete(e.pointerId);
+  if (gest && !gest.pinch && !gest.moved && performance.now() - gest.t < 500 && !gest.drag) tap(p);
+  if (gest && gest.drag) { S.loupe = null; draw(); saveSess() }
+  if (gest && gest.edrag && gest.moved) { S.loupe = null; mkPanel(); draw(); saveSess() }
+  if (!ptr.size) gest = null;
+}
+cv.addEventListener('pointerup', pend); cv.addEventListener('pointercancel', pend);
+cv.addEventListener('wheel', e => { e.preventDefault(); const d = devicePixelRatio || 1, k = Math.exp(-e.deltaY * 0.0015), x = e.offsetX * d, y = e.offsetY * d, v = S.view; S.view = { s: v.s * k, rot: v.rot, ox: x - (x - v.ox) * k, oy: y - (y - v.oy) * k }; draw() }, { passive: false });
+
+/* ═══ [BLOCK] ЛИНЕЙКА ═══ */
+function tap(p) {
+  if (S.tool === 'mk' && S.show < 0 && S.mosaic) return mkTap(p);
+  if (S.tool !== 'rul' || S.show >= 0 || !S.mosaic) return;
+  const q = toPl(...p);
+  if (!S.pend) { S.pend = q } else { S.rulers.push({ a: S.pend, b: q }); S.pend = null; updRul(); saveSess() }
+  draw();
+}
+function hitHandle(p) {
+  const d = devicePixelRatio || 1; let best = null, bd = 24 * d;
+  S.rulers.forEach((r, i) => ['a', 'b'].forEach(k => { const s = toScr(...r[k]), dd = Math.hypot(s[0] - p[0], s[1] - p[1]); if (dd < bd) { bd = dd; best = [i, k] } }));
+  return best;
+}
+function rLen(r) { return Math.hypot(r.b[0] - r.a[0], r.b[1] - r.a[1]) }
+const f1 = v => (Math.round(v * 10) / 10).toFixed(1).replace('.', ',');
+function drawRulers() {
+  const d = devicePixelRatio || 1; cx.lineWidth = 2 * d; cx.font = 'bold ' + (14 * d) + 'px system-ui';
+  S.rulers.forEach((r, i) => {
+    const a = toScr(...r.a), b = toScr(...r.b);
+    cx.strokeStyle = '#f0a020'; cx.beginPath(); cx.moveTo(...a); cx.lineTo(...b); cx.stroke();
+    for (const s of [a, b]) { cx.beginPath(); cx.arc(s[0], s[1], 6 * d, 0, 7); cx.stroke(); cx.beginPath(); cx.moveTo(s[0] - 10 * d, s[1]); cx.lineTo(s[0] + 10 * d, s[1]); cx.moveTo(s[0], s[1] - 10 * d); cx.lineTo(s[0], s[1] + 10 * d); cx.stroke() }
+    const t = (i + 1) + ': ' + f1(rLen(r)), m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], tw = cx.measureText(t).width;
+    cx.fillStyle = 'rgba(0,0,0,.7)'; cx.fillRect(m[0] - tw / 2 - 4 * d, m[1] - 20 * d, tw + 8 * d, 18 * d); cx.fillStyle = '#fff'; cx.fillText(t, m[0] - tw / 2, m[1] - 6 * d);
+  });
+  if (S.pend) { const s = toScr(...S.pend); cx.strokeStyle = '#f0a020'; cx.beginPath(); cx.arc(s[0], s[1], 6 * d, 0, 7); cx.stroke() }
+  if (S.loupe && S.mosaic) {                                     // лупа ×4 при перетаскивании конца
+    const R = 70 * d, z = 4, [px, py] = S.loupe, v = S.view, M = S.mosaic, ox = R + 10 * d, oy = R + 10 * d;
+    cx.save(); cx.beginPath(); cx.arc(ox, oy, R, 0, 7); cx.clip(); cx.fillStyle = '#000'; cx.fillRect(0, 0, 2 * R + 20 * d, 2 * R + 20 * d);
+    const m = mosM(); cx.imageSmoothingEnabled = false;
+    cx.setTransform(m[0] * z, m[1] * z, m[2] * z, m[3] * z, z * (m[4] - px) + ox, z * (m[5] - py) + oy); cx.drawImage(M.c, 0, 0);
+    cx.setTransform(1, 0, 0, 1, 0, 0); cx.strokeStyle = '#f0a020'; cx.lineWidth = 1 * d;
+    cx.beginPath(); cx.moveTo(ox - R, oy); cx.lineTo(ox + R, oy); cx.moveTo(ox, oy - R); cx.lineTo(ox, oy + R); cx.stroke(); cx.restore();
+    cx.strokeStyle = '#fff'; cx.lineWidth = 2 * d; cx.beginPath(); cx.arc(ox, oy, R, 0, 7); cx.stroke();
+  }
+}
+function updRul() {
+  const el = $('rl'); el.classList.toggle('on', S.rulers.length > 0);
+  el.innerHTML = S.rulers.map((r, i) => `<div><b>${i + 1}</b> ${f1(rLen(r))} мм <span style="color:var(--mu)">ΔX ${f1(r.b[0] - r.a[0])} ΔY ${f1(r.b[1] - r.a[1])}</span><i data-rd="${i}" title="Удалить (нажать дважды)">✕</i></div>`).join('');
+}
+$('rl').addEventListener('click', e => { const t = e.target.closest('[data-rd]'); if (!t) return; if (!t.classList.contains('arm')) { t.classList.add('arm'); setTimeout(() => t.classList.remove('arm'), 2500); return } S.rulers.splice(+t.dataset.rd, 1); updRul(); draw(); saveSess() });
+
+/* ═══ [BLOCK] ОБРАБОТКА И СТАТУС ═══ */
+const tick = () => new Promise(r => setTimeout(r, 0));
+async function addFiles(files, store) {   /* store — ключи уже сохранённых кадров (открытие замера) */
+  if (!files || !files.length) return; $('busy').classList.add('on');
+  try {
+    for (const f of files) {
+      $('busy').textContent = 'кадр: ' + (f.name || '') + '…'; await tick(); const fr = await loadFrame(f); fr.file = f; await tick(); fr.det = detect(fr);
+      if (!store) { ensureSess(); fr.key = S.sess.id + ':' + Date.now() + ':' + Math.random().toString(36).slice(2, 6); try { await dbPut('img', f, fr.key) } catch (e) { fr.key = null } }
+      else fr.key = store.shift();
+      S.frames.push(fr);
+    }
+    await recompute(); saveSess();
+  }
+  catch (e) { $('st').innerHTML = '<span class="er">Ошибка: ' + (e && e.message || e) + '</span>' }
+  $('busy').classList.remove('on'); $('busy').textContent = 'обработка…';
+}
+async function recompute() {
+  $('busy').classList.add('on'); $('busy').textContent = 'уравнивание…'; await tick();
+  const ctl = solve(true) || []; S.sol = solve(); if (S.sol) S.sol.ctrl = ctl; S.mosaic = null;
+  if (S.sol) { $('busy').textContent = 'развёртка…'; await tick(); S.mosaic = buildMosaic() }
+  $('busy').classList.remove('on'); $('busy').textContent = 'обработка…';
+  strip(); status(); if (S.show >= S.frames.length) S.show = -1; fit();
+}
+function status() {
+  const st = $('st'), sol = S.sol;
+  if (!S.frames.length) { st.innerHTML = 'Добавьте кадры: 📷 или 🖼.'; return }
+  if (!sol) { st.innerHTML = '<span class="er">Маркеры не найдены ни в одном кадре.</span>'; return }
+  const bad = S.frames.filter(f => !f.h).length, c = sol.ctrl.length ? sol.ctrl.reduce((a, b) => Math.abs(b.d) > Math.abs(a.d) ? b : a) : null;  /* контроль: сторона маркера по снимкам при свободном размере, против заданной */
+  st.innerHTML = `Маркеров <b>${sol.mks.length}</b> · кадров <b>${S.frames.length - bad}</b>${bad ? ` <span class="er">· не связаны ${bad}</span>` : ''} · невязка СКО <b>${f1(sol.rms)}</b>, макс <b>${f1(sol.max)}</b> мм<br>` +
+    wallLine() + (c ? `контроль сторон: № ${c.id} — ${f1(c.side)} (${c.d >= 0 ? '+' : ''}${f1(c.d)} мм)` : 'контроль: нужно ≥ 2 маркеров') + ` · ноль — центр № ${sol.ref} · дисторсия k1 ${(sol.k1 || 0).toFixed(4)}` + (S.mosaic ? ` · ${f1(S.mosaic.r)} мм/px` : '');
+}
+function strip() {
+  const el = $('fr'); el.innerHTML = '';
+  S.frames.forEach((f, i) => {
+    const d = document.createElement('div'); d.className = 'th' + (f.h ? '' : ' bad') + (S.show === i ? ' sel' : '');
+    d.title = f.name; d.appendChild(f.thumb);
+    const s = document.createElement('span'); s.textContent = `${i + 1} · № ${f.det.map(m => m.id).join(',') || '—'}${f.rms != null ? ' · ' + f1(f.rms) : ''}`; d.appendChild(s);
+    const x = document.createElement('i'); x.textContent = '✕'; x.title = 'Убрать кадр (нажать дважды)'; d.appendChild(x);
+    x.onclick = ev => { ev.stopPropagation(); if (!x.classList.contains('arm')) { x.classList.add('arm'); setTimeout(() => x.classList.remove('arm'), 2500); return } const [rm] = S.frames.splice(i, 1); if (rm && rm.key) dbDel('img', rm.key).catch(() => { }); S.show = -1; recompute().then(saveSess) };
+    d.onclick = () => { S.show = S.show === i ? -1 : i; strip(); fit() };
+    el.appendChild(d);
+  });
+}
+
+/* ═══ [BLOCK] ХРАНИЛИЩЕ (IndexedDB на телефоне: замеры и исходные кадры) ═══ */
+const DB = { db: null };
+function dbOpen() {
+  return new Promise(res => {
+    try {
+      const r = indexedDB.open('akrix-zamer', 1);
+      r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains('sess')) d.createObjectStore('sess', { keyPath: 'id' }); if (!d.objectStoreNames.contains('img')) d.createObjectStore('img') };
+      r.onsuccess = () => { DB.db = r.result; res(DB.db) }; r.onerror = () => res(null);
+    } catch (e) { res(null) }
+  });
+}
+function dbTx(store, mode, fn) {
+  return new Promise((res, rej) => {
+    if (!DB.db) return res(null);
+    const t = DB.db.transaction(store, mode), q = fn(t.objectStore(store)); let out;
+    if (q) q.onsuccess = () => { out = q.result };
+    t.oncomplete = () => res(out); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+  });
+}
+const dbPut = (st, v, k) => dbTx(st, 'readwrite', s => k === undefined ? s.put(v) : s.put(v, k));
+const dbGet = (st, k) => dbTx(st, 'readonly', s => s.get(k));
+const dbAll = st => dbTx(st, 'readonly', s => s.getAll());
+const dbDel = (st, k) => dbTx(st, 'readwrite', s => s.delete(k));
+function ensureSess() { if (!S.sess) S.sess = { id: 's' + Date.now(), obj: '', name: 'Плоскость', created: Date.now(), frames: [] } }
+let saveT = 0;
+function saveSess() {
+  ensureSess(); clearTimeout(saveT);
+  saveT = setTimeout(() => {
+    const o = S.sess; Object.assign(o, { upd: Date.now(), frames: S.frames.filter(f => f.key).map(f => ({ key: f.key, name: f.name })), lines: S.lines, man: S.man, els: S.els, rulers: S.rulers, set: { a4: $('sA4').value, a5: $('sA5').value, max: $('sMax').value }, q: S.sol ? { rms: S.sol.rms, mk: S.sol.mks.length } : null });
+    dbPut('sess', JSON.parse(JSON.stringify(o))).catch(() => { });
+  }, 300);
+}
+
+/* ═══ [BLOCK] ЗАМЕРЫ: список, новый, открыть, удалить ═══ */
+const fdt = t => { const d = new Date(t); return d.toLocaleDateString('ru-RU') + ' ' + d.toTimeString().slice(0, 5) };
+async function sessList(on) {
+  $('ss').classList.toggle('on', on !== false); if (on === false) return;
+  const L = ((await dbAll('sess')) || []).sort((a, b) => (b.upd || b.created) - (a.upd || a.created)), el = $('sl');
+  el.innerHTML = L.length ? '' : '<div style="color:var(--mu);padding:8px">Замеров нет. Введите объект и плоскость → ＋ Новый.</div>';
+  for (const o of L) {
+    const d = document.createElement('div'); d.className = 'it';
+    d.innerHTML = `<div><b>${esc(o.obj || '—')}</b> · ${esc(o.name || '')}<small>${fdt(o.upd || o.created)} · кадров ${(o.frames || []).length} · элементов ${(o.els || []).length}${o.q ? ' · СКО ' + f1(o.q.rms) : ''}</small></div><i title="Удалить замер (нажать дважды)">✕</i>`;
+    d.querySelector('div').onclick = () => openSess(o.id);
+    const x = d.querySelector('i');
+    x.onclick = async () => { if (!x.classList.contains('arm')) { x.classList.add('arm'); setTimeout(() => x.classList.remove('arm'), 2500); return } for (const f of o.frames || []) await dbDel('img', f.key).catch(() => { }); await dbDel('sess', o.id); if (S.sess && S.sess.id === o.id) clearAll(); sessList(true) };
+    el.appendChild(d);
+  }
+}
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function clearAll() { S.frames = []; S.sol = null; S.mosaic = null; S.rulers = []; S.pend = null; S.show = -1; S.lines = {}; S.man = {}; S.els = []; S.sel = null; S.und = []; S.sess = null; updRul(); strip(); status(); mkPanel(); draw() }
+async function newSess(obj, name) {
+  clearAll(); S.sess = { id: 's' + Date.now(), obj: obj || '', name: name || 'Плоскость', created: Date.now(), frames: [] };
+  for (const id of ['sA4', 'sA5', 'sMax']) $(id).value = '';
+  await dbPut('sess', JSON.parse(JSON.stringify(S.sess))).catch(() => { }); sessList(false); title();
+}
+async function openSess(id) {
+  const o = await dbGet('sess', id); if (!o) return;
+  clearAll(); S.sess = o; S.lines = o.lines || {}; S.man = o.man || {}; S.els = o.els || []; S.rulers = o.rulers || [];
+  const st = o.set || {}; $('sA4').value = st.a4 || ''; $('sA5').value = st.a5 || ''; $('sMax').value = st.max || '';
+  sessList(false); title();
+  const files = [], keys = [];
+  for (const f of o.frames || []) { const b = await dbGet('img', f.key); if (b) { files.push(b instanceof File ? b : new File([b], f.name || 'кадр.jpg', { type: b.type || 'image/jpeg' })); keys.push(f.key) } }
+  if (files.length) await addFiles(files, keys); else { strip(); status() }
+  updRul(); mkPanel(); draw();
+}
+function title() { document.title = 'Замер · ' + (S.sess ? (S.sess.obj ? S.sess.obj + ' · ' : '') + S.sess.name : '') }
+$('bSes').onclick = () => sessList(!$('ss').classList.contains('on'));
+$('bNew').onclick = () => newSess($('nObj').value.trim(), $('nPl').value.trim());
+
+/* ═══ [BLOCK] РАЗМЕТКА ПЛОСКОСТИ (пол, потолок, края, коммуникации, проёмы) ═══ */
+/* Координаты элемента хранятся в плоскости маркеров (мм); на экран и в экспорт — в системе стены:
+   X — вдоль пола от левого края, Y — вверх от пола. Нет пола — ось X по маркеру с меньшим №, Y от него; нет левого края — X от него. */
+const KINDS = [
+  { k: 'floor', n: 'пол', line: 1, c: '#36c2d9' }, { k: 'ceil', n: 'потолок', line: 1, c: '#36c2d9' }, { k: 'left', n: 'левый край', line: 1, c: '#d65ad6' }, { k: 'right', n: 'правый край', line: 1, c: '#d65ad6' },
+  { k: 'roz', n: 'розетка', pt: 1, c: '#f0a020' }, { k: 'vyk', n: 'выключатель', pt: 1, c: '#e8d070' }, { k: 'svet', n: 'вывод света', pt: 1, c: '#fff27a' }, { k: 'slab', n: 'ТВ / интернет', pt: 1, c: '#8fb4ff' },
+  { k: 'hvs', n: 'ХВС', pt: 1, c: '#3d9bff' }, { k: 'gvs', n: 'ГВС', pt: 1, c: '#ff5c5c' }, { k: 'kan', n: 'канализация', pt: 1, c: '#b59a80' }, { k: 'gaz', n: 'газ', pt: 1, c: '#ffd400' }, { k: 'vent', n: 'вентиляция', pt: 1, c: '#6fd6c2' },
+  { k: 'pro', n: 'проём', rc: 1, c: '#7fcf7f' }, { k: 'nis', n: 'ниша', rc: 1, c: '#a7a7ef' }, { k: 'kol', n: 'колонна', rc: 1, c: '#d08a60' }, { k: 'rig', n: 'ригель', rc: 1, c: '#d0b060' }, { k: 'kor', n: 'короб', rc: 1, c: '#b0b0b0' }, { k: 'zon', n: 'зона', rc: 1, c: '#e08ae0' }];
+const KD = Object.fromEntries(KINDS.map(k => [k.k, k]));
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1]], dot = (a, b) => a[0] * b[0] + a[1] * b[1], add = (a, b, k = 1) => [a[0] + b[0] * k, a[1] + b[1] * k];
+function lnInter(p, d, L) {                     // точка p + t·d на прямой L [a, b]
+  const e = sub(L[1], L[0]), den = d[0] * e[1] - d[1] * e[0]; if (Math.abs(den) < 1e-9) return null;
+  const w = sub(L[0], p), t = (w[0] * e[1] - w[1] * e[0]) / den; return add(p, d, t);
+}
+function wf() {
+  const Ln = S.lines; let u = [1, 0];
+  if (Ln.floor) { const d = sub(Ln.floor[1], Ln.floor[0]), l = Math.hypot(...d); if (l > 1) { u = [d[0] / l, d[1] / l]; if (u[0] < 0) u = [-u[0], -u[1]] } }
+  const n = [-u[1], u[0]]; let O = [0, 0];
+  if (Ln.floor) O = lnInter(O, n, Ln.floor) || O;
+  if (Ln.left) O = lnInter(O, u, Ln.left) || O;
+  return { O, u, n, floor: !!Ln.floor, left: !!Ln.left };
+}
+function toW(p, W) { W = W || wf(); const d = sub(p, W.O); return [dot(d, W.u), dot(d, W.n)] }
+function fromW(w, W) { W = W || wf(); return add(add(W.O, W.u, w[0]), W.n, w[1]) }
+function dims() {                              // общие размеры по фото: низ, верх, лево, право; завал краёв
+  const L = S.lines, W = wf(), d = {}, P = (a, b) => a && b ? lnInter(a[0], sub(a[1], a[0]), b) : null;
+  const fl = P(L.left, L.floor), fr = P(L.right, L.floor), cl = P(L.left, L.ceil), cr = P(L.right, L.ceil);
+  if (fl && fr) d.Lb = Math.hypot(...sub(fr, fl)); if (cl && cr) d.Lt = Math.hypot(...sub(cr, cl));
+  if (fl && cl) { d.Hl = Math.hypot(...sub(cl, fl)); d.dl = dot(sub(cl, fl), W.u) }
+  if (fr && cr) { d.Hr = Math.hypot(...sub(cr, fr)); d.dr = dot(sub(cr, fr), W.u) }
+  return d;
+}
+function wallLine() {
+  if (!S.lines.floor && !S.lines.left && !S.els.length) return '';
+  const d = dims(), m = S.man, v = (k, t) => d[k] != null || m[k] ? `${t} ${m[k] ? '<b>' + esc(m[k]) + '</b>' : f1(d[k])}` : '';
+  const parts = [v('Lb', 'L↓'), v('Lt', 'L↑'), v('Hl', 'H←'), v('Hr', 'H→')].filter(Boolean);
+  return (parts.length ? 'стена ' + parts.join(' ') + ' · ' : '') + (S.els.length ? 'элементов ' + S.els.length + ' · ' : '');
+}
+/* ─── [SUB] панель инструментов разметки ─── */
+function mkChips() {
+  const el = $('ch'); el.innerHTML = '';
+  KINDS.forEach((k, i) => {
+    if (i === 4 || i === 13) { const s = document.createElement('span'); s.className = 'chip sep'; s.textContent = '|'; el.appendChild(s) }
+    const c = document.createElement('button'); c.className = 'chip' + (S.mk === k.k ? ' on' : ''); c.dataset.k = k.k;
+    c.title = k.line ? `${k.n}: два касания по линии` : k.pt ? `${k.n}: касание в центр — размер рамки подбирается по фото` : `${k.n}: два касания — противоположные углы`;
+    c.innerHTML = `<b style="background:${k.c}"></b>${k.n}${k.line && S.lines[k.k] ? ' ✓' : ''}`;
+    c.onclick = () => { S.mk = k.k; S.pend = null; S.sel = null; mkChips(); mkPanel(); draw() };
+    el.appendChild(c);
+  });
+}
+function snap() { S.und.push(JSON.stringify({ lines: S.lines, els: S.els, man: S.man })); if (S.und.length > 60) S.und.shift() }
+function unsnap() { const t = S.und[S.und.length - 1]; if (t && t === JSON.stringify({ lines: S.lines, els: S.els, man: S.man })) S.und.pop() }   /* правка без изменений — не шаг истории */
+function undo() { const t = S.und.pop(); if (!t) return; const o = JSON.parse(t); S.lines = o.lines; S.els = o.els; S.man = o.man; if (S.sel && !S.els.find(e => e.id === S.sel)) S.sel = null; mkChips(); mkPanel(); status(); if (Math.abs(viewRot() - (S.view.rot || 0)) > 1e-9) fit(); else draw(); saveSess() }
+addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !/INPUT|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); undo() } });
+function elRect(e, W) {                        // углы элемента в плоскости (с поворотом стены)
+  W = W || wf(); const w = (+e.W || 60), h = (+e.H || 60), N = Math.max(1, Math.round(+e.N || 1)), st = +e.st || w;
+  const c = toW(e.c, W), tw = w + (N - 1) * st;
+  return [[c[0] - tw / 2, c[1] - h / 2], [c[0] + tw / 2, c[1] - h / 2], [c[0] + tw / 2, c[1] + h / 2], [c[0] - tw / 2, c[1] + h / 2]].map(q => fromW(q, W));
+}
+function inPoly(p, P) { let o = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) o = !o } return o }
+function mkHit(p) {                            // элемент под пальцем (с запасом 12 px)
+  const q = toPl(...p), W = wf(), tol = 12 * (devicePixelRatio || 1) / S.view.s;
+  for (let i = S.els.length - 1; i >= 0; i--) {
+    const e = S.els[i], R = elRect(e, W), c = toW(e.c, W), a = toW(R[0], W), b = toW(R[2], W), qw = toW(q, W);
+    if (qw[0] >= a[0] - tol && qw[0] <= b[0] + tol && qw[1] >= a[1] - tol && qw[1] <= b[1] + tol) return { id: e.id, q0: q, c0: e.c.slice(), snapped: false };
+  }
+  return null;
+}
+function mkDrag(g, p) {
+  const e = S.els.find(x => x.id === g.edrag.id); if (!e) return;
+  if (!g.edrag.snapped) { snap(); g.edrag.snapped = true }
+  const q = toPl(...p); e.c = add(g.edrag.c0, sub(q, g.edrag.q0)); S.sel = e.id; draw();
+}
+function mkTap(p) {
+  const q = toPl(...p), K = KD[S.mk], hit = mkHit(p);
+  if (hit && !S.pend) { S.sel = hit.id; mkPanel(); draw(); return }
+  if (K.line) {
+    if (!S.pend) { S.pend = q } else { snap(); S.lines[K.k] = [S.pend, q]; S.pend = null; mkChips(); status(); saveSess(); if (K.k === 'floor') { mkPanel(); return fit() } }
+  } else if (K.pt) {
+    snap(); const e = { id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), k: K.k, c: q, W: '', H: '', D: '', N: '', st: '', note: '' };
+    const f = autofit(q); if (f) { e.c = f.c; e.W = f.W; e.H = f.H }
+    S.els.push(e); S.sel = e.id; status(); saveSess();
+  } else if (K.rc) {
+    if (!S.pend) { S.pend = q } else {
+      snap(); const W = wf(), a = toW(S.pend, W), b = toW(q, W);
+      const e = { id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), k: K.k, c: fromW([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], W), W: r1(Math.abs(b[0] - a[0])), H: r1(Math.abs(b[1] - a[1])), D: '', N: '', st: '', note: '' };
+      S.els.push(e); S.sel = e.id; S.pend = null; status(); saveSess();
+    }
+  }
+  mkPanel(); draw();
+}
+const r1 = v => Math.round(v * 10) / 10;
+/* ─── [SUB] подбор рамки по фото: края вокруг точки касания (оси стены, окно ±200 мм) ─── */
+function autofit(q) {
+  const M = S.mosaic; if (!M) return null;
+  if (!M.data) M.data = M.c.getContext('2d').getImageData(0, 0, M.W, M.H).data;
+  const W = wf(), g = p => { const i = (p[0] - M.x0) / M.r - 0.5, j = (M.y1 - p[1]) / M.r - 0.5, x0 = Math.floor(i), y0 = Math.floor(j); if (x0 < 0 || y0 < 0 || x0 >= M.W - 1 || y0 >= M.H - 1) return -1; const fx = i - x0, fy = j - y0, D = M.data, o = (y0 * M.W + x0) * 4, l = k => (D[k] * 77 + D[k + 1] * 150 + D[k + 2] * 29) / 256; return (l(o) * (1 - fx) + l(o + 4) * fx) * (1 - fy) + (l(o + M.W * 4) * (1 - fx) + l(o + M.W * 4 + 4) * fx) * fy };
+  const step = Math.max(1, M.r), lim = 200, edge = (dir, perp) => {
+    const prof = [];
+    for (let t = 0; t <= lim; t += step) { let s = 0, n = 0; for (const o of [-6, -3, 0, 3, 6]) { const v = g(add(add(q, dir, t), perp, o)); if (v >= 0) { s += v; n++ } } prof.push(n ? s / n : -1) }
+    let mx = 0; const gr = prof.map((v, i) => i && i < prof.length - 1 && v >= 0 && prof[i - 1] >= 0 && prof[i + 1] >= 0 ? Math.abs(prof[i + 1] - prof[i - 1]) : 0);
+    gr.forEach(v => mx = Math.max(mx, v)); const thr = Math.max(14, mx * 0.5);
+    const cand = []; for (let i = Math.ceil(12 / step); i < gr.length; i++) if (gr[i] >= thr && gr[i] >= gr[i - 1] && gr[i] >= (gr[i + 1] || 0)) cand.push(i * step);
+    for (let i = 0; i < cand.length; i++) if (i === cand.length - 1 || cand[i + 1] - cand[i] > 25) return cand[i] <= 150 ? cand[i] : null;   /* край рамки — последний перед ровной стеной (≥ 25 мм без краёв) */
+    return null;
+  };
+  const u = W.u, n = W.n, mu = [-u[0], -u[1]], mn = [-n[0], -n[1]];
+  const l = edge(mu, n), r = edge(u, n), d = edge(mn, u), t = edge(n, u);
+  if (l == null || r == null || d == null || t == null) return null;
+  const c = toW(q, W), cw = [c[0] + (r - l) / 2, c[1] + (t - d) / 2];
+  return { c: fromW(cw, W), W: r1(l + r), H: r1(d + t) };
+}
+/* ─── [SUB] рисование разметки ─── */
+function drawMarkup() {
+  const d = devicePixelRatio || 1, W = wf(), M = S.mosaic; if (!M) return;
+  const big = Math.max(M.W, M.H) * M.r * 2;
+  for (const k of ['floor', 'ceil', 'left', 'right']) {
+    const L = S.lines[k]; if (!L) continue;
+    const dir = sub(L[1], L[0]), l = Math.hypot(...dir), e = [dir[0] / l, dir[1] / l];
+    const a = toScr(...add(L[0], e, -big)), b = toScr(...add(L[0], e, big));
+    cx.strokeStyle = KD[k].c; cx.lineWidth = 2 * d; cx.setLineDash(k === 'ceil' || k === 'right' ? [8 * d, 5 * d] : []);
+    cx.beginPath(); cx.moveTo(...a); cx.lineTo(...b); cx.stroke(); cx.setLineDash([]);
+    for (const p of L) { const s = toScr(...p); cx.beginPath(); cx.arc(s[0], s[1], 4 * d, 0, 7); cx.stroke() }
+  }
+  if (W.floor || W.left) { const o = toScr(...W.O), ux = toScr(...add(W.O, W.u, 300)), ny = toScr(...add(W.O, W.n, 300)); cx.strokeStyle = '#fff'; cx.lineWidth = 2 * d; cx.beginPath(); cx.moveTo(...ux); cx.lineTo(...o); cx.lineTo(...ny); cx.stroke() }
+  for (const e of S.els) {
+    const K = KD[e.k] || KD.roz, R = elRect(e, W).map(p => toScr(...p)), sel = e.id === S.sel;
+    cx.lineWidth = (sel ? 3 : 2) * d; cx.strokeStyle = sel ? '#fff' : K.c; cx.fillStyle = K.c + '33';
+    cx.setLineDash(K.rc ? [6 * d, 4 * d] : []); cx.beginPath(); R.forEach((p, i) => i ? cx.lineTo(...p) : cx.moveTo(...p)); cx.closePath(); cx.fill(); cx.stroke(); cx.setLineDash([]);
+    if (K.pt) {
+      const N = Math.max(1, Math.round(+e.N || 1)), st = +e.st || 0, w = +e.W || 60, c = toW(e.c, W);
+      if (N > 1 && st) for (let i = 1; i < N; i++) { const x = c[0] - ((N - 1) * st) / 2 + i * st - st / 2; const a = toScr(...fromW([x, c[1] - (+e.H || 60) / 2], W)), b = toScr(...fromW([x, c[1] + (+e.H || 60) / 2], W)); cx.beginPath(); cx.moveTo(...a); cx.lineTo(...b); cx.stroke() }
+      const s = toScr(...e.c); cx.fillStyle = sel ? '#fff' : K.c; cx.beginPath(); cx.arc(s[0], s[1], 3 * d, 0, 7); cx.fill();
+      if (e.W === '' && e.H === '' && !e.D) { cx.strokeStyle = '#e0524a'; cx.beginPath(); cx.arc(s[0], s[1], 9 * d, 0, 7); cx.stroke() }   // размер не определён
+    }
+  }
+  if (S.pend && S.tool === 'mk') { const s = toScr(...S.pend); cx.strokeStyle = (KD[S.mk] || {}).c || '#fff'; cx.lineWidth = 2 * d; cx.beginPath(); cx.arc(s[0], s[1], 7 * d, 0, 7); cx.stroke() }
+}
+/* ─── [SUB] панель свойств: элемент или размеры стены ─── */
+function mkPanel() {
+  const pp = $('pp'); if (S.tool !== 'mk' || !S.mosaic) { pp.classList.remove('on'); return }
+  pp.classList.add('on'); const W = wf(), e = S.els.find(x => x.id === S.sel);
+  if (!e) {
+    const d = dims(), f = (k, t) => `<label>${t}<input data-man="${k}" inputmode="decimal" placeholder="${d[k] != null ? f1(d[k]) : '—'}" value="${esc(S.man[k] || '')}"></label>`;
+    const warn = [!W.floor && 'нет пола — Y от маркера', !W.left && 'нет левого края — X от маркера'].filter(Boolean).join(' · ');
+    pp.innerHTML = `<div class="row"><span class="t">Стена</span><span class="mu">по фото → рулетка (пусто — по фото)</span><span class="sp" style="flex:1"></span><button id="bUn" title="Отменить (Ctrl+Z)">↶</button></div>
+      <div class="row">${f('Lb', 'L низ')}${f('Lt', 'L верх')}</div><div class="row">${f('Hl', 'H лево')}${f('Hr', 'H право')}</div>
+      <div class="row mu">${d.dl != null ? 'завал левого края ' + f1(d.dl) + ' · ' : ''}${d.dr != null ? 'правого ' + f1(d.dr) + ' · ' : ''}${warn || 'ноль — пол × левый край'}</div>`;
+    pp.querySelectorAll('[data-man]').forEach(i => i.onchange = () => { snap(); const v = i.value.trim(), n = v ? evalN(v) : null; if (v && n == null) { i.value = S.man[i.dataset.man] || ''; return } if (n == null) delete S.man[i.dataset.man]; else S.man[i.dataset.man] = r1(n); unsnap(); status(); mkPanel(); saveSess() });
+  } else {
+    const K = KD[e.k], c = toW(e.c, W), w = +e.W || 0, h = +e.H || 0;
+    const X = K.rc ? c[0] - w / 2 : c[0], Y = K.rc ? c[1] - h / 2 : c[1];
+    const opts = KINDS.filter(k => !k.line && !!k.pt === !!K.pt).map(k => `<option value="${k.k}"${k.k === e.k ? ' selected' : ''}>${k.n}</option>`).join('');
+    const fi = (k, t, v, ph) => `<label>${t}<input data-ef="${k}" inputmode="decimal" placeholder="${ph || ''}" value="${v === '' || v == null ? '' : esc(v)}"></label>`;
+    pp.innerHTML = `<div class="row"><select data-ef="k">${opts}</select>${fi('X', K.rc ? 'X лев.' : 'X', f1(X).replace(',', '.'))}${fi('Y', K.rc ? 'Y низ' : 'Y', f1(Y).replace(',', '.'))}<span style="flex:1"></span><button id="bUn" title="Отменить (Ctrl+Z)">↶</button><button id="bOk" title="Готово">✓</button></div>
+      <div class="row">${fi('W', 'Ш', e.W, 'нет')}${fi('H', 'В', e.H, 'нет')}${K.pt ? fi('D', 'Ø', e.D, '') + fi('N', '×', e.N, '1') + fi('st', 'шаг', e.st, '') : ''}${K.pt ? '<button id="bFit" title="Подобрать рамку по фото">⊡</button>' : ''}<button id="bDel" title="Удалить (нажать дважды)">✕</button></div>
+      <div class="row"><input class="wide" data-ef="note" placeholder="примечание" value="${esc(e.note || '')}"></div>`;
+    pp.querySelectorAll('[data-ef]').forEach(i => i.onchange = () => {
+      const k = i.dataset.ef, v = i.value.trim(), old = (i.defaultValue || '').trim();
+      if (k !== 'k' && (v === old || (v && old && evalN(v) != null && Math.abs(evalN(v) - evalN(old)) < 0.05))) return;   /* значение не изменилось */
+      snap();
+      if (k === 'k' || k === 'note') e[k] = v;
+      else if (k === 'X' || k === 'Y') { const n = evalN(v); if (n == null) return mkPanel(); const cc = toW(e.c, W); let nx = cc[0], ny = cc[1]; const ww = +e.W || 0, hh = +e.H || 0; if (k === 'X') nx = K.rc ? n + ww / 2 : n; else ny = K.rc ? n + hh / 2 : n; e.c = fromW([nx, ny], W) }
+      else { if (!v) e[k] = ''; else { const n = evalN(v); if (n == null || n < 0) return mkPanel(); if (K.rc && (k === 'W' || k === 'H')) { const cc = toW(e.c, W), lo = [cc[0] - (+e.W || 0) / 2, cc[1] - (+e.H || 0) / 2]; e[k] = r1(n); e.c = fromW([lo[0] + (+e.W || 0) / 2, lo[1] + (+e.H || 0) / 2], W) } else e[k] = r1(n) } }
+      unsnap(); mkPanel(); status(); draw(); saveSess();
+    });
+    const bf = $('bFit'); if (bf) bf.onclick = () => { const f = autofit(e.c); if (f) { snap(); e.c = f.c; e.W = f.W; e.H = f.H; mkPanel(); draw(); saveSess() } else { bf.textContent = '✗'; setTimeout(() => bf.textContent = '⊡', 1200) } };
+    const bd = $('bDel'); bd.onclick = () => { if (!bd.classList.contains('arm')) { bd.classList.add('arm'); setTimeout(() => bd.classList.remove('arm'), 2500); return } snap(); S.els = S.els.filter(x => x !== e); S.sel = null; mkPanel(); status(); draw(); saveSess() };
+    $('bOk').onclick = () => { S.sel = null; mkPanel(); draw() };
+  }
+  const bu = $('bUn'); if (bu) bu.onclick = undo;
+}
+function evalN(v) { try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) ? r : null } catch (e) { return null } }
+
+/* ═══ [BLOCK] ЭКСПОРТ ДЛЯ AKRIX (.json v2) ═══ */
+function exportObj() {
+  const W = wf(), d = dims(), m = S.man, dm = {};
+  for (const k of ['Lb', 'Lt', 'Hl', 'Hr']) if (d[k] != null || m[k] != null) dm[k] = { v: m[k] != null ? m[k] : r1(d[k]), photo: d[k] != null ? r1(d[k]) : null, src: m[k] != null ? 'рулетка' : 'фото' };
+  const els = S.els.map((e, i) => {
+    const K = KD[e.k], c = toW(e.c, W), w = +e.W || 0, h = +e.H || 0, num = v => v === '' || v == null ? null : +v;
+    return { n: i + 1, t: K.pt ? 'pt' : 'rect', kind: e.k, name: K.n, x: r1(K.rc ? c[0] - w / 2 : c[0]), y: r1(K.rc ? c[1] - h / 2 : c[1]), W: num(e.W), H: num(e.H), D: num(e.D), N: num(e.N), st: num(e.st), note: e.note || '' };
+  });
+  return {
+    app: 'akrix-photo-measure', v: 2, date: new Date().toISOString(), units: 'mm', obj: S.sess ? S.sess.obj : '', plane: S.sess ? S.sess.name : '',
+    axes: { x: 'вдоль пола от левого края', y: 'вверх от пола', pt: 'x,y — центр', rect: 'x,y — левый нижний угол', floor: W.floor, left: W.left },
+    dims: dm, lean: { left: d.dl != null ? r1(d.dl) : null, right: d.dr != null ? r1(d.dr) : null }, els,
+    quality: S.sol ? { rms: r1(S.sol.rms * 10) / 10, max: r1(S.sol.max * 10) / 10, k1: +(S.sol.k1 || 0).toFixed(5), mmpx: S.mosaic ? S.mosaic.r : null, control: S.sol.ctrl, markers: S.sol.mks.length, frames: S.frames.filter(f => f.h).length } : null,
+    markers: S.sol ? S.sol.mks.map(mk => { const c = toW([mk.x, mk.y], W); return { id: mk.id, x: r1(c[0]), y: r1(c[1]), s: mk.s } }) : [],
+    rulers: S.rulers.map(r => ({ L: r1(rLen(r)), a: toW(r.a, W).map(r1), b: toW(r.b, W).map(r1) }))
+  };
+}
+async function exportJson() {
+  if (!S.sol) return;
+  const o = exportObj(), txt = JSON.stringify(o, null, 1), nm = ((o.obj ? o.obj + '_' : '') + (o.plane || 'zamer')).replace(/[^\wа-яА-ЯёЁ.-]+/g, '_'), fn = 'zamer_' + nm + '_' + o.date.slice(0, 10) + '.json';
+  const file = new File([txt], fn, { type: 'application/json' });
+  try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: fn }); return } } catch (e) { if (e && e.name === 'AbortError') return }
+  try { const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = fn; document.body.appendChild(a); a.click(); a.remove() }
+  catch (e) { try { await navigator.clipboard.writeText(txt); $('st').innerHTML = 'Замер скопирован в буфер (.json).' } catch (e2) { $('st').innerHTML = '<span class="er">Сохранение отклонено.</span>' } }
+}
+
+/* ═══ [BLOCK] КНОПКИ ═══ */
+$('fCam').onchange = e => { addFiles([...e.target.files]); e.target.value = '' };
+$('fGal').onchange = e => { addFiles([...e.target.files]); e.target.value = '' };
+function tool(t) { S.tool = t; S.pend = null; $('bView').classList.toggle('on', t === 'view'); $('bRul').classList.toggle('on', t === 'rul'); $('bMk').classList.toggle('on', t === 'mk'); document.body.classList.toggle('mk', t === 'mk'); $('ch').classList.toggle('on', t === 'mk'); if (t !== 'mk') S.sel = null; mkPanel(); if (t === 'rul' && S.show >= 0) { S.show = -1; strip(); fit() } draw() }
+$('bView').onclick = () => tool('view'); $('bRul').onclick = () => tool('rul'); $('bMk').onclick = () => tool('mk'); $('bFit').onclick = fit;
+$('bSet').onclick = () => $('set').classList.toggle('on');
+for (const id of ['sA4', 'sA5', 'sMax']) $(id).addEventListener('change', () => saveSess());
+for (const id of ['sA4', 'sA5']) $(id).addEventListener('change', () => { if (S.frames.length) recompute() });
+$('sMax').addEventListener('change', async () => { const fs = S.frames.map(f => f.file).filter(Boolean), ks = S.frames.map(f => f.key); if (!fs.length) return; S.frames = []; await addFiles(fs, ks) });
+$('bJson').onclick = () => exportJson();
+addEventListener('resize', resize); resize(); mkChips();
+window.PM = { S, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
+dbOpen().then(() => { if (!/[?&]nolist/.test(location.search)) sessList(true) });
+</script>
+</body>
+</html>
