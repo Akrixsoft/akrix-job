@@ -112,7 +112,7 @@ const DCODES = Object.entries(DICT).map(([id, b]) => ({ id: +id, b: b.split('').
 
 /* ═══ [BLOCK] СОСТОЯНИЕ ═══ */
 const S = { frames: [], sol: null, mosaic: null, tool: 'view', rulers: [], pend: null, view: { s: 0.2, ox: 0, oy: 0 }, show: -1,
-  sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'sel', und: [] };   /* v4: mk 'sel' — выбор и правка */   /* v2: замер, разметка */
+  sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'sel', und: [], la: {} };   /* v5: la — привязка концов линий к кадрам */   /* v4: mk 'sel' — выбор и правка */   /* v2: замер, разметка */
 const $ = id => document.getElementById(id);
 function setNum(id) { const v = $(id).value.trim(); if (!v) return null; try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) && r > 0 ? r : null } catch (e) { return null } }
 function sizeOf(id) { return id >= 100 ? (setNum('sA5') || 120) : (setNum('sA4') || 180) }
@@ -426,7 +426,7 @@ function buildMosaic() {
       const t = i / 40;
       for (const [u, v] of [[t * f.W, 0], [t * f.W, f.H], [0, t * f.H], [f.W, t * f.H]]) {
         const q = undist(...nrm(f, u, v)), p = hApply(hi, q[0], q[1]); if (p[2] <= 0) continue;
-        const X = Math.max(lim[0], Math.min(lim[1], p[0] * 1000)), Y = Math.max(lim[2], Math.min(lim[3], p[1] * 1000));
+        const [X, Y] = toD([Math.max(lim[0], Math.min(lim[1], p[0] * 1000)), Math.max(lim[2], Math.min(lim[3], p[1] * 1000))]);
         x0 = Math.min(x0, X); x1 = Math.max(x1, X); y0 = Math.min(y0, Y); y1 = Math.max(y1, Y);
       }
     }
@@ -435,11 +435,12 @@ function buildMosaic() {
   const W = Math.ceil((x1 - x0) / r), H = Math.ceil((y1 - y0) / r);
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d'), id = g.createImageData(W, H), D = id.data;
-  const P = fr.map(f => ({ f, h: f.h, F: Math.max(f.W, f.H), dt: Math.abs(hDet(f.h)) })), k1 = S.k1 || 0;
+  const P = fr.map(f => ({ f, h: f.h, F: Math.max(f.W, f.H), dt: Math.abs(hDet(f.h)) })), k1 = S.k1 || 0, DC = S.dispC, DW = S.dispW, DCi = DC ? hInv(DC) : null;
   for (let j = 0; j < H; j++) {
-    const Y = (y1 - (j + 0.5) * r) / 1000;
+    const Yd = y1 - (j + 0.5) * r;
     for (let i = 0; i < W; i++) {
-      const X = (x0 + (i + 0.5) * r) / 1000;
+      const Xd = x0 + (i + 0.5) * r; let X = Xd / 1000, Y = Yd / 1000;
+      if (DC) { const q = hApply(DCi, X, Y), wx = q[0] * 1000, wy = q[1] * 1000; X = (DW.O[0] + DW.u[0] * wx + DW.n[0] * wy) / 1000; Y = (DW.O[1] + DW.u[1] * wx + DW.n[1] * wy) / 1000 }
       let best = null, bq = 0, bu = 0, bv = 0;
       for (const p of P) {
         const h = p.h, w = h[6] * X + h[7] * Y + 1; if (w <= 0) continue;
@@ -463,13 +464,15 @@ function buildMosaic() {
 /* ═══ [BLOCK] ВИД: сдвиг, масштаб, касания ═══ */
 const cv = $('cv'), cx = cv.getContext('2d');
 function resize() { const d = devicePixelRatio || 1; cv.width = cv.clientWidth * d; cv.height = cv.clientHeight * d; draw() }
-function toScr(X, Y) { const v = S.view, r = v.rot || 0, c = Math.cos(r), sn = Math.sin(r); return [v.ox + (c * X + sn * Y) * v.s, v.oy - (-sn * X + c * Y) * v.s] }
-function toPl(x, y) { const v = S.view, r = v.rot || 0, c = Math.cos(r), sn = Math.sin(r), a = (x - v.ox) / v.s, b = (v.oy - y) / v.s; return [c * a - sn * b, sn * a + c * b] }
+function toD(p) { return S.dispC ? toWc(p, S.dispW, S.dispC) : p }   /* v5b: плоскость → вид (с подгонкой — исправленная стена) */
+function toP(q) { return S.dispC ? fromWc(q, S.dispW, S.dispC) : q }
+function toScr(X, Y) { [X, Y] = toD([X, Y]); const v = S.view, r = v.rot || 0, c = Math.cos(r), sn = Math.sin(r); return [v.ox + (c * X + sn * Y) * v.s, v.oy - (-sn * X + c * Y) * v.s] }
+function toPl(x, y) { const v = S.view, r = v.rot || 0, c = Math.cos(r), sn = Math.sin(r), a = (x - v.ox) / v.s, b = (v.oy - y) / v.s; return toP([c * a - sn * b, sn * a + c * b]) }
 function mosM() {                               /* матрица холста для развёртки (с поворотом вида) */
   const v = S.view, M = S.mosaic, r = v.rot || 0, c = Math.cos(r), sn = Math.sin(r), k = v.s * M.r;
   return [k * c, k * sn, -k * sn, k * c, v.ox + v.s * (c * M.x0 + sn * M.y1), v.oy + v.s * (sn * M.x0 - c * M.y1)];
 }
-function viewRot() { const L = S.lines.floor; if (!L) return 0; const d = sub(L[1], L[0]); let a = Math.atan2(d[1], d[0]); if (Math.abs(a) > Math.PI / 2) a += a > 0 ? -Math.PI : Math.PI; return a }
+function viewRot() { const L = S.lines.floor; if (!L || S.dispC) return 0; const d = sub(L[1], L[0]); let a = Math.atan2(d[1], d[0]); if (Math.abs(a) > Math.PI / 2) a += a > 0 ? -Math.PI : Math.PI; return a }
 function fit() {
   const d = devicePixelRatio || 1, W = cv.width, H = cv.height;
   if (S.show >= 0) { const f = S.frames[S.show]; const s = Math.min(W / f.W, H / f.H) * 0.96; S.view = { s, ox: (W - f.W * s) / 2, oy: (H - f.H * s) / 2 }; return draw() }
@@ -536,7 +539,7 @@ function pend(e) {
   if (gest && gest.drag) { S.loupe = null; draw(); saveSess() }
   if (gest && gest.edrag && gest.moved) { S.loupe = null; mkPanel(); draw(); saveSess() }
   if (gest && gest.hdrag && gest.moved) { S.loupe = null; mkPanel(); draw(); saveSess() }
-  if (gest && gest.ldrag) { S.loupe = null; if (gest.moved) { if (gest.ldrag[0] === 'floor') setRot(viewRot()); mkPanel(); status(); saveSess() } draw() }
+  if (gest && gest.ldrag) { S.loupe = null; if (gest.moved) { if (gest.ldrag[0] === 'floor') setRot(viewRot()); mkPanel(); status(); saveSess(); refreshDisp() } draw() }
   if (!ptr.size) gest = null;
 }
 cv.addEventListener('pointerup', pend); cv.addEventListener('pointercancel', pend);
@@ -600,14 +603,15 @@ async function addFiles(files, store) {   /* store — ключи уже сох�
   $('busy').classList.remove('on'); $('busy').textContent = 'обработка…';
 }
 async function recompute() {
-  $('busy').classList.add('on'); $('busy').textContent = 'уравнивание…'; await tick();
+  $('busy').classList.add('on'); $('busy').textContent = 'уравнивание…'; S.recomp = true; if (S.sol) anchorAll(); await tick();   /* v5 */
   const dm = $('sDist').value, many = S.frames.some(f => f.det.length >= 3); let kf = dm === 'off', why = dm === 'off' ? 'выкл' : dm === 'on' ? 'вкл' : '';
   if (dm === 'auto') {   /* авто: свободный k1 — только при кадре с 3+ маркерами и заметном выигрыше */
     const a = solve(false, true), b = many ? solve(false, false) : null;
     kf = !(b && a && b.rms * 1.5 < a.rms); why = kf ? (many ? 'авто: не нужна' : 'авто: мало маркеров в кадре') : 'авто';
   }
   const ctl = solve(true, kf) || []; S.sol = solve(false, kf); if (S.sol) { S.sol.ctrl = ctl; S.sol.kwhy = why } S.mosaic = null;
-  if (S.sol) { $('busy').textContent = 'развёртка…'; await tick(); S.mosaic = buildMosaic() }
+  if (S.sol) { applyAnchors(); dispSet(); $('busy').textContent = 'развёртка…'; await tick(); S.mosaic = buildMosaic() }   /* v5: разметка — к тем же пикселям кадров; v5b: вид с подгонкой */
+  S.recomp = false;
   $('busy').classList.remove('on'); $('busy').textContent = 'обработка…';
   strip(); status(); if (S.show >= S.frames.length) S.show = -1; fit();
 }
@@ -660,7 +664,8 @@ let saveT = 0;
 function saveSess() {
   ensureSess(); clearTimeout(saveT);
   saveT = setTimeout(() => {
-    const o = S.sess; Object.assign(o, { upd: Date.now(), frames: S.frames.filter(f => f.key).map(f => ({ key: f.key, name: f.name })), lines: S.lines, man: S.man, els: S.els, rulers: S.rulers, set: { a4: $('sA4').value, a5: $('sA5').value, max: $('sMax').value, dist: $('sDist').value }, q: S.sol ? { rms: S.sol.rms, mk: S.sol.mks.length } : null });
+    if (S.recomp) return saveSess(); anchorAll();   /* v5 */
+    const o = S.sess; Object.assign(o, { upd: Date.now(), frames: S.frames.filter(f => f.key).map(f => ({ key: f.key, name: f.name })), lines: S.lines, la: S.la, man: S.man, els: S.els, rulers: S.rulers, set: { a4: $('sA4').value, a5: $('sA5').value, max: $('sMax').value, dist: $('sDist').value }, q: S.sol ? { rms: S.sol.rms, mk: S.sol.mks.length } : null });
     dbPut('sess', JSON.parse(JSON.stringify(o))).catch(() => { });
   }, 300);
 }
@@ -681,7 +686,7 @@ async function sessList(on) {
   }
 }
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-function clearAll() { S.frames = []; S.sol = null; S.mosaic = null; S.rulers = []; S.pend = null; S.show = -1; S.lines = {}; S.man = {}; S.els = []; S.sel = null; S.und = []; S.sess = null; updRul(); strip(); status(); mkPanel(); draw() }
+function clearAll() { S.frames = []; S.sol = null; S.mosaic = null; S.rulers = []; S.pend = null; S.show = -1; S.lines = {}; S.la = {}; S.man = {}; S.els = []; S.sel = null; S.und = []; S.sess = null; updRul(); strip(); status(); mkPanel(); draw() }
 async function newSess(obj, name) {
   clearAll(); S.sess = { id: 's' + Date.now(), obj: obj || '', name: name || 'Плоскость', created: Date.now(), frames: [] };
   for (const id of ['sA4', 'sA5', 'sMax']) $(id).value = ''; $('sDist').value = 'auto';
@@ -689,7 +694,7 @@ async function newSess(obj, name) {
 }
 async function openSess(id) {
   const o = await dbGet('sess', id); if (!o) return;
-  clearAll(); S.sess = o; S.lines = o.lines || {}; S.man = o.man || {}; S.els = o.els || []; S.rulers = o.rulers || [];
+  clearAll(); S.sess = o; S.lines = o.lines || {}; S.la = o.la || {}; S.man = o.man || {}; S.els = o.els || []; S.rulers = o.rulers || [];
   const st = o.set || {}; $('sA4').value = st.a4 || ''; $('sA5').value = st.a5 || ''; $('sMax').value = st.max || ''; $('sDist').value = st.dist || 'auto';
   sessList(false); title();
   const files = [], keys = [];
@@ -737,7 +742,53 @@ function wallLine() {
   if (!S.lines.floor && !S.lines.left && !S.els.length) return '';
   const d = dims(), m = S.man, v = (k, t) => d[k] != null || m[k] ? `${t} ${m[k] ? '<b>' + esc(m[k]) + '</b>' : f1(d[k])}` : '';
   const parts = [v('Lb', 'L↓'), v('Lt', 'L↑'), v('Hl', 'H←'), v('Hr', 'H→')].filter(Boolean);
-  return (parts.length ? 'стена ' + parts.join(' ') + ' · ' : '') + (S.els.length ? 'элементов ' + S.els.length + ' · ' : '');
+  return (parts.length ? 'стена ' + parts.join(' ') + (corrH() ? ' (подгонка)' : '') + ' · ' : '') + (S.els.length ? 'элементов ' + S.els.length + ' · ' : '');
+}
+/* ─── [SUB] привязка разметки к пикселям кадров (v5): после пересчёта точки остаются на тех же местах снимка ─── */
+const frameId = f => f.key || f.name;
+function anchorOf(p) {
+  let best = null, bq = 0; const X = p[0] / 1000, Y = p[1] / 1000, k1 = S.k1 || 0;
+  for (const f of S.frames) {
+    if (!f.h) continue; const h = f.h, w = h[6] * X + h[7] * Y + 1; if (w <= 0) continue;
+    const nu = (h[0] * X + h[1] * Y + h[2]) / w, nv = (h[3] * X + h[4] * Y + h[5]) / w, fd = 1 + k1 * (nu * nu + nv * nv), F = Math.max(f.W, f.H), u = nu * fd * F + f.W / 2, v = nv * fd * F + f.H / 2;
+    if (u < 0 || v < 0 || u > f.W || v > f.H) continue;
+    const q = Math.abs(hDet(h)) / (w * w * w); if (q > bq) { bq = q; best = { f: frameId(f), u: +u.toFixed(2), v: +v.toFixed(2) } }
+  }
+  return best;
+}
+function fromAnchor(a) { if (!a) return null; const i = S.frames.findIndex(f => frameId(f) === a.f); if (i < 0 || !S.frames[i].h) return null; return img2plane(i, a.u, a.v) }
+function anchorAll() {
+  if (!S.sol) return;
+  for (const e of S.els) e.a = anchorOf(e.c) || e.a || null;
+  const la = {}; for (const k in S.lines) la[k] = S.lines[k].map((p, i) => anchorOf(p) || ((S.la || {})[k] || [])[i] || null); S.la = la;
+  for (const r of S.rulers) r.aa = [anchorOf(r.a), anchorOf(r.b)];
+}
+function applyAnchors() {
+  for (const e of S.els) { const p = fromAnchor(e.a); if (p) e.c = p }
+  for (const k in S.lines) { const A = (S.la || {})[k]; if (A) S.lines[k] = S.lines[k].map((p, i) => fromAnchor(A[i]) || p) }
+  for (const r of S.rulers) if (r.aa) { r.a = fromAnchor(r.aa[0]) || r.a; r.b = fromAnchor(r.aa[1]) || r.b }
+}
+function dispSet() { const C = corrH(), W = C ? wf() : null; S.dispC = C; S.dispW = W; S.dispK = C ? JSON.stringify([C, W.O, W.u]) : '' }
+async function refreshDisp() {                 /* v5b: изменилась подгонка — перестроить развёртку */
+  const C = corrH(), W = C ? wf() : null, key = C ? JSON.stringify([C, W.O, W.u]) : '';
+  if (key === (S.dispK || '') || !S.sol) return;
+  dispSet(); $('busy').classList.add('on'); $('busy').textContent = 'развёртка…'; await tick();
+  S.mosaic = buildMosaic(); $('busy').classList.remove('on'); $('busy').textContent = 'обработка…'; fit(); mkPanel();
+}
+/* ─── [SUB] подгонка по рулетке (v5): углы стены по фото → прямоугольник L × H (рулетка, пусто — по фото) ─── */
+function corrH() {
+  const L = S.lines; if (!S.man.fit || !(L.floor && L.ceil && L.left && L.right)) return null;
+  const W = wf(), P = (a, b) => lnInter(a[0], sub(a[1], a[0]), b), d = dims(), m = S.man, v = k => (m[k] != null ? m[k] : d[k]) / 1000;
+  const src = [P(L.left, L.floor), P(L.right, L.floor), P(L.right, L.ceil), P(L.left, L.ceil)]; if (src.some(x => !x)) return null;
+  return hDLT(src.map(p => toW(p, W).map(x => x / 1000)), [[0, 0], [v('Lb'), 0], [v('Lt'), v('Hr')], [0, v('Hl')]]);
+}
+function toWc(p, W, C) { const w = toW(p, W); if (!C) return w; const q = hApply(C, w[0] / 1000, w[1] / 1000); return [q[0] * 1000, q[1] * 1000] }
+function fromWc(w, W, C) { if (!C) return fromW(w, W); const q = hApply(hInv(C), w[0] / 1000, w[1] / 1000); return fromW([q[0] * 1000, q[1] * 1000], W) }
+function elGeo(e, W, C) {                      /* положение и размеры элемента в выдаче (с подгонкой — пересчитанные) */
+  W = W || wf(); const K = KD[e.k], R = elRect(e, W), Rc = R.map(p => toWc(p, W, C)), Rw = R.map(p => toW(p, W)), dd = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  const sx = C ? (dd(Rc[0], Rc[1]) + dd(Rc[3], Rc[2])) / (dd(Rw[0], Rw[1]) + dd(Rw[3], Rw[2])) : 1, sy = C ? (dd(Rc[0], Rc[3]) + dd(Rc[1], Rc[2])) / (dd(Rw[0], Rw[3]) + dd(Rw[1], Rw[2])) : 1;
+  const c = K.rc ? Rc[0] : toWc(e.c, W, C), sc = (v, k) => v === '' || v == null ? '' : r1(+v * k);
+  return { X: c[0], Y: c[1], W: sc(e.W, sx), H: sc(e.H, sy), D: sc(e.D, Math.sqrt(sx * sy)), st: sc(e.st, sx), sx, sy };
 }
 /* ─── [SUB] панель инструментов разметки ─── */
 function mkChips() {
@@ -756,7 +807,7 @@ function mkChips() {
 }
 function snap() { S.und.push(JSON.stringify({ lines: S.lines, els: S.els, man: S.man })); if (S.und.length > 60) S.und.shift() }
 function unsnap() { const t = S.und[S.und.length - 1]; if (t && t === JSON.stringify({ lines: S.lines, els: S.els, man: S.man })) S.und.pop() }   /* правка без изменений — не шаг истории */
-function undo() { const t = S.und.pop(); if (!t) return; const o = JSON.parse(t); S.lines = o.lines; S.els = o.els; S.man = o.man; if (S.sel && !S.els.find(e => e.id === S.sel)) S.sel = null; mkChips(); mkPanel(); status(); if (Math.abs(viewRot() - (S.view.rot || 0)) > 1e-9) fit(); else draw(); saveSess() }
+function undo() { const t = S.und.pop(); if (!t) return; const o = JSON.parse(t); S.lines = o.lines; S.els = o.els; S.man = o.man; if (S.sel && !S.els.find(e => e.id === S.sel)) S.sel = null; mkChips(); mkPanel(); status(); if (Math.abs(viewRot() - (S.view.rot || 0)) > 1e-9) fit(); else draw(); saveSess(); refreshDisp() }
 addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !/INPUT|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); undo() } });
 function elRect(e, W) {                        // углы элемента в плоскости (с поворотом стены)
   W = W || wf(); const w = (+e.W || 60), h = (+e.H || 60), N = Math.max(1, Math.round(+e.N || 1)), st = +e.st || w;
@@ -782,7 +833,7 @@ function mkTap(p) {
   if (S.mk === 'sel') { const hit = mkHit(p); S.sel = hit ? hit.id : null; mkPanel(); draw(); return }   /* v4 */
   const K = KD[S.mk];
   if (K.line) {
-    if (!S.pend) { S.pend = q } else { snap(); S.lines[K.k] = [S.pend, q]; S.pend = null; mkChips(); status(); saveSess(); if (K.k === 'floor') { mkPanel(); return fit() } }
+    if (!S.pend) { S.pend = q } else { snap(); S.lines[K.k] = [S.pend, q]; S.pend = null; mkChips(); status(); saveSess(); if (corrH() || S.dispC) { mkPanel(); return refreshDisp() } if (K.k === 'floor') { mkPanel(); return fit() } }
   } else if (K.pt) {
     snap(); const e = { id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), k: K.k, c: q, W: '', H: '', D: '', N: '', st: '', note: '' };
     const f = autofit(q); if (f) { e.c = f.c; e.W = f.W; e.H = f.H }
@@ -801,7 +852,7 @@ const r1 = v => Math.round(v * 10) / 10;
 function autofit(q) {
   const M = S.mosaic; if (!M) return null;
   if (!M.data) M.data = M.c.getContext('2d').getImageData(0, 0, M.W, M.H).data;
-  const W = wf(), g = p => { const i = (p[0] - M.x0) / M.r - 0.5, j = (M.y1 - p[1]) / M.r - 0.5, x0 = Math.floor(i), y0 = Math.floor(j); if (x0 < 0 || y0 < 0 || x0 >= M.W - 1 || y0 >= M.H - 1) return -1; const fx = i - x0, fy = j - y0, D = M.data, o = (y0 * M.W + x0) * 4, l = k => (D[k] * 77 + D[k + 1] * 150 + D[k + 2] * 29) / 256; return (l(o) * (1 - fx) + l(o + 4) * fx) * (1 - fy) + (l(o + M.W * 4) * (1 - fx) + l(o + M.W * 4 + 4) * fx) * fy };
+  const W = wf(), g = p0 => { const p = toD(p0), i = (p[0] - M.x0) / M.r - 0.5, j = (M.y1 - p[1]) / M.r - 0.5, x0 = Math.floor(i), y0 = Math.floor(j); if (x0 < 0 || y0 < 0 || x0 >= M.W - 1 || y0 >= M.H - 1) return -1; const fx = i - x0, fy = j - y0, D = M.data, o = (y0 * M.W + x0) * 4, l = k => (D[k] * 77 + D[k + 1] * 150 + D[k + 2] * 29) / 256; return (l(o) * (1 - fx) + l(o + 4) * fx) * (1 - fy) + (l(o + M.W * 4) * (1 - fx) + l(o + M.W * 4 + 4) * fx) * fy };
   const step = Math.max(1, M.r), lim = 200, edge = (dir, perp) => {
     const prof = [];
     for (let t = 0; t <= lim; t += step) { let s = 0, n = 0; for (const o of [-6, -3, 0, 3, 6]) { const v = g(add(add(q, dir, t), perp, o)); if (v >= 0) { s += v; n++ } } prof.push(n ? s / n : -1) }
@@ -870,8 +921,9 @@ function drawDims() {
   if (fr && cr) dimLine(fr, cr, 34, tv('Hr'), '#d65ad6');      /* справа */
   const e = S.els.find(x => x.id === S.sel); if (!e) return;
   const W = wf(), K = KD[e.k], c = toW(e.c, W), w = +e.W || 0, h = +e.H || 0, X = K.rc ? c[0] - w / 2 : c[0], Y = K.rc ? c[1] - h / 2 : c[1];
-  if (W.left) dimLine(fromW([0, Y], W), fromW([X, Y], W), 16, f1(X), '#fff');
-  if (W.floor) dimLine(fromW([X, Y], W), fromW([X, 0], W), 16, f1(Y), '#fff');
+  const g = elGeo(e, W, corrH());   /* v5: подписи — с подгонкой */
+  if (W.left) dimLine(fromW([0, Y], W), fromW([X, Y], W), 16, f1(g.X), '#fff');
+  if (W.floor) dimLine(fromW([X, Y], W), fromW([X, 0], W), 16, f1(g.Y), '#fff');
 }
 /* ─── [SUB] рисование разметки ─── */
 function drawMarkup() {
@@ -910,23 +962,28 @@ function mkPanel() {
     const warn = [!W.floor && 'нет пола — Y от маркера', !W.left && 'нет левого края — X от маркера'].filter(Boolean).join(' · ');
     pp.innerHTML = `<div class="row"><span class="t">Стена</span><span class="mu">по фото → рулетка (пусто — по фото)</span><span class="sp" style="flex:1"></span><button id="bUn" title="Отменить (Ctrl+Z)">↶</button></div>
       <div class="row">${f('Lb', 'L низ')}${f('Lt', 'L верх')}</div><div class="row">${f('Hl', 'H лево')}${f('Hr', 'H право')}</div>
+      <div class="row"><label style="color:var(--tx)"><input type="checkbox" data-fit style="width:auto;height:auto"${S.man.fit ? ' checked' : ''}> подогнать по рулетке</label><span class="mu">${S.man.fit && !corrH() ? 'нужны пол, потолок и оба края' : S.man.fit ? 'стена — прямоугольник, элементы пересчитаны' : ''}</span></div>
       <div class="row mu">${d.dl != null ? 'завал левого края ' + f1(d.dl) + ' · ' : ''}${d.dr != null ? 'правого ' + f1(d.dr) + ' · ' : ''}${warn || 'ноль — пол × левый край'}</div>`;
-    pp.querySelectorAll('[data-man]').forEach(i => i.onchange = () => { snap(); const v = i.value.trim(), n = v ? evalN(v) : null; if (v && n == null) { i.value = S.man[i.dataset.man] || ''; return } if (n == null) delete S.man[i.dataset.man]; else S.man[i.dataset.man] = r1(n); unsnap(); status(); mkPanel(); saveSess() });
+    pp.querySelector('[data-fit]').onchange = ev => { snap(); if (ev.target.checked) S.man.fit = true; else delete S.man.fit; status(); mkPanel(); draw(); saveSess(); refreshDisp() };
+    pp.querySelectorAll('[data-man]').forEach(i => i.onchange = () => { snap(); const v = i.value.trim(), n = v ? evalN(v) : null; if (v && n == null) { i.value = S.man[i.dataset.man] || ''; return } if (n == null) delete S.man[i.dataset.man]; else S.man[i.dataset.man] = r1(n); unsnap(); status(); mkPanel(); saveSess(); refreshDisp() });
   } else {
-    const K = KD[e.k], c = toW(e.c, W), w = +e.W || 0, h = +e.H || 0;
-    const X = K.rc ? c[0] - w / 2 : c[0], Y = K.rc ? c[1] - h / 2 : c[1];
+    const K = KD[e.k], C = corrH(), g = elGeo(e, W, C), X = g.X, Y = g.Y;   /* v5: с подгонкой — пересчитанные */
     const opts = KINDS.filter(k => !k.line && !!k.pt === !!K.pt).map(k => `<option value="${k.k}"${k.k === e.k ? ' selected' : ''}>${k.n}</option>`).join('');
     const fi = (k, t, v, ph) => `<label>${t}<input data-ef="${k}" inputmode="decimal" placeholder="${ph || ''}" value="${v === '' || v == null ? '' : esc(v)}"></label>`;
     pp.innerHTML = `<div class="row"><select data-ef="k">${opts}</select>${fi('X', K.rc ? 'X лев.' : 'X', f1(X).replace(',', '.'))}${fi('Y', K.rc ? 'Y низ' : 'Y', f1(Y).replace(',', '.'))}<span style="flex:1"></span><button id="bUn" title="Отменить (Ctrl+Z)">↶</button><button id="bOk" title="Готово">✓</button></div>
-      <div class="row">${fi('W', 'Ш', e.W, 'нет')}${fi('H', 'В', e.H, 'нет')}${K.pt ? fi('D', 'Ø', e.D, '') + fi('N', '×', e.N, '1') + fi('st', 'шаг', e.st, '') : ''}${K.pt ? '<button id="bFit" title="Подобрать рамку по фото">⊡</button>' : ''}<button id="bDel" title="Удалить (нажать дважды)">✕</button></div>
+      <div class="row">${fi('W', 'Ш', g.W, 'нет')}${fi('H', 'В', g.H, 'нет')}${K.pt ? fi('D', 'Ø', g.D, '') + fi('N', '×', e.N, '1') + fi('st', 'шаг', g.st, '') : ''}${K.pt ? '<button id="bFit" title="Подобрать рамку по фото">⊡</button>' : ''}<button id="bDel" title="Удалить (нажать дважды)">✕</button></div>
       <div class="row"><input class="wide" data-ef="note" placeholder="примечание" value="${esc(e.note || '')}"></div>`;
     pp.querySelectorAll('[data-ef]').forEach(i => i.onchange = () => {
       const k = i.dataset.ef, v = i.value.trim(), old = (i.defaultValue || '').trim();
       if (k !== 'k' && (v === old || (v && old && evalN(v) != null && Math.abs(evalN(v) - evalN(old)) < 0.05))) return;   /* значение не изменилось */
       snap();
       if (k === 'k' || k === 'note') e[k] = v;
-      else if (k === 'X' || k === 'Y') { const n = evalN(v); if (n == null) return mkPanel(); const cc = toW(e.c, W); let nx = cc[0], ny = cc[1]; const ww = +e.W || 0, hh = +e.H || 0; if (k === 'X') nx = K.rc ? n + ww / 2 : n; else ny = K.rc ? n + hh / 2 : n; e.c = fromW([nx, ny], W) }
-      else { if (!v) e[k] = ''; else { const n = evalN(v); if (n == null || n < 0) return mkPanel(); if (K.rc && (k === 'W' || k === 'H')) { const cc = toW(e.c, W), lo = [cc[0] - (+e.W || 0) / 2, cc[1] - (+e.H || 0) / 2]; e[k] = r1(n); e.c = fromW([lo[0] + (+e.W || 0) / 2, lo[1] + (+e.H || 0) / 2], W) } else e[k] = r1(n) } }
+      else if (k === 'X' || k === 'Y') {
+        const n = evalN(v); if (n == null) return mkPanel(); const t = [g.X, g.Y]; t[k === 'X' ? 0 : 1] = n;
+        if (K.rc) { const lo = toW(fromWc(t, W, C), W); e.c = fromW([lo[0] + (+e.W || 0) / 2, lo[1] + (+e.H || 0) / 2], W) } else e.c = fromWc(t, W, C);
+      }
+      else if (k === 'N') { if (!v) e.N = ''; else { const n = evalN(v); if (n == null || n < 0) return mkPanel(); e.N = r1(n) } }
+      else { if (!v) e[k] = ''; else { const n0 = evalN(v); if (n0 == null || n0 < 0) return mkPanel(); const n = n0 / (k === 'H' ? g.sy : k === 'D' ? Math.sqrt(g.sx * g.sy) : g.sx); if (K.rc && (k === 'W' || k === 'H')) { const cc = toW(e.c, W), lo = [cc[0] - (+e.W || 0) / 2, cc[1] - (+e.H || 0) / 2]; e[k] = r1(n); e.c = fromW([lo[0] + (+e.W || 0) / 2, lo[1] + (+e.H || 0) / 2], W) } else e[k] = r1(n) } }
       unsnap(); mkPanel(); status(); draw(); saveSess();
     });
     const bf = $('bFit'); if (bf) bf.onclick = () => { const f = autofit(e.c); if (f) { snap(); e.c = f.c; e.W = f.W; e.H = f.H; mkPanel(); draw(); saveSess() } else { bf.textContent = '✗'; setTimeout(() => bf.textContent = '⊡', 1200) } };
@@ -941,17 +998,17 @@ function evalN(v) { try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const 
 function exportObj() {
   const W = wf(), d = dims(), m = S.man, dm = {};
   for (const k of ['Lb', 'Lt', 'Hl', 'Hr']) if (d[k] != null || m[k] != null) dm[k] = { v: m[k] != null ? m[k] : r1(d[k]), photo: d[k] != null ? r1(d[k]) : null, src: m[k] != null ? 'рулетка' : 'фото' };
-  const els = S.els.map((e, i) => {
-    const K = KD[e.k], c = toW(e.c, W), w = +e.W || 0, h = +e.H || 0, num = v => v === '' || v == null ? null : +v;
-    return { n: i + 1, t: K.pt ? 'pt' : 'rect', kind: e.k, name: K.n, x: r1(K.rc ? c[0] - w / 2 : c[0]), y: r1(K.rc ? c[1] - h / 2 : c[1]), W: num(e.W), H: num(e.H), D: num(e.D), N: num(e.N), st: num(e.st), note: e.note || '' };
+  const C = corrH(), els = S.els.map((e, i) => {
+    const K = KD[e.k], g = elGeo(e, W, C), num = v => v === '' || v == null ? null : +v;
+    return { n: i + 1, t: K.pt ? 'pt' : 'rect', kind: e.k, name: K.n, x: r1(g.X), y: r1(g.Y), W: num(g.W), H: num(g.H), D: num(g.D), N: num(e.N), st: num(g.st), note: e.note || '' };
   });
   return {
     app: 'akrix-photo-measure', v: 2, date: new Date().toISOString(), units: 'mm', obj: S.sess ? S.sess.obj : '', plane: S.sess ? S.sess.name : '',
     axes: { x: 'вдоль пола от левого края', y: 'вверх от пола', pt: 'x,y — центр', rect: 'x,y — левый нижний угол', floor: W.floor, left: W.left },
-    dims: dm, lean: { left: d.dl != null ? r1(d.dl) : null, right: d.dr != null ? r1(d.dr) : null }, els,
+    dims: dm, fit: !!C, lean: C ? { left: 0, right: 0 } : { left: d.dl != null ? r1(d.dl) : null, right: d.dr != null ? r1(d.dr) : null }, els,
     quality: S.sol ? { rms: r1(S.sol.rms * 10) / 10, max: r1(S.sol.max * 10) / 10, k1: +(S.sol.k1 || 0).toFixed(5), mmpx: S.mosaic ? S.mosaic.r : null, control: S.sol.ctrl, markers: S.sol.mks.length, frames: S.frames.filter(f => f.h).length } : null,
-    markers: S.sol ? S.sol.mks.map(mk => { const c = toW([mk.x, mk.y], W); return { id: mk.id, x: r1(c[0]), y: r1(c[1]), s: mk.s } }) : [],
-    rulers: S.rulers.map(r => ({ L: r1(rLen(r)), a: toW(r.a, W).map(r1), b: toW(r.b, W).map(r1) }))
+    markers: S.sol ? S.sol.mks.map(mk => { const c = toWc([mk.x, mk.y], W, C); return { id: mk.id, x: r1(c[0]), y: r1(c[1]), s: mk.s } }) : [],
+    rulers: S.rulers.map(r => { const a = toWc(r.a, W, C), b = toWc(r.b, W, C); return { L: r1(Math.hypot(b[0] - a[0], b[1] - a[1])), a: a.map(r1), b: b.map(r1) } })
   };
 }
 async function exportJson() {
@@ -975,7 +1032,7 @@ for (const id of ['sA4', 'sA5']) $(id).addEventListener('change', () => { if (S.
 $('sMax').addEventListener('change', async () => { const fs = S.frames.map(f => f.file).filter(Boolean), ks = S.frames.map(f => f.key); if (!fs.length) return; S.frames = []; await addFiles(fs, ks) });
 $('bJson').onclick = () => exportJson();
 addEventListener('resize', resize); resize(); mkChips();
-window.PM = { S, lnHit, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
+window.PM = { S, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
 dbOpen().then(() => { if (!/[?&]nolist/.test(location.search)) sessList(true) });
 </script>
