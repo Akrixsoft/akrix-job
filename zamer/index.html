@@ -563,7 +563,7 @@ cv.addEventListener('pointerdown', e => {
   ptr.set(e.pointerId, p);
   if (ptr.size === 1) {
     gest = { t: performance.now(), p0: p, last: p, moved: false, drag: null };
-    if (S.mode === 'plan') { const h = PL.tool === 'sel' ? plHit(p) : null; gest.ndrag = h && h.t === 'n' ? h.i : null }   /* v6: угол плана тянется */
+    if (S.mode === 'plan') { const h = PL.tool === 'sel' ? plHit(p) : null; gest.ndrag = h && h.t === 'n' ? h.i : null; if (PL.tool === 'st' && ulGet()) gest.stroke = [p] }   /* v6: угол плана тянется; v15: штрих */
     else if (S.tool === 'rul' && S.show < 0) gest.drag = hitHandle(p);
     if (S.mode !== 'plan' && S.tool === 'mk' && S.show < 0 && (S.mk === 'sel' || S.mk === 'rsel') && S.msel.length) { const h = mkHit(p); if (h && S.msel.includes(h.id)) gest.gdrag = { q0: toPl(...p), c0: S.msel.map(id => { const e = S.els.find(x => x.id === id); return e ? [id, e.c.slice()] : null }).filter(Boolean) } }   /* v8: перенос группы */
     if (!gest.gdrag && S.mode !== 'plan' && S.tool === 'mk' && S.show < 0 && S.mk === 'rsel') gest.rs = p;   /* v8: рамка выделения */
@@ -578,6 +578,7 @@ cv.addEventListener('pointermove', e => {
   }
   if (gest.pinch) return;
   if (Math.hypot(p[0] - gest.p0[0], p[1] - gest.p0[1]) > 8 * d) gest.moved = true;
+  if (gest.stroke) { gest.stroke.push(p); S.stk = gest.stroke; draw(); return }   /* v15 */
   if (gest.ndrag != null) { if (gest.moved) { if (!gest.nsnap) { plSnap(); gest.nsnap = true } S.room.ms.pts[gest.ndrag] = toPl(...p).map(Math.round); S.psel = { t: 'n', i: gest.ndrag }; draw() } return }   /* v6 */
   if (gest.gdrag) { if (gest.moved) { if (!gest.gsnap) { snap(); gest.gsnap = true } const dq = sub(toPl(...p), gest.gdrag.q0); for (const [id, c0] of gest.gdrag.c0) { const e = S.els.find(x => x.id === id); if (e) { e.c = add(c0, dq); delete e.fx; delete e.fy } } draw() } return }   /* v8 */
   if (gest.rs) { if (gest.moved) { S.rsr = [gest.rs, p]; draw() } return }   /* v8 */
@@ -595,6 +596,7 @@ function pend(e) {
   if (gest && gest.edrag && gest.moved) { S.loupe = null; mkPanel(); draw(); saveSess() }
   if (gest && gest.gdrag && gest.moved) { mkPanel(); draw(); saveSess() }   /* v8 */
   if (gest && gest.rs && gest.moved && S.rsr) { const [a, b] = S.rsr, x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]), y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]); S.msel = S.els.filter(e => elRect(e).every(q => { const s2 = toScr(...q); return s2[0] >= x0 && s2[0] <= x1 && s2[1] >= y0 && s2[1] <= y1 })).map(e => e.id); S.sel = null; S.rsr = null; mkPanel(); draw() }   /* v8: в группу — объекты целиком внутри рамки */
+  if (gest && gest.stroke) { S.stk = null; if (gest.moved) ulStroke(gest.stroke); else draw() }   /* v15 */
   if (gest && gest.ndrag != null && gest.moved) { saveRoom(); mkPanel(); status(); strip() }
   if (gest && gest.vdrag && gest.moved) { mkPanel(); draw(); saveSess() }   /* v10 */
   if (gest && gest.hdrag && gest.moved) { S.loupe = null; mkPanel(); draw(); saveSess() }
@@ -871,7 +873,7 @@ function elGeo(e, W, C) {                      /* положение и разм
 function mkChips() {
   const el = $('ch'); el.innerHTML = ''; el.classList.remove('pre');
   if (S.mode === 'plan') {   /* v6: инструменты плана */
-    for (const [k, t, ti] of [['sel', '↖ выбор', 'Касание — стена (длина, фото) или угол (отклонение); углы тянутся'], ['ct', '⌗ контур', 'Касания по углам помещения; касание первого — замкнуть'], ...(ulGet() ? [['rm', '⌂ по плану', 'Касание внутри помещения на подложке — контур по стенам плана']] : [])]) {   /* v14 */
+    for (const [k, t, ti] of [['sel', '↖ выбор', 'Касание — стена (длина, фото) или угол (отклонение); углы тянутся'], ['ct', '⌗ контур', 'Касания по углам помещения; касание первого — замкнуть'], ...(ulGet() ? [['rm', '⌂ по плану', 'Касание внутри помещения на подложке — контур по стенам плана'], ['st', '✎ штрих', 'Провести вдоль стены — прилипает к стене плана (ось, толщина, 0 / 90°); где стены нет — новая перегородка; касание штриха — выбрать']] : []), ['op', '⊓ проём', 'Два касания по стене активного помещения — края проёма (по плану — к краям стены)']]) {   /* v14; v15: штрих, проём */
       const c = document.createElement('button'); c.className = 'chip' + (PL.tool === k ? ' on' : ''); c.dataset.pk = k; c.title = ti; c.textContent = t; c.onclick = () => { PL.tool = k; mkChips() }; el.appendChild(c) }
     return;
   }
@@ -1688,6 +1690,7 @@ async function ulAdd(f) {
 function ulDraw() {
   const o = ulGet(); if (!o || !UL.c || UL.key !== o.ul.key || UL.hide) return; const u = o.ul, O = toScr(u.x0, u.y0), A = toScr(u.x0 + u.s, u.y0), B = toScr(u.x0, u.y0 - u.s);
   cx.save(); cx.globalAlpha = 0.5; cx.setTransform(A[0] - O[0], A[1] - O[1], B[0] - O[0], B[1] - O[1], O[0], O[1]); cx.drawImage(UL.c, 0, 0); cx.restore();
+  stDraw(o);   /* v15 */
 }
 function ulRow() {
   const o = ulGet(), u = o && o.ul;
@@ -1746,19 +1749,16 @@ function ulMasks() {
       for (const q of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, y > 0 ? j - W : -1, y < H - 1 ? j + W : -1]) if (q >= 0 && hm[q] && !lab[q]) { lab[q] = nl; stk[sp++] = q } }
     const bw = x1 - x0 + 1, bh = y1 - y0 + 1; if (bw + bh >= 60 * D && ar <= 14 * D * (bw + bh) && ar > 300 * D * D)   /* полоса (в т. ч. Г / Т): средняя ширина ≤ 14 px */ for (const j of pix) part[j] = 1;
   }
-  const bar = new Uint8Array(N); for (let i = 0; i < N; i++) bar[i] = wall[i] | part[i];
-  const Lg = Math.round(48 * D), bh2 = bClose1(bar, W, H, Lg, true), bv2 = bClose1(bar, W, H, Lg, false), bar2 = new Uint8Array(N); for (let i = 0; i < N; i++) bar2[i] = bh2[i] | bv2[i];   /* проёмы ≤ ~95 px — перемычки */
   const big = bClose(wall, W, H, Math.round(130 * D)), out = new Uint8Array(N); let sp = 0;   /* снаружи — от края листа по не-стенам (закрытие 260 px) */
   const push = j => { if (!big[j] && !out[j]) { out[j] = 1; stk[sp++] = j } };
   for (let x = 0; x < W; x++) { push(x); push((H - 1) * W + x) } for (let y = 0; y < H; y++) { push(y * W); push(y * W + W - 1) }
   while (sp) { const j = stk[--sp], x = j % W, y = j / W | 0; if (x > 0) push(j - 1); if (x < W - 1) push(j + 1); if (y > 0) push(j - W); if (y < H - 1) push(j + W) }
   const nr = Math.round(30 * D), near = bOp(bOp(out, W, H, nr, true, false), W, H, nr, false, false), Lw = Math.round(130 * D), wh = bClose1(wall, W, H, Lw, true), wv = bClose1(wall, W, H, Lw, false);   /* окна наружной стены — перемычки до 260 px у наружного края */
-  const free = new Uint8Array(N); for (let i = 0; i < N; i++) free[i] = !out[i] && !bar2[i] && !(near[i] && (wh[i] || wv[i])) ? 1 : 0;
-  return UL.M = { W, H, D, wall, part, free };
+  return UL.M = { W, H, D, m, wall, part, out, near, wh, wv };   /* v15: свободное — ulFree (со штрихами) */
 }
 /* ─── [SUB] помещение под пальцем: заливка свободного, обход границы по рёбрам пикселей, упрощение, 0 / 90° ─── */
 function ulRegion(u0, v0) {
-  const M = ulMasks(), { W, H, free } = M; let s0 = -1;
+  const M = ulMasks(), { W, H } = M, free = ulFree(); let s0 = -1;   /* v15 */
   for (let r = 0; r <= 12 && s0 < 0; r++) for (let dy = -r; dy <= r && s0 < 0; dy++) for (let dx = -r; dx <= r; dx++) { const x = u0 + dx, y = v0 + dy; if (x >= 0 && y >= 0 && x < W && y < H && free[y * W + x]) { s0 = y * W + x; break } }
   if (s0 < 0) return null;
   const reg = new Uint8Array(W * H), stk = [s0]; reg[s0] = 1; let n = 0, edge = false;
@@ -1816,15 +1816,127 @@ function ulContour(u, v) {   /* пиксели подложки → контур
 async function ulTap(p) {
   const o = ulGet(); if (!o || !UL.c) { toast('Нет плана: 📐 в панели помещения'); return }
   const q = toPl(...p), r0 = [S.room, ...S.objRooms].find(r => r && r.ms.closed && r.ms.pts.length > 2 && inPoly(q, r.ms.pts));
-  if (r0) { if (r0 !== S.room) await openRoom(r0.id, null, true); PL.tool = 'rm'; mkChips(); toast('Уже обведено: ' + r0.name); return }
+  const re = r0 && r0.ms.ul && !(r0.ms.dims || []).length && !Object.keys(r0.segs || {}).length;   /* v15: не обмерено — обвести заново */
+  if (r0 && !re) { if (r0 !== S.room) await openRoom(r0.id, null, true); PL.tool = 'rm'; mkChips(); toast('Уже обведено: ' + r0.name); return }
+  if (re && r0 !== S.room) await openRoom(r0.id, null, true);
   const u = o.ul; $('busy').classList.add('on'); $('busy').textContent = 'распознавание плана…'; await tick();
   let res; try { res = ulContour((q[0] - u.x0) / u.s, (u.y0 - q[1]) / u.s) } catch (e) { res = { err: String(e && e.message || e) } }
   $('busy').classList.remove('on'); $('busy').textContent = 'обработка…';
   if (res.err) { toast(res.err); return }
   const pts = res.P.map(([x, y]) => [Math.round(u.x0 + x * u.s), Math.round(u.y0 - y * u.s)]);
-  if (S.room.ms.pts.length) { if (!S.room.obj) { toast('Сначала — объект (панель помещения)'); return } await newRoom(S.room.obj, 'Помещение ' + (S.objRooms.length + 2), true) }
+  if (re) { S.room.gn = {}; S.room.ms.ops = [] }   /* v15: новые отрезки — новые номера */
+  else if (S.room.ms.pts.length) { if (!S.room.obj) { toast('Сначала — объект (панель помещения)'); return } await newRoom(S.room.obj, 'Помещение ' + (S.objRooms.length + 2), true) }
   plSnap(); const m = S.room.ms; m.pts = pts; m.closed = true; m.ul = 1; S.psel = null; PL.tool = 'rm'; gnFix(); saveRoom(); mkChips(); mkPanel(); status(); strip(); draw();
   toast(`Контур: углов ${pts.length} · ${S.room.name}`);
+}
+
+/* ═══ [BLOCK] ПОМОЩЬ ПО ПЛАНУ (v15, по rec/r3.py): ✎ штрих → стена (ось, толщина, грань, 0 / 90°), штрихи — преграды для «⌂ по плану»; ⊓ проём двумя касаниями ═══ */
+/* ul.st [{a [u, v], b [u, v], th, f, sd}] — ось стены в пикселях подложки, th — толщина, px; f — 1 прилип к стене плана, 0 — новая перегородка (линия); sd — сторона штриха (± нормаль) = видимая грань. ms.ops [{id, k, a, b}] — проём на отрезке k, мм эскиза от начала отрезка. */
+function ulFree() {
+  const M = ulMasks(); if (UL.F && UL.Fm === M && UL.Fn === UL.stv) return UL.F;
+  const { W, H, D, wall, part, out, near, wh, wv } = M, N = W * H, bar = new Uint8Array(N); for (let i = 0; i < N; i++) bar[i] = wall[i] | part[i];
+  const Lg = Math.round(97 * D), mw = Math.round(30 * D), bh2 = bBridge(bar, W, H, Lg, true, mw), bv2 = bBridge(bar, W, H, Lg, false, mw);   /* проёмы ≤ ~95 px — перемычки между торцами стен (коридор между стенами не заливается) */
+  const sb = new Uint8Array(N), o = ulGet(); for (const t of (o && o.ul.st) || []) stRaster(sb, W, H, t);   /* штрихи — после перемычек (перемычки по плану не меняются) */
+  const free = new Uint8Array(N); for (let i = 0; i < N; i++) free[i] = !out[i] && !bh2[i] && !bv2[i] && !sb[i] && !(near[i] && (wh[i] || wv[i])) ? 1 : 0;
+  UL.Fm = M; UL.Fn = UL.stv; return UL.F = free;
+}
+UL.stv = 0;   /* версия набора штрихов */
+function bBridge(bar, W, H, L, hor, mw) {   /* закрытие щелей ≤ L вдоль строк (hor) / столбцов; заплатка шире mw поперёк (коридор между стенами) — не ставится */
+  const c = bClose1(bar, W, H, L >> 1, hor), o = new Uint8Array(W * H), n = hor ? H : W, M = hor ? W : H, st = hor ? W : 1, ln = hor ? 1 : W;   /* поперёк: по столбцам (hor) / строкам */
+  for (let j = 0; j < M; j++) { const b0 = j * ln; let i = 0;
+    while (i < n) { const q = b0 + i * st; if (bar[q]) { o[q] = 1; i++; continue } if (!c[q]) { i++; continue } let e = i; while (e < n && c[b0 + e * st] && !bar[b0 + e * st]) e++; if (e - i <= mw) for (let k = i; k < e; k++) o[b0 + k * st] = 1; i = e } }
+  return o;
+}
+function stRaster(bar, W, H, t) {   /* полоса толщиной max(3, th) по оси a–b */
+  const r = Math.max(1.5, t.th / 2), [ax, ay] = t.a, [bx, by] = t.b, vx = bx - ax, vy = by - ay, l2 = vx * vx + vy * vy || 1;
+  const x0 = Math.max(0, Math.floor(Math.min(ax, bx) - r - 1)), x1 = Math.min(W - 1, Math.ceil(Math.max(ax, bx) + r + 1)), y0 = Math.max(0, Math.floor(Math.min(ay, by) - r - 1)), y1 = Math.min(H - 1, Math.ceil(Math.max(ay, by) + r + 1));
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const tt = Math.max(0, Math.min(1, ((x + 0.5 - ax) * vx + (y + 0.5 - ay) * vy) / l2)), dx = ax + vx * tt - x - 0.5, dy = ay + vy * tt - y - 0.5; if (dx * dx + dy * dy <= r * r) bar[y * W + x] = 1 }
+}
+function ulSnapSt(P) {   /* точки штриха (px подложки) → {a, b, th, f, sd} */
+  const M = ulMasks(), { W, H, D, m, wall, part } = M, n = P.length, cxm = P.reduce((q, p) => q + p[0], 0) / n, cym = P.reduce((q, p) => q + p[1], 0) / n;
+  let sxx = 0, syy = 0, sxy = 0; for (const p of P) { const dx = p[0] - cxm, dy = p[1] - cym; sxx += dx * dx; syy += dy * dy; sxy += dx * dy }
+  let ang = 0.5 * Math.atan2(2 * sxy, sxx - syy); const q4 = Math.round(ang / (Math.PI / 2)); if (Math.abs(ang - q4 * Math.PI / 2) < 7 * Math.PI / 180) ang = q4 * Math.PI / 2;   /* 0 / 90° */
+  const u = [Math.cos(ang), Math.sin(ang)], nr = [-u[1], u[0]], pr = p => (p[0] - cxm) * u[0] + (p[1] - cym) * u[1];
+  let t0 = Math.min(...P.map(pr)), t1 = Math.max(...P.map(pr)); const L = t1 - t0, Rr = Math.round(28 * D), at = (x, y) => { x = Math.round(x); y = Math.round(y); return x >= 0 && y >= 0 && x < W && y < H ? m[y * W + x] : 0 };
+  const offs = [], ths = []; let cnt = 0;
+  for (let t = t0 + 8 * D; t <= t1 - 8 * D; t += 6 * D) {
+    cnt++; const c = [cxm + u[0] * t, cym + u[1] * t], prof = [];
+    for (let k = -Rr; k <= Rr; k++) { let v = 0; for (let j = -3; j <= 3; j++) v += at(c[0] + nr[0] * k + u[0] * j * D, c[1] + nr[1] * k + u[1] * j * D); prof.push(v / 7) }
+    const sm = prof.map((v, i) => (v + (prof[i - 1] ?? v) + (prof[i + 1] ?? v)) / 3), runs = []; let s0 = null;
+    sm.forEach((v, i) => { const on = v > 0.28; if (on && s0 == null) s0 = i; if ((!on || i === sm.length - 1) && s0 != null) { runs.push([s0, on ? i + 1 : i]); s0 = null } });
+    if (!runs.length) continue; const rr = runs.reduce((a, b) => Math.abs((b[0] + b[1]) / 2 - Rr) < Math.abs((a[0] + a[1]) / 2 - Rr) ? b : a);
+    offs.push((rr[0] + rr[1]) / 2 - Rr - 0.5); ths.push(rr[1] - rr[0]);
+  }
+  const med = a => { const b = a.slice().sort((x, y) => x - y); return b[b.length >> 1] };
+  const f = cnt > 0 && offs.length >= Math.max(2, 0.5 * cnt), off = f ? med(offs) : 0, th = f ? Math.max(2, med(ths)) : 3, sd = f && off !== 0 ? -Math.sign(off) : 1;   /* штрих по ту сторону от оси, где провели — видимая грань */
+  const c0 = [cxm + nr[0] * off, cym + nr[1] * off], fr = ulFree(), bar = (x, y) => { x = Math.round(x); y = Math.round(y); return x >= 0 && y >= 0 && x < W && y < H && !fr[y * W + x] };   /* преграда — стены, перегородки, перемычки, прежние штрихи, снаружи */
+  const ext = (t, dir) => { if (f) return t; for (let k = 1; k <= 40 * D; k++) { const tt = t + dir * k, x = c0[0] + u[0] * tt, y = c0[1] + u[1] * tt; if (bar(x, y)) return tt + dir * 2 } return t };   /* новая перегородка — концы до стен (≤ 40 px) */
+  t0 = ext(t0, -1); t1 = ext(t1, 1);
+  return { a: [c0[0] + u[0] * t0, c0[1] + u[1] * t0].map(v => Math.round(v * 10) / 10), b: [c0[0] + u[0] * t1, c0[1] + u[1] * t1].map(v => Math.round(v * 10) / 10), th: Math.round(th * 10) / 10, f: f ? 1 : 0, sd, L: Math.round(L) };
+}
+function ulPx(p) { const u = ulGet().ul, q = toPl(...p); return [(q[0] - u.x0) / u.s, (u.y0 - q[1]) / u.s] }
+function ulMm(q) { const u = ulGet().ul; return [u.x0 + q[0] * u.s, u.y0 - q[1] * u.s] }
+async function ulStroke(sp) {
+  const o = ulGet(); if (!o || !UL.c || sp.length < 2) return; const P = sp.map(ulPx), u = o.ul, M = ulMasks();
+  if (Math.hypot(P[P.length - 1][0] - P[0][0], P[P.length - 1][1] - P[0][1]) < 15 * M.D) { draw(); return }
+  const t = ulSnapSt(P); u.st = u.st || []; u.st.push(t); UL.stv++; S.ust = u.st.length - 1; ulPut(o); mkPanel(); draw();
+  toast(t.f ? `Стена: толщина ≈ ${Math.round(t.th * u.s)} мм · ⌂ — обвести заново` : 'Новая перегородка · ⌂ — обвести заново');
+}
+function stHit(p) {
+  const o = ulGet(); if (!o) return null; const d = devicePixelRatio || 1; let best = null, bd = 16 * d;
+  (o.ul.st || []).forEach((t, i) => { const A = toScr(...ulMm(t.a)), B = toScr(...ulMm(t.b)), vx = B[0] - A[0], vy = B[1] - A[1], l2 = vx * vx + vy * vy || 1, tt = Math.max(0, Math.min(1, ((p[0] - A[0]) * vx + (p[1] - A[1]) * vy) / l2)), e = Math.hypot(A[0] + vx * tt - p[0], A[1] + vy * tt - p[1]); if (e < bd) { bd = e; best = i } });
+  return best;
+}
+function ulStTap(p) { S.ust = stHit(p); mkPanel(); draw() }
+function stDraw(o) {
+  const u = o.ul, d = devicePixelRatio || 1;
+  (u.st || []).forEach((t, i) => { const A = toScr(...ulMm(t.a)), B = toScr(...ulMm(t.b)), w = Math.max(3 * d, t.th * u.s * S.view.s), sel = S.ust === i && PL.tool === 'st';
+    cx.strokeStyle = sel ? 'rgba(31,111,209,.75)' : t.f ? 'rgba(31,111,209,.35)' : 'rgba(224,122,0,.6)'; cx.lineWidth = w; cx.lineCap = 'butt'; cx.beginPath(); cx.moveTo(...A); cx.lineTo(...B); cx.stroke();
+    if (t.f) { const l = Math.hypot(B[0] - A[0], B[1] - A[1]) || 1, nx = -(B[1] - A[1]) / l, ny = (B[0] - A[0]) / l, k = t.sd * w / 2; cx.strokeStyle = '#1f6fd1'; cx.lineWidth = 2 * d; cx.beginPath(); cx.moveTo(A[0] + nx * k, A[1] + ny * k); cx.lineTo(B[0] + nx * k, B[1] + ny * k); cx.stroke() }   /* грань со стороны штриха */
+  });
+  if (S.stk && S.stk.length > 1) { cx.strokeStyle = '#d93025'; cx.lineWidth = 2 * d; cx.beginPath(); S.stk.forEach((q, i) => i ? cx.lineTo(...q) : cx.moveTo(...q)); cx.stroke() }
+}
+function stPanel() {
+  const pp = $('pp'); pp.classList.add('on'); const o = ulGet(), u = o.ul, t = u.st[S.ust], ang = Math.round(Math.atan2(t.b[1] - t.a[1], t.b[0] - t.a[0]) * 180 / Math.PI * 10) / 10, L = Math.round(Math.hypot(t.b[0] - t.a[0], t.b[1] - t.a[1]) * u.s);
+  pp.innerHTML = `<div class="row"><span class="t">Штрих ${S.ust + 1} / ${u.st.length}</span><span class="mu">${t.f ? 'по стене плана · толщина ≈ ' + Math.round(t.th * u.s) + ' мм' : 'новая перегородка'} · ≈ ${L} мм · ${Math.abs(ang % 90) < 0.05 ? (Math.abs(ang) % 180 < 0.05 ? '0°' : '90°') : ang + '°'}</span><span style="flex:1"></span><button id="bStX" title="Удалить штрих">✕</button><button id="bStO" title="Снять выбор">○</button></div>
+    <div class="row mu">штрихи — стены для «⌂ по плану»: после штриха коснитесь помещения ещё раз (не обмеренное — обводится заново)</div>`;
+  $('bStX').onclick = () => { u.st.splice(S.ust, 1); UL.stv++; S.ust = null; ulPut(o); mkPanel(); draw() };
+  $('bStO').onclick = () => { S.ust = null; mkPanel(); draw() };
+}
+/* ─── [SUB] проём: два касания по стене; с подложкой край — к краю стены плана (≤ 15 px) ─── */
+function opT(k, p) { const [a, b] = plSeg(S.room.ms, k), q = toPl(...p), d = [b[0] - a[0], b[1] - a[1]], l = Math.hypot(...d) || 1; return Math.max(0, Math.min(l, ((q[0] - a[0]) * d[0] + (q[1] - a[1]) * d[1]) / l)) }
+function opSnap(k, t) {
+  const o = ulGet(); if (!o || !S.room.ms.ul) return t; const M = ulMasks(), u = o.ul, g = plOut(S.room.ms, k), R0 = 15 * M.D * u.s, st = u.s / 2;
+  const at = (tt, off) => { const X = g.a[0] + g.d[0] / g.l * tt + g.n[0] * off * u.s, Y = g.a[1] + g.d[1] / g.l * tt + g.n[1] * off * u.s, x = Math.round((X - u.x0) / u.s), y = Math.round((u.y0 - Y) / u.s); return x >= 0 && y >= 0 && x < M.W && y < M.H && (M.wall[y * M.W + x] || M.part[y * M.W + x]) ? 1 : 0 };
+  let ob = 0, oc = -1; for (let off = 1; off <= 14 * M.D; off++) { let c = 0; for (let tt = t - 3 * R0; tt <= t + 3 * R0; tt += st) c += at(tt, off); if (c > oc) { oc = c; ob = off } }   /* полоса стены за гранью — где больше всего стены */
+  let best = null;
+  for (let e = 0; e <= R0 && best == null; e += st) for (const sg of [1, -1]) { const tt = t + sg * e; if (at(tt, ob) !== at(tt + st, ob)) { best = tt + st / 2; break } }
+  return best == null ? t : Math.max(0, Math.min(g.l, best));
+}
+function opHit(p) {   /* только стены (углы не перехватывают касание у края проёма) */
+  const m = S.room.ms, d = devicePixelRatio || 1; let best = null, bd = 18 * d;
+  for (let k = 0; k < plN(m); k++) { const [a, b] = plSeg(m, k).map(q => toScr(...q)), v = [b[0] - a[0], b[1] - a[1]], l2 = v[0] * v[0] + v[1] * v[1] || 1, t = Math.max(0, Math.min(1, ((p[0] - a[0]) * v[0] + (p[1] - a[1]) * v[1]) / l2)), e = Math.hypot(a[0] + v[0] * t - p[0], a[1] + v[1] * t - p[1]); if (e < bd) { bd = e; best = { t: 's', i: k } } }
+  return best;
+}
+function opTap(p) {
+  const h = opHit(p); if (!h) { PL.op = null; toast('Коснитесь стены активного помещения'); draw(); return }
+  const t = opSnap(h.i, opT(h.i, p));
+  if (!PL.op || PL.op.k !== h.i) { PL.op = { k: h.i, t }; S.psel = { t: 's', i: h.i }; mkPanel(); draw(); toast('Край 1 · коснитесь второго края'); return }
+  const a = Math.round(Math.min(PL.op.t, t)), b = Math.round(Math.max(PL.op.t, t)); PL.op = null; if (b - a < 50) { toast('Проём меньше 50 мм — не добавлен'); draw(); return }
+  plSnap(); const m = S.room.ms; m.ops = m.ops || []; m.ops.push({ id: 'o' + Date.now().toString(36), k: h.i, a, b }); saveRoom(); mkPanel(); draw(); toast(`Проём С${wN(S.room, h.i)}: ≈ ${b - a} мм`);
+}
+function opDraw(m) {
+  const d = devicePixelRatio || 1, n = plN(m); cx.font = (12 * d) + 'px system-ui'; cx.textBaseline = 'middle';
+  for (const o of m.ops || []) { if (o.k >= n) continue; const g = plOut(m, o.k), P = t => toScr(g.a[0] + g.d[0] / g.l * t, g.a[1] + g.d[1] / g.l * t), A = P(o.a), B = P(o.b), nx = toScr(g.a[0] + g.n[0] * 100, g.a[1] + g.n[1] * 100), a0 = toScr(...g.a), vx = nx[0] - a0[0], vy = nx[1] - a0[1], vl = Math.hypot(vx, vy) || 1, ex = vx / vl * 7 * d, ey = vy / vl * 7 * d;
+    cx.strokeStyle = '#f4f6f8'; cx.lineWidth = 7 * d; cx.beginPath(); cx.moveTo(...A); cx.lineTo(...B); cx.stroke();
+    cx.strokeStyle = '#2e9e4f'; cx.lineWidth = 2 * d; cx.beginPath(); for (const Q of [A, B]) { cx.moveTo(Q[0] - ex, Q[1] - ey); cx.lineTo(Q[0] + ex, Q[1] + ey) } cx.moveTo(...A); cx.lineTo(...B); cx.stroke();
+    const t = '⊓' + (o.b - o.a); cx.fillStyle = '#2e9e4f'; cx.fillText(t, (A[0] + B[0]) / 2 - ex * 2.4 - cx.measureText(t).width / 2, (A[1] + B[1]) / 2 - ey * 2.4) }
+  if (PL.tool === 'op' && PL.op && PL.op.k < n) { const g = plOut(m, PL.op.k), Q = toScr(g.a[0] + g.d[0] / g.l * PL.op.t, g.a[1] + g.d[1] / g.l * PL.op.t); cx.fillStyle = '#2e9e4f'; cx.beginPath(); cx.arc(Q[0], Q[1], 6 * d, 0, 7); cx.fill() }
+}
+function opRows(pp, k) {
+  const L = (S.room.ms.ops || []).filter(o => o.k === k); if (!L.length) return; const r = document.createElement('div'); r.className = 'row';
+  r.innerHTML = '<span class="mu">проёмы ≈:</span>' + L.map(o => `<span>${o.a}…${o.b} (${o.b - o.a})</span><button data-opx="${o.id}" title="Удалить проём">✕</button>`).join('');
+  pp.insertBefore(r, pp.lastElementChild); r.querySelectorAll('[data-opx]').forEach(b => b.onclick = () => { plSnap(); S.room.ms.ops = S.room.ms.ops.filter(o => o.id !== b.dataset.opx); saveRoom(); mkPanel(); draw() });
 }
 
 /* ═══ [BLOCK] ЭКСПОРТ ДЛЯ AKRIX (.json v2) ═══ */
@@ -1964,6 +2076,7 @@ function plDraw() {
     cx.fillStyle = 'rgba(255,255,255,.94)'; cx.fillRect(P2[0] - tw / 2 - 4 * d, P2[1] - 10 * d, tw + 8 * d, 20 * d); cx.fillStyle = L && L.ok ? '#1a2027' : '#d93025'; cx.textBaseline = 'middle'; cx.fillText(t, P2[0] - tw / 2, P2[1]);
   }
   plRndDraw(m);   /* v10 */
+  opDraw(m);   /* v15: проёмы */
   m.pts.forEach((p, i) => {
     const s = toScr(...p), sel = S.psel && S.psel.t === 'n' && S.psel.i === i; cx.fillStyle = sel ? '#1f6fd1' : i === 0 ? '#e07a00' : '#0f8fa8'; cx.beginPath(); cx.arc(s[0], s[1], (sel ? 9 : 7) * d, 0, 7); cx.fill();
     const q = m.angs[i]; if (q && (q.d || q.u)) { const t = (q.d ? 'н' + (q.d.mm > 0 ? '+' : '') + q.d.mm + '/' + q.d.at : '') + (q.u ? ' в' + (q.u.mm > 0 ? '+' : '') + q.u.mm + '/' + q.u.at : ''); cx.font = (12 * d) + 'px system-ui'; cx.fillStyle = '#9a6200'; cx.textBaseline = 'bottom'; cx.fillText(t, s[0] + 10 * d, s[1] - 8 * d); cx.font = 'bold ' + (13 * d) + 'px system-ui' }
@@ -1977,6 +2090,8 @@ function plHit(p) {
 }
 function plTap(p) {
   if (PL.tool === 'rm') return ulTap(p);   /* v14 */
+  if (PL.tool === 'st') return ulStTap(p);   /* v15 */
+  if (PL.tool === 'op') return opTap(p);   /* v15 */
   const m = S.room.ms, q = toPl(...p).map(v => Math.round(v));
   if (PL.tool === 'ct') {
     if (m.closed) { toast('Контур замкнут — правка в «↖ выбор»'); return }
@@ -1988,6 +2103,7 @@ function plTap(p) {
 }
 function plPanel() {
   if (S.pf && poolGet(S.pf)) return poolPanel();   /* v13 */
+  if (PL.tool === 'st' && S.ust != null && ulGet() && (ulGet().ul.st || [])[S.ust]) return stPanel();   /* v15 */
   const pp = $('pp'); pp.classList.add('on'); const m = S.room.ms, s = S.psel;
   const fi = (k, t, v, ph, w) => `<label>${t}<input data-pf="${k}" inputmode="decimal" placeholder="${ph || ''}" value="${v == null || v === '' ? '' : esc(v)}"${w ? ` style="width:${w}px"` : ''}></label>`;
   if (s && s.t === 's' && s.i < plN(m)) {
@@ -1999,6 +2115,7 @@ function plPanel() {
       ${ulGet() && d && d.v > 0 ? `<div class="row"><button id="bUlS" style="flex:1">⇲ масштаб плана по С${wN(S.room, s.i)} = ${d.v}</button></div>` : ''}
       <div class="row mu">L — поле активно: замер дальномером 📡 или ввод; длина идёт в подгонку стены${ulGet() && !ulGet().ul.ok ? ' · первый размер задаёт масштаб плана' : ''}</div>`;   /* v14 */
     $('bWall').onclick = () => openWall(s.i);
+    opRows(pp, s.i);   /* v15: проёмы стены */
     const bs = $('bUlS'); if (bs) bs.onclick = () => ulScale(s.i, d.v);   /* v14 */
   } else if (s && s.t === 'n') {
     const q = m.angs[s.i] || {};
@@ -2130,7 +2247,7 @@ $('sMax').addEventListener('change', async () => { const fs = S.frames.map(f => 
 $('bJson').onclick = () => S.mode === 'plan' ? (S.room && S.room.obj && S.objRooms.length ? exportObj2() : exportRoom()) : exportJson();   /* v6; v12: помещений объекта > 1 — файл объекта */
 $('bBt').onclick = btConnect;
 addEventListener('resize', resize); resize(); mkChips();
-window.PM = { ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
+window.PM = { opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
 dbOpen().then(() => { if (!/[?&]nolist/.test(location.search)) sessList(true) });
 </script>
