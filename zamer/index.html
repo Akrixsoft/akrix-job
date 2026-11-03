@@ -138,13 +138,13 @@ body.mk #rl{top:96px}
   <div><span>Сторона маркера A5, мм</span><input id="sA5" inputmode="decimal" placeholder="120"></div>
   <div><span>Макс. сторона кадра, px</span><input id="sMax" inputmode="numeric" placeholder="4096"></div>
   <div><span>Дисторсия объектива</span><select id="sDist" style="height:32px;background:var(--in);border:1px solid var(--ln);border-radius:6px;color:var(--tx)"><option value="auto">авто</option><option value="off">не учитывать</option><option value="on">учитывать</option></select></div>
-  <small>Авто: учитывается, только если есть кадр с 3+ маркерами и невязка без неё заметно больше.<br>Сторона — фактическая, по рулетке на распечатке. № 1–99 — A4, № 101+ — A5. Пусто — значение по умолчанию. Ноль координат — центр маркера с меньшим номером, оси — по нему.</small>
+  <small id="zVer2" style="display:block;margin-bottom:4px"></small><small>Авто: учитывается, только если есть кадр с 3+ маркерами и невязка без неё заметно больше.<br>Сторона — фактическая, по рулетке на распечатке. № 1–99 — A4, № 101+ — A5. Пусто — значение по умолчанию. Ноль координат — центр маркера с меньшим номером, оси — по нему.</small>
 </div>
 <div id="lay"></div>
 <div id="ch"></div>
 <div id="tb"></div>
 <div id="pp"></div>
-<div id="ss"><div class="nw"><input id="nObj" placeholder="Объект (клиент, адрес)"><input id="nPl" placeholder="Помещение / плоскость (кухня, С1…)"><button id="bNew" title="Отдельная плоскость (без плана)">＋ Плоскость</button><button id="bNewR" title="Помещение: план, стены, фото, лазер">＋ Помещение</button></div><div id="sl"></div><div style="margin-top:14px;color:var(--mu);font-size:13px"><a href="akrix_markers.pdf" target="_blank" style="color:var(--ac)">Маркеры для печати (PDF)</a> · A4 № 1–30, A5 № 101–130 · печать 100 %</div></div>
+<div id="ss"><div class="nw"><input id="nObj" placeholder="Объект (клиент, адрес)"><input id="nPl" placeholder="Помещение / плоскость (кухня, С1…)"><button id="bNew" title="Отдельная плоскость (без плана)">＋ Плоскость</button><button id="bNewR" title="Помещение: план, стены, фото, лазер">＋ Помещение</button></div><div id="sl"></div><div style="margin-top:14px;color:var(--mu);font-size:13px"><a href="akrix_markers.pdf" target="_blank" style="color:var(--ac)">Маркеры для печати (PDF)</a> · A4 № 1–30, A5 № 101–130 · печать 100 % · <b id="zVer">Замер</b></div></div>
 <div id="busy">обработка…</div>
 <div id="toast"></div>
 <div id="bot"><div id="st">Добавьте кадры: 📷 или 🖼. На каждой плоскости — маркеры; соседние кадры — с общим маркером.</div><div id="fr"></div></div>
@@ -160,6 +160,7 @@ const S = { frames: [], sol: null, mosaic: null, tool: 'view', rulers: [], pend:
   sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'sel', und: [], la: {},
   mode: 'wall', room: null, room0: null, psel: null, pund: [], planL: null, wsh: {}, adim: true, dimHits: [], dfoc: null, msel: [], rsr: null, colOpen: false, notes: [], nsel: null, gOpen: false, gsel: '2.0', objRooms: [], pf: null, poolW: [] };   /* v13: pf — выбранный кадр пула, poolW — кадры замеров стен объекта */   /* v11: objRooms — другие помещения объекта */   /* v10: notes — выноски, gsel — точка сетки 'ряд.столбец' */   /* v8: msel — группа (рамка выделения), rsr — рамка на экране */   /* v7: adim — авторазмеры всех объектов; dimHits — подписи размеров под пальцем; dfoc — поле размера в фокусе */   /* v6: mode 'plan' — план помещения */   /* v5: la — привязка концов линий к кадрам */   /* v4: mk 'sel' — выбор и правка */   /* v2: замер, разметка */
 const $ = id => document.getElementById(id);
+const ZVER = 'v18';   /* v18: номер версии — подставляет build.py */
 function setNum(id) { const v = $(id).value.trim(); if (!v) return null; try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) && r > 0 ? r : null } catch (e) { return null } }
 function sizeOf(id) { return id >= 100 ? (setNum('sA5') || 120) : (setNum('sA4') || 180) }
 function maxSide() { return Math.round(setNum('sMax') || 4096) }
@@ -1992,6 +1993,52 @@ function ctBind(pp) {
   if (b3) b3.onclick = () => ctAddNode(s.i); if (b4) b4.onclick = () => ctOpen(s.i); if (b5) b5.onclick = () => ctDelNode(s.i);
 }
 
+/* ═══ [BLOCK] ПОСТРОЕНИЕ СТЕН (v18): правила Замера → готовая геометрия для Akrix (ms.geo) ═══ */
+/* Правила (план, мм, y вверх; обход — против часовой, как лист Akrix):
+   1. Длина стены — замер L (рулетка / 📡 / ввод); нет — эскиз по масштабу замеров помещения; помещение «по плану» с масштабом — эскиз в мм (≈).
+   2. Угол в узле — эскиз «по плану»: как на эскизе (по осям — только ≤ 1°); эскиз от руки: 90° (по осям); замер угольником (angs) — поправка к 90°.
+   3. Замыкание: обход начинается так, чтобы замыкающая стена была незамеренной и без замера угла в её начале; замыкающая — от последней точки к первой (cl); у замеренной замыкающей — невязка err = построенная − замер.
+   4. Начало — узел эскиза на своём месте (общие координаты объекта); первая стена — по эскизу (от руки — по оси).
+   5. Дуга (ms.arcs): хорда = стена, f — стрела (+ наружу), R и длина по дуге s; скругление угла (ms.rnd): R и отступы t до точек касания по обеим стенам. Кривизна по высоте — сетка wl[k].grid (как было). */
+function geoBuild(r) {
+  r = r || S.room; const m = r.ms, n = m.pts.length, N = plN(m); if (N < 1) return null;
+  const mmR = !!(m.ul && ulGet() && ulGet().ul.ok), Q = Math.PI / 2, q90 = a => Math.round(a / Q) * Q, wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
+  const ccw = !m.closed || plArea(m) > 0, seq = [];   /* обход: [отрезок k, узел начала, узел конца] */
+  for (let i = 0; i < N; i++) { const k = ccw ? i : N - 1 - i; seq.push(ccw ? [k, k, (k + 1) % n] : [k, (k + 1) % n, k]) }
+  const len = k => { const L = plLen(m, k); if (L) return L; const [a, b] = plSeg(m, k); return mmR ? { v: Math.round(Math.hypot(b[0] - a[0], b[1] - a[1])), ok: false } : null };
+  const Ls = seq.map(([k]) => len(k)); if (Ls.some(x => !x)) return { fail: 'нет длин: нужен хоть один размер (или план с масштабом)' };
+  let s0 = 0; if (m.closed) { let best = -1; for (let s = 0; s < N; s++) { const z = seq[(s + N - 1) % N], sc = (Ls[(s + N - 1) % N].ok ? 0 : 2) + (m.angs[z[1]] && m.angs[z[1]].d ? 0 : 1); if (sc > best) { best = sc; s0 = s } } }
+  const S2 = seq.slice(s0).concat(seq.slice(0, s0)), L2 = Ls.slice(s0).concat(Ls.slice(0, s0)), dirS = ([k, a, b]) => Math.atan2(m.pts[b][1] - m.pts[a][1], m.pts[b][0] - m.pts[a][0]);
+  const P = [m.pts[S2[0][1]].slice()]; let dir = mmR ? dirS(S2[0]) : q90(dirS(S2[0]));
+  const NB = m.closed ? N - 1 : N, W = [];
+  for (let i = 0; i < NB; i++) {
+    if (i) { const ts = wrap(dirS(S2[i]) - dirS(S2[i - 1])), q = m.angs[S2[i][1]], corr = q && q.d ? Math.atan2(q.d.mm, q.d.at) : 0; let tn;
+      if (q && q.d) { tn = q90(ts); tn -= Math.sign(tn) * corr } else if (mmR) { tn = Math.abs(ts - q90(ts)) <= Math.PI / 180 ? q90(ts) : ts } else tn = q90(ts);
+      if (mmR && !(q && q.d)) dir = Math.abs(wrap(dirS(S2[i]) - q90(dirS(S2[i])))) <= Math.PI / 180 ? q90(dirS(S2[i])) : dirS(S2[i]); else dir += tn }   /* по плану — направление эскиза (без накопления) */
+    const a = P[P.length - 1], b = [a[0] + Math.cos(dir) * L2[i].v, a[1] + Math.sin(dir) * L2[i].v]; P.push(b); W.push({ k: S2[i][0], na: S2[i][1], nb: S2[i][2], a, b, L: L2[i].v, ok: L2[i].ok });
+  }
+  let err = null;
+  if (m.closed) { const a = P[P.length - 1], b = P[0], Lc = Math.hypot(b[0] - a[0], b[1] - a[1]), z = L2[N - 1]; W.push({ k: S2[N - 1][0], na: S2[N - 1][1], nb: S2[N - 1][2], a, b, L: Math.round(Lc * 10) / 10, ok: false, cl: 1 }); if (z.ok) err = Math.round((Lc - z.v) * 10) / 10 }
+  for (const w of W) { const f = (m.arcs || {})[w.k]; if (f) { const ai = arcInfo(w.L, +f); if (ai) { w.f = +f; w.R = ai.R; w.s = ai.s } } }
+  const rnd = {}; for (const [i, R0] of Object.entries(m.rnd || {})) { const wi = W.findIndex(w => w.na === +i), wa = W[(wi + W.length - 1) % W.length], wb = W[wi]; if (wi < 0 || !wa || !wb) continue;
+    const ua = [wa.b[0] - wa.a[0], wa.b[1] - wa.a[1]], ub = [wb.b[0] - wb.a[0], wb.b[1] - wb.a[1]], th = Math.abs(wrap(Math.atan2(ub[1], ub[0]) - Math.atan2(ua[1], ua[0]))); rnd[i] = { R: +R0, t: Math.round(+R0 * Math.tan(th / 2) * 10) / 10 } }
+  return { W, err, rnd, mm: mmR, s0 };
+}
+const geoR = v => Math.round(v * 10) / 10;
+function geoOut(r, sg) {   /* выгрузка: стены в порядке листа (j), координаты листа (y вниз, как ms.pts) */
+  const G = geoBuild(r); if (!G || G.fail) return {};
+  const n = plN(r.ms), byK = Object.fromEntries(G.W.map(w => [w.k, w])), walls = [];
+  for (let j = 0; j < n; j++) { const w = byK[sg(j)]; if (!w) continue; const q = { k: j, gn: wN(r, w.k), a: [geoR(w.a[0]), geoR(-w.a[1])], b: [geoR(w.b[0]), geoR(-w.b[1])], L: geoR(w.L), ok: w.ok ? 1 : 0 }; if (w.cl) q.cl = 1; if (w.f) { q.f = w.f; q.R = w.R; q.s = w.s } walls.push(q) }
+  return { geo: { v: 1, rules: 'zamer-18', walls, err: G.err, rnd: G.rnd, mm: G.mm ? 1 : 0 } };
+}
+function geoStat() { if (!S.room || plN(S.room.ms) < 2) return ''; const G = geoBuild(); if (!G) return ''; if (G.fail) return ` · построение: <span class="er">${G.fail}</span>`; return G.err != null ? ` · невязка <b${Math.abs(G.err) > 10 ? ' class="er"' : ''}>${G.err > 0 ? '+' : ''}${G.err}</b> мм` : ' · построено' }
+function geoDraw() {   /* построенный контур — пунктиром, если отличается от эскиза больше 5 мм */
+  if (!S.room || plN(S.room.ms) < 2) return; const G = geoBuild(); if (!G || G.fail) return; const d = devicePixelRatio || 1, m = S.room.ms;
+  const off = G.W.some(w => Math.hypot(w.a[0] - m.pts[w.na][0], w.a[1] - m.pts[w.na][1]) > 5 || Math.hypot(w.b[0] - m.pts[w.nb][0], w.b[1] - m.pts[w.nb][1]) > 5);
+  if (!off) return; cx.save(); cx.setLineDash([6 * d, 4 * d]); cx.strokeStyle = '#2e9e4f'; cx.lineWidth = 2 * d; cx.beginPath();
+  for (const w of G.W) { cx.moveTo(...toScr(...w.a)); cx.lineTo(...toScr(...w.b)) } cx.stroke(); cx.restore();
+}
+
 /* ═══ [BLOCK] ЭКСПОРТ ДЛЯ AKRIX (.json v2) ═══ */
 function exportObj() {
   const W = wf(), d = dims(), m = S.man, dm = {};
@@ -2140,6 +2187,7 @@ function plDraw() {
   }
   plRndDraw(m);   /* v10 */
   opDraw(m);   /* v15: проёмы */
+  geoDraw();   /* v18 */
   m.pts.forEach((p, i) => {
     const s = toScr(...p), sel = S.psel && S.psel.t === 'n' && S.psel.i === i; cx.fillStyle = sel ? '#1f6fd1' : i === 0 ? '#e07a00' : '#0f8fa8'; cx.beginPath(); cx.arc(s[0], s[1], (sel ? 9 : 7) * d, 0, 7); cx.fill();
     const q = m.angs[i]; if (q && (q.d || q.u)) { const t = (q.d ? 'н' + (q.d.mm > 0 ? '+' : '') + q.d.mm + '/' + q.d.at : '') + (q.u ? ' в' + (q.u.mm > 0 ? '+' : '') + q.u.mm + '/' + q.u.at : ''); cx.font = (12 * d) + 'px system-ui'; cx.fillStyle = '#9a6200'; cx.textBaseline = 'bottom'; cx.fillText(t, s[0] + 10 * d, s[1] - 8 * d); cx.font = 'bold ' + (13 * d) + 'px system-ui' }
@@ -2210,7 +2258,7 @@ function plPanel() {
 }
 function plStatus() {
   const m = S.room.ms, n = plN(m), ok = [...Array(n).keys()].filter(k => { const L = plLen(m, k); return L && L.ok }).length, ph = Object.keys(S.room.segs || {}).filter(k => +k < n).length;
-  $('st').innerHTML = `<b>${esc(S.room.obj || '')}</b> ${esc(S.room.name)} · план: углов <b>${m.pts.length}</b>${m.closed ? ' (замкнут)' : ''} · стен <b>${n}</b>, длины <b>${ok}</b>/${n}, фото <b>${ph}</b><br>углов замерено ${Object.keys(m.angs).length} · H ${m.H ? '<b>' + m.H + '</b>' : '—'} ${poolStat()} · ⇪ — помещение для Akrix${S.objRooms.length ? ` · объект: помещений <b>${S.objRooms.length + 1}</b>, стены до С${gnMax()}` : ''}`;   /* v11 */
+  $('st').innerHTML = `<b>${esc(S.room.obj || '')}</b> ${esc(S.room.name)} · план: углов <b>${m.pts.length}</b>${m.closed ? ' (замкнут)' : ''} · стен <b>${n}</b>, длины <b>${ok}</b>/${n}, фото <b>${ph}</b><br>углов замерено ${Object.keys(m.angs).length} · H ${m.H ? '<b>' + m.H + '</b>' : '—'} ${poolStat()} ${geoStat()} · ⇪ — помещение для Akrix${S.objRooms.length ? ` · объект: помещений <b>${S.objRooms.length + 1}</b>, стены до С${gnMax()}` : ''}`;   /* v11 */
 }
 function plStrip() {
   const el = $('fr'), m = S.room.ms; el.innerHTML = '';
@@ -2275,7 +2323,7 @@ async function exportRoomObj(rIn) {   /* v12: rIn — помещение объ�
   return { app: 'akrix-zamer', v: 3, kind: 'room', date: new Date().toISOString(), obj: r.obj, name: r.name,
     ms: { v: 1, lvl: 'd', pts: m.pts.map(p => [p[0], -p[1]]), closed: !!m.closed, dims: m0.dims.map(d => ({ id: d.id, a: { p: nd(d.a.p) }, b: { p: nd(d.b.p) }, v: d.v })), angs: Object.fromEntries(Object.entries(m0.angs).map(([i, q]) => [nd(+i), JSON.parse(JSON.stringify(q))])), ink: [], H: m0.H || '', wl, ccw: true,
     arcs: Object.fromEntries(Object.entries(m0.arcs || {}).map(([k, f]) => [sg(+k), f])), rnd: Object.fromEntries(Object.entries(m0.rnd || {}).map(([i, r]) => [nd(+i), r])),
-    gn: Object.fromEntries([...Array(n).keys()].map(j => [sg(j), wN(r, j)])), ...(m0.ul && ulGet() && ulGet().ul.ok ? { mm: 1 } : {}) } };   /* v16: эскиз по плану с масштабом — в мм */   /* v11: сквозные номера стен объекта по отрезкам листа */   /* v10: дуги (стрела, мм, + наружу) по отрезкам, скругления (R) по углам */
+    gn: Object.fromEntries([...Array(n).keys()].map(j => [sg(j), wN(r, j)])), ...(m0.ul && ulGet() && ulGet().ul.ok ? { mm: 1 } : {}), ...geoOut(r, sg) } };   /* v18: ms.geo — построение Замера */   /* v16: эскиз по плану с масштабом — в мм */   /* v11: сквозные номера стен объекта по отрезкам листа */   /* v10: дуги (стрела, мм, + наружу) по отрезкам, скругления (R) по углам */
 }
 /* ─── [SUB] ВЫГРУЗКА ОБЪЕКТА (v12): все помещения объекта в одном файле — порядок создания, общие координаты плана, сквозные номера (ms.gn) ─── */
 async function exportObjObj() {
@@ -2313,7 +2361,8 @@ $('sMax').addEventListener('change', async () => { const fs = S.frames.map(f => 
 $('bJson').onclick = () => S.mode === 'plan' ? (S.room && S.room.obj && S.objRooms.length ? exportObj2() : exportRoom()) : exportJson();   /* v6; v12: помещений объекта > 1 — файл объекта */
 $('bBt').onclick = btConnect;
 addEventListener('resize', resize); resize(); mkChips();
-window.PM = { plUndo, ctOpen, ctAddNode, ctDelNode, ctClear, sessList, opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
+$('zVer').textContent = 'Замер ' + ZVER; $('zVer2').textContent = 'Akrix Замер ' + ZVER;   /* v18 */
+window.PM = { status, ZVER, geoBuild, plUndo, ctOpen, ctAddNode, ctDelNode, ctClear, sessList, opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
 dbOpen().then(() => { if (!/[?&]nolist/.test(location.search)) sessList(true) });
 </script>
