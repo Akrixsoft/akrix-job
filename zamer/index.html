@@ -1149,6 +1149,10 @@ function detectEls(dbg) {
     const door = W.floor && b.y0 < 250 && h > 1500, y0b = door ? 0 : b.y0;
     out.push({ id: uid(), k: door ? 'door' : 'win', c: fromW([(b.x0 + b.x1) / 2, (y0b + b.y1) / 2], W), W: r1(w), H: r1(b.y1 - y0b), D: '', N: '', st: '', note: '', cand: 1 });
   }
+  { /* тип коробки по месту: 800–1300 от пола и ≤ 400 мм от откоса двери — выключатель (вертикальный блок — по нижней коробке) */
+    const doors = [...out, ...S.els].filter(e => e.k === 'door').map(e => { const g = elGeo(e, W, null); return [g.X, g.X + (+g.W || 0)] });
+    for (const e of out) if (e.k === 'roz') { const g = elGeo(e, W, null), y = g.Y, x = g.X; if (y >= 800 && y <= 1300 && doors.some(([a, b]) => Math.min(Math.abs(x - a), Math.abs(x - b)) <= 400 + 71 * 2)) { e.k = 'vyk'; e.note += ' · у двери' } }
+  }
   if (out.length) { snap(); S.els.push(...out) }
   return { n: out.length, why: '' };
 }
