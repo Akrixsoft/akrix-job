@@ -1110,11 +1110,11 @@ function detectEls(dbg) {
     q.nAll = 0; for (let j = q.j0; j <= q.j1; j++) for (let i = q.i0; i <= q.i1; i++) { const k = j * nx + i; if (Lb[k] === a.id && Math.abs(Df[k]) > thr2) q.nAll++ }   /* заполнение рамки — для «круг / квадрат» */
     return q;
   };
-  let Sm = Ls.comps.filter(a => (a.i1 - a.i0) * st < 700 && (a.j1 - a.j0) * st < 300).map(a => bb(core(Ls.Lb, a, 0.45))).filter(b => { const w = b.x1 - b.x0, h = b.y1 - b.y0; return h >= 45 && h <= 140 && w >= 45 && b.c >= Math.max(30, thr2 * 1.2) });
+  let Sm = Ls.comps.filter(a => (a.i1 - a.i0) * st < 700 && (a.j1 - a.j0) * st < 420).map(a => bb(core(Ls.Lb, a, 0.45))).filter(b => { const w = b.x1 - b.x0, h = b.y1 - b.y0; return h >= 45 && (h <= 140 || (w <= 140 && h <= 400 && h > w * 1.4)) && w >= 45 && b.c >= Math.max(30, thr2 * 1.2) });
   Sm.sort((a, b) => a.x0 - b.x0);
   for (let i = 0; i < Sm.length - 1; i++) for (let j = i + 1; j < Sm.length; j++) {   /* соседние коробки одной высоты встык — блок */
     const a = Sm[i], b = Sm[j], ha = a.y1 - a.y0, hb = b.y1 - b.y0, ca = (a.y0 + a.y1) / 2, cb = (b.y0 + b.y1) / 2, gap = b.x0 - a.x1;
-    if (Math.abs(ha - hb) < 22 && Math.abs(ca - cb) < 16 && gap < 22 && gap > -15) { Sm[i] = { x0: a.x0, x1: Math.max(a.x1, b.x1), y0: Math.min(a.y0, b.y0), y1: Math.max(a.y1, b.y1), n: a.n + b.n, c: (a.c * a.n + b.c * b.n) / (a.n + b.n), cr: Math.min(a.cr, b.cr), parts: (a.parts || 1) + (b.parts || 1), hs: [...(a.hs || [ha]), hb] }; Sm.splice(j, 1); j = i }
+    if (ha <= 140 && hb <= 140 && Math.abs(ha - hb) < 22 && Math.abs(ca - cb) < 16 && gap < 22 && gap > -15) { Sm[i] = { x0: a.x0, x1: Math.max(a.x1, b.x1), y0: Math.min(a.y0, b.y0), y1: Math.max(a.y1, b.y1), n: a.n + b.n, c: (a.c * a.n + b.c * b.n) / (a.n + b.n), cr: Math.min(a.cr, b.cr), parts: (a.parts || 1) + (b.parts || 1), hs: [...(a.hs || [ha]), hb] }; Sm.splice(j, 1); j = i }
   }
   Sm = Sm.filter(b => { const h = b.y1 - b.y0, w = b.x1 - b.x0; return h >= 55 && w <= h * 5.6 });
   /* крупные: без мелких объектов; полосы-хвосты (штроба к окну) обрезаются */
@@ -1134,6 +1134,11 @@ function detectEls(dbg) {
   for (const b of Sm) {
     if (done(b)) continue;
     const w = b.x1 - b.x0, h = b.y1 - b.y0, cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+    if (h > w * 1.4 && w <= 140) {   /* вертикальный блок по 71: каждая коробка — отдельная точка (свой размер от пола) */
+      const Nv = Math.min(5, Math.max(2, Math.round((h - w) / 71) + 1)), rnd = b.cr < 0.4;
+      for (let q = 0; q < Nv; q++) { const yc = b.y0 + w / 2 + q * 71; out.push({ id: uid(), k: 'roz', c: fromW([cx, yc], W), W: rnd ? '' : r1(w), H: rnd ? '' : r1(w), D: rnd ? r1(w) : '', N: '', st: '', note: (rnd ? 'подрозетник' : 'рамка') + ' · верт. блок ' + (q + 1) + '/' + Nv, cand: 1 }) }
+      continue;
+    }
     const N = b.parts && b.parts > 1 ? Math.min(5, Math.max(b.parts, Math.round((w - h) / 71) + 1)) : w < h * 1.4 ? 1 : Math.min(5, Math.max(2, Math.round((w - h) / 71) + 1));
     const pw = r1(N > 1 ? w - (N - 1) * 71 : w), round = b.cr < 0.4 && Math.abs(pw - h) < 0.25 * h;   /* углы пустые — круг: подрозетник */
     out.push({ id: uid(), k: 'roz', c: fromW([cx, cy], W), W: round ? '' : pw, H: round ? '' : r1(h), D: round ? r1((pw + h) / 2) : '', N: N > 1 ? N : '', st: N > 1 ? 71 : '', note: round ? 'подрозетник' : 'рамка', cand: 1 });
