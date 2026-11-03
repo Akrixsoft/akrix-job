@@ -160,7 +160,7 @@ const S = { frames: [], sol: null, mosaic: null, tool: 'view', rulers: [], pend:
   sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'sel', und: [], la: {},
   mode: 'wall', room: null, room0: null, psel: null, pund: [], planL: null, wsh: {}, adim: true, dimHits: [], dfoc: null, msel: [], rsr: null, colOpen: false, notes: [], nsel: null, gOpen: false, gsel: '2.0', objRooms: [], pf: null, poolW: [] };   /* v13: pf — выбранный кадр пула, poolW — кадры замеров стен объекта */   /* v11: objRooms — другие помещения объекта */   /* v10: notes — выноски, gsel — точка сетки 'ряд.столбец' */   /* v8: msel — группа (рамка выделения), rsr — рамка на экране */   /* v7: adim — авторазмеры всех объектов; dimHits — подписи размеров под пальцем; dfoc — поле размера в фокусе */   /* v6: mode 'plan' — план помещения */   /* v5: la — привязка концов линий к кадрам */   /* v4: mk 'sel' — выбор и правка */   /* v2: замер, разметка */
 const $ = id => document.getElementById(id);
-const ZVER = 'v18';   /* v18: номер версии — подставляет build.py */
+const ZVER = 'v19';   /* v18: номер версии — подставляет build.py */
 function setNum(id) { const v = $(id).value.trim(); if (!v) return null; try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) && r > 0 ? r : null } catch (e) { return null } }
 function sizeOf(id) { return id >= 100 ? (setNum('sA5') || 120) : (setNum('sA4') || 180) }
 function maxSide() { return Math.round(setNum('sMax') || 4096) }
@@ -1615,7 +1615,7 @@ async function poolAdd(files) {
     const key = r.id + ':p' + Date.now() + ':' + Math.random().toString(36).slice(2, 6); try { await dbPut('img', f, key) } catch (e) { toast('Кадр не сохранён'); continue }
     r.pool.push({ key, name: f.name || ('кадр ' + (poolList().length + 1)), t: Date.now(), w: null }); first = first || key; await poolThumb(key);
   }
-  saveRoom(); if (first) { S.pf = first; S.psel = null } toast('В пуле: ' + files.length + ' · коснитесь стены на плане'); mkPanel(); status(); strip(); draw();
+  saveRoom(); if (first) { S.pf = first; S.psel = null } toast(!r.ms.pts.length && !ulGet() ? 'В пуле: ' + files.length + ' · план квартиры? → «📐 это план»' : 'В пуле: ' + files.length + ' · коснитесь стены на плане');   /* v19 */ mkPanel(); status(); strip(); draw();
 }
 async function wallDrop(key, w) {   /* убрать кадр пула из замера стены w {r, k} (переназначение / удаление) */
   const o = poolRooms().find(x => x.id === w.r) || await dbGet('sess', w.r).catch(() => null), sid = o && o.segs && o.segs[w.k]; if (!sid) return;
@@ -1667,12 +1667,13 @@ function poolPanel() {
   pp.innerHTML = `<div class="row"><span class="t">Кадр ${i + 1} / ${L.length}</span><span class="mu">→ ${wl}${e.ws ? ' · снят в замере стены' : ''}</span><span style="flex:1"></span><button id="bPfX" title="Снять выбор">✕</button></div>
     <div class="row" style="justify-content:center"><img id="pfImg" style="max-height:90px;max-width:100%;border-radius:6px" alt=""></div>
     ${e.ws ? '' : `<div class="row"><span class="mu">стена:</span>${ch || '<span class="mu">нет стен — сначала контур</span>'}<button data-pw="-1" title="Снять назначение">—</button></div>`}
-    <div class="row">${e.w && o ? `<button id="bPfW" style="flex:1;height:36px;background:var(--ac);color:#111;border-color:var(--ac)">📷 Фото-замер С${wN(o, e.w.k)}</button>` : ''}${e.ws ? '' : '<button id="bPfD" title="Удалить кадр из пула (нажать дважды)">🗑</button>'}</div>
+    <div class="row">${e.w && o ? `<button id="bPfW" style="flex:1;height:36px;background:var(--ac);color:#111;border-color:var(--ac)">📷 Фото-замер С${wN(o, e.w.k)}</button>` : ''}${e.ws ? '' : '<button id="bPfU" title="Это план квартиры — положить подложкой (⌂ по плану, ✎ штрих)">📐 это план</button><button id="bPfD" title="Удалить кадр из пула (нажать дважды)">🗑</button>'}</div>
     <div class="row mu">${e.ws ? 'кадр замера стены — правка в самой стене' : 'касание стены на плане или чип — назначить; дальше — следующий кадр без стены'}</div>`;
   dbGet('img', e.key).then(b => { const im = $('pfImg'); if (b && im) im.src = URL.createObjectURL(b) }).catch(() => { });
   $('bPfX').onclick = () => { S.pf = null; mkPanel(); strip(); draw() };
   pp.querySelectorAll('[data-pw]').forEach(b => b.onclick = () => { const k = +b.dataset.pw; poolSet(e.key, k < 0 ? null : S.room, k < 0 ? null : k, k >= 0) });
   const bw = $('bPfW'); if (bw) bw.onclick = async () => { if (o !== S.room) { await openRoom(o.id, null, true) } S.psel = { t: 's', i: e.w.k }; openWall(e.w.k) };
+  const bu = $('bPfU'); if (bu) bu.onclick = async () => { const b = await dbGet('img', e.key).catch(() => null); if (!b) return; const own = poolOwner(e.key); plSnap(); if (own) { own.pool = own.pool.filter(x => x.key !== e.key); own.bin = [...(own.bin || []), e.key]; poolPut(own) } S.pf = null; await ulAdd(b instanceof File ? b : new File([b], e.name || 'план.jpg', { type: b.type || 'image/jpeg' })) };   /* v19: кадр пула → план-подложка */
   const bd = $('bPfD'); if (bd) bd.onclick = () => { if (!bd.classList.contains('arm')) { bd.classList.add('arm'); setTimeout(() => bd.classList.remove('arm'), 2500); return } poolDel(e.key) };
 }
 
@@ -2243,7 +2244,7 @@ function plPanel() {
       <div class="row"><input data-nr class="wide" placeholder="новое помещение" style="text-align:left"><button id="bAddR" title="Добавить помещение в объект — на этот же холст" style="background:var(--ac);border-color:var(--ac);color:#111">＋ помещение</button></div>
       ${m.pts.length ? `<div class="row">${m.closed && m.pts.length > 2 ? '<button id="bOpn" title="Разомкнуть контур (убрать замыкающую стену) — правка узлов, ⌗ продолжает">⌇ разомкнуть</button>' : ''}<button id="bCtX" title="Удалить контур (нажать дважды; ↶ — вернуть)">✕ контур</button></div>` : ''}
       ${ulRow()}
-      <div class="row mu">${m.closed ? 'контур замкнут · касание стены — длина и фото, угла — отклонение' : '⌗ контур: касания по углам, касание первого угла — замкнуть'}</div>`;   /* v14: ulRow — подложка */
+      <div class="row mu">${m.closed ? 'контур замкнут · касание стены — длина и фото, угла — отклонение' : m.pts.length ? '⌗ контур: касания по углам, касание первого угла — замкнуть' : (ulGet() ? '⌂ по плану: касание внутри помещения на плане — контур' : 'контур: ⌗ — касания по углам, или 📐 план ниже → ⌂ касание в помещении')}</div>`;   /* v14: ulRow — подложка */
   }
   $('bPu').onclick = plUndo; plObjBind(pp); ulBind(pp); ctBind(pp);   /* v11; v14; v17 */
   pp.querySelectorAll('[data-pf]').forEach(i => i.onchange = () => {
