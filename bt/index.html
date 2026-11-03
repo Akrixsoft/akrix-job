@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Akrix · тест дальномера</title>
+<meta name="theme-color" content="#ffffff">
+<style>
+/* ═══ [BLOCK] СТИЛЬ ═══ */
+:root{--bg:#f4f6f8;--pn:#fff;--tx:#1a2027;--mu:#6b7682;--ln:#dde2e7;--ac:#1565c0;--ok:#2e7d32;--er:#c62828;--wn:#ef6c00}
+*{box-sizing:border-box}body{margin:0;font:15px/1.35 system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+header{background:var(--pn);border-bottom:1px solid var(--ln);padding:10px 12px;font-weight:600;display:flex;gap:8px;align-items:center}
+header small{color:var(--mu);font-weight:400}
+main{padding:10px;display:grid;gap:10px;max-width:640px;margin:auto}
+.pn{background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:10px}
+.pn h3{margin:0 0 6px;font-size:14px;color:var(--mu);font-weight:600}
+.env div{display:flex;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:1px dashed var(--ln)}
+.env b{font-weight:600}.ok{color:var(--ok)}.er{color:var(--er)}.wn{color:var(--wn)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+button{height:44px;padding:0 14px;border:1px solid var(--ln);border-radius:8px;background:#fff;font:inherit;font-weight:600;color:var(--tx)}
+button.pr{background:var(--ac);border-color:var(--ac);color:#fff}button:disabled{opacity:.45}
+#st{font-weight:600}
+.big{font-size:40px;font-weight:700;text-align:center;padding:6px 0;font-variant-numeric:tabular-nums}
+input{height:44px;width:100%;border:1px solid var(--ln);border-radius:8px;padding:0 10px;font:inherit;font-size:18px}
+input:focus{outline:2px solid var(--ac)}
+label{font-size:13px;color:var(--mu)}
+.flds{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+#vals{font-variant-numeric:tabular-nums;max-height:160px;overflow:auto}
+#vals div{display:flex;justify-content:space-between;border-bottom:1px solid var(--ln);padding:3px 0}
+#log{font:12px/1.3 ui-monospace,monospace;white-space:pre-wrap;max-height:220px;overflow:auto;background:#fafbfc;border:1px solid var(--ln);border-radius:6px;padding:6px}
+.chk{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--mu)}
+</style></head><body>
+<header>📡 Тест дальномера Bosch GLM <small>v2 · 03.11.2026</small></header>
+<main>
+<!-- ═══ [BLOCK] РАЗМЕТКА ═══ -->
+<section class="pn env" id="env"><h3>Оболочка</h3></section>
+<section class="pn">
+  <h3>Подключение · <span id="st">не подключён</span></h3>
+  <div class="row">
+    <button class="pr" id="bCon">📡 Подключить</button>
+    <button id="bMe" disabled>▶ Замер с телефона</button>
+    <button id="bOff" disabled>✕ Отключить</button>
+  </div>
+  <div class="big" id="last">— мм</div>
+  <div class="chk"><input type="checkbox" id="auto" style="width:auto;height:auto"> <label for="auto">авто-переподключение при обрыве</label></div>
+</section>
+<section class="pn">
+  <h3>Куда идёт размер (как в Akrix): тапни поле → замер на приборе</h3>
+  <div class="flds">
+    <div><label>В</label><input id="fH" inputmode="decimal"></div>
+    <div><label>Ш</label><input id="fW" inputmode="decimal"></div>
+    <div><label>Г</label><input id="fD" inputmode="decimal"></div>
+  </div>
+  <div class="chk" style="margin-top:6px"><input type="checkbox" id="next" checked style="width:auto;height:auto"> <label for="next">после замера — к следующему полю</label></div>
+</section>
+<section class="pn"><h3>Замеры <span id="cnt"></span></h3><div id="vals"></div></section>
+<section class="pn">
+  <h3>Журнал пакетов</h3>
+  <div class="chk"><input type="checkbox" id="raw" style="width:auto;height:auto"> <label for="raw">показывать служебные C0 0F (раз в ~2 с)</label></div>
+  <div id="log"></div>
+  <div class="row" style="margin-top:6px"><button id="bCopy">⧉ Копировать журнал</button><button id="bClr">Очистить</button></div>
+</section>
+</main>
+<script>
+/* ═══ [BLOCK] ДИАГНОСТИКА ОБОЛОЧКИ ═══ */
+const $ = id => document.getElementById(id);
+const UA = navigator.userAgent;
+const ENV = {
+  wv: /; wv\)/.test(UA) || /Version\/[\d.]+ Chrome\/[\d.]+ Mobile/.test(UA),
+  chrome: (UA.match(/Chrome\/([\d.]+)/) || [])[1] || '',
+  sec: window.isSecureContext,
+  bt: !!navigator.bluetooth,
+  pp: (() => { try { const p = document.permissionsPolicy || document.featurePolicy; return p ? p.allowsFeature('bluetooth') : null; } catch (e) { return null; } })(),
+  br: !!window.AkrixBT,   /* мост нативной оболочки (вариант Б), если есть */
+  pwa: matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches,
+  twa: document.referrer.startsWith('android-app://')
+};
+function envUi(av) {
+  const R = [
+    ['Режим', ENV.twa ? 'APK (TWA)' : ENV.pwa ? 'установлен (PWA)' : ENV.wv ? 'WebView' : 'браузер', ''],
+    ['Chrome', ENV.chrome || 'нет', ENV.chrome ? 'ok' : 'wn'],
+    ['WebView', ENV.wv ? 'да' : 'нет', ENV.wv ? 'wn' : 'ok'],
+    ['https / файл', ENV.sec ? 'да' : 'нет', ENV.sec ? 'ok' : 'er'],
+    ['Web Bluetooth', ENV.bt ? 'есть' : 'нет', ENV.bt ? 'ok' : 'er'],
+    ['Разрешено страницей', ENV.pp === null ? '—' : ENV.pp ? 'да' : 'нет', ENV.pp === false ? 'er' : 'ok'],
+    ['Bluetooth телефона', av === undefined ? '…' : av === null ? '—' : av ? 'включён' : 'выключен', av === false ? 'er' : 'ok'],
+    ['Нативный мост', ENV.br ? 'AkrixBT' : 'нет', ENV.br ? 'ok' : '']
+  ];
+  const ok = (ENV.bt && ENV.sec && ENV.pp !== false) || ENV.br;
+  $('env').innerHTML = '<h3>Оболочка — ' + (ok ? '<span class="ok">дальномер доступен</span>' : '<span class="er">дальномер недоступен</span>') + '</h3>' +
+    R.map(([a, b, c]) => `<div><span>${a}</span><b class="${c}">${b}</b></div>`).join('') +
+    `<div style="display:block;color:var(--mu);font-size:11px;word-break:break-all">${UA}</div>`;
+  $('bCon').disabled = !ok;
+}
+envUi();
+if (navigator.bluetooth && navigator.bluetooth.getAvailability) navigator.bluetooth.getAvailability().then(envUi, () => envUi(null)); else envUi(null);
+
+/* ═══ [BLOCK] ЖУРНАЛ ═══ */
+const T0 = performance.now();
+const hex = dv => Array.from({ length: dv.byteLength }, (_, i) => dv.getUint8(i).toString(16).padStart(2, '0').toUpperCase()).join(' ');
+function log(t, c) { const L = $('log'), d = document.createElement('div'); d.textContent = ((performance.now() - T0) / 1000).toFixed(1).padStart(6) + '  ' + t; if (c) d.className = c; L.appendChild(d); L.scrollTop = L.scrollHeight; }
+$('bClr').onclick = () => $('log').innerHTML = '';
+$('bCopy').onclick = () => { const t = ENVtxt() + '\n' + $('log').innerText; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => log('журнал скопирован', 'ok'), () => log('копирование не удалось', 'er')); };
+const ENVtxt = () => JSON.stringify(ENV) + '\n' + UA;
+
+/* ═══ [BLOCK] BT — ПРОТОКОЛ BOSCH MT (как Akrix v166) ═══ */
+const BT_SVC = '02a6c0d0-0451-4000-b000-fb3210111989', BT_CH = '02a6c0d1-0451-4000-b000-fb3210111989';
+const BT = { st: 'off', dev: null, ch: null, tTrig: 0, n: 0, ka: 0, manual: false };
+const SYNC = [0xC0, 0x55, 0x02, 0x01, 0x00, 0x1A], TRIG = [0xC0, 0x56, 0x01, 0x00, 0x1E];
+function stUi() {
+  $('st').textContent = { off: 'не подключён', wait: 'подключение…', on: 'подключён — ' + (BT.dev && BT.dev.name || 'GLM') }[BT.st];
+  $('st').className = BT.st === 'on' ? 'ok' : BT.st === 'wait' ? 'wn' : '';
+  $('bMe').disabled = $('bOff').disabled = BT.st !== 'on';
+  $('bCon').textContent = BT.st === 'on' ? '📡 Подключён' : '📡 Подключить';
+}
+async function btOpen(dev) {
+  const t = performance.now();
+  const srv = await dev.gatt.connect(); log('GATT подключён · ' + Math.round(performance.now() - t) + ' мс');
+  const ch = await (await srv.getPrimaryService(BT_SVC)).getCharacteristic(BT_CH);
+  ch.addEventListener('characteristicvaluechanged', e => btPkt(e.target.value));
+  await ch.startNotifications(); log('уведомления включены');
+  try { await ch.writeValue(new Uint8Array(SYNC)); log('→ ' + hex(new DataView(new Uint8Array(SYNC).buffer)) + ' (синхронизация)'); } catch (e) { log('синхронизация: ' + e.message, 'wn'); }
+  Object.assign(BT, { dev, ch, st: 'on' }); stUi();
+}
+async function btConnect() {
+  if (BT.st === 'on') return;
+  try {
+    BT.st = 'wait'; stUi(); log('поиск прибора…');
+    const dev = await navigator.bluetooth.requestDevice({ filters: [{ services: [BT_SVC] }, { namePrefix: 'GLM' }, { namePrefix: 'Bosch' }], optionalServices: [BT_SVC] });
+    log('выбран: ' + (dev.name || '?') + ' · id ' + dev.id);
+    dev.addEventListener('gattserverdisconnected', onDisc);
+    await btOpen(dev);
+  } catch (e) { BT.st = 'off'; stUi(); log(e.name + ': ' + e.message, 'er'); }
+}
+async function onDisc() {
+  BT.ch = null; BT.st = 'off'; stUi(); log('отключён', BT.manual ? '' : 'er');
+  if (!BT.manual && $('auto').checked && BT.dev) {
+    for (let i = 1; i <= 3; i++) { log('переподключение ' + i + '/3…'); try { BT.st = 'wait'; stUi(); await btOpen(BT.dev); return; } catch (e) { log(e.message, 'er'); await new Promise(r => setTimeout(r, 1500)); } }
+    BT.st = 'off'; stUi();
+  }
+  BT.manual = false;
+}
+async function btMeas() { if (!BT.ch) return; BT.tTrig = performance.now(); try { await BT.ch.writeValue(new Uint8Array(TRIG)); log('→ C0 56 01 00 1E (замер)'); } catch (e) { log('замер: ' + e.message, 'er'); } }
+function btOff() { if (!BT.dev) return; BT.manual = true; try { BT.dev.gatt.disconnect(); } catch (e) {} }
+function btPkt(dv) {
+  const h = hex(dv);
+  if (dv.byteLength >= 2 && dv.getUint8(0) === 0xC0 && dv.getUint8(1) === 0x0F) { BT.ka++; if ($('raw').checked) log('← ' + h + ' (служебный)'); return; }
+  log('← ' + h);
+  if (dv.byteLength < 11 || dv.getUint8(0) !== 0xC0 || dv.getUint8(1) !== 0x55 || dv.getUint8(2) !== 0x10) return;
+  const m = dv.getFloat32(7, true); if (!(m > 0 && m < 300)) { log('вне диапазона: ' + m, 'wn'); return; }
+  btVal(Math.round(m * 10000) / 10, BT.tTrig ? Math.round(performance.now() - BT.tTrig) : 0); BT.tTrig = 0;
+}
+/* нативный мост варианта Б: оболочка вызывает window.akrixBtPkt(hexString) и даёт AkrixBT.connect()/measure()/disconnect() */
+window.akrixBtPkt = s => { const b = new Uint8Array(s.trim().split(/\s+/).map(x => parseInt(x, 16))); btPkt(new DataView(b.buffer)); };
+window.akrixBtState = s => { BT.st = s; if (s === 'on') { BT.ch = { writeValue: async () => window.AkrixBT.measure() }; BT.dev = { name: 'GLM (мост)', gatt: { disconnect: () => window.AkrixBT.disconnect() } }; } else BT.ch = null; stUi(); log('мост: ' + s); };
+
+/* ═══ [BLOCK] ПРИЁМ РАЗМЕРА → ПОЛЕ ═══ */
+let lastIn = null;
+document.addEventListener('focusin', e => { if (e.target.matches('.flds input')) lastIn = e.target; });
+function btVal(mm, lat) {
+  BT.n++; $('last').textContent = mm + ' мм';
+  const d = document.createElement('div'), tgt = lastIn;
+  d.innerHTML = `<span>${BT.n}. <b>${mm}</b> мм</span><span>${tgt ? '→ ' + tgt.previousElementSibling.textContent : 'без поля'}${lat ? ' · ' + lat + ' мс' : ''}</span>`;
+  $('vals').prepend(d); $('cnt').textContent = '(' + BT.n + ')';
+  if (tgt) {
+    tgt.value = String(mm); tgt.dispatchEvent(new Event('change', { bubbles: true }));
+    const F = [...document.querySelectorAll('.flds input')], i = F.indexOf(tgt);
+    if ($('next').checked && i >= 0) { lastIn = F[(i + 1) % F.length]; lastIn.focus({ preventScroll: true }); } else tgt.focus({ preventScroll: true });
+  }
+}
+
+/* ═══ [BLOCK] КНОПКИ ═══ */
+$('bCon').onclick = () => ENV.br && !ENV.bt ? window.AkrixBT.connect() : btConnect();
+$('bMe').onclick = btMeas;
+$('bOff').onclick = btOff;
+['bMe', 'bOff', 'bCon'].forEach(id => $(id).addEventListener('pointerdown', e => e.preventDefault()));   /* не уводить фокус с поля */
+stUi(); log('страница загружена · ' + (ENV.bt ? 'Web Bluetooth есть' : 'Web Bluetooth нет'));
+</script>
+</body></html>
