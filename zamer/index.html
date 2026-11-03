@@ -67,6 +67,8 @@ body.mk #rl{top:96px}
 #pp button.arm{background:var(--er);border-color:var(--er)}
 #pp .t{color:var(--tx);font-weight:600}
 #pp .mu{color:var(--mu)}
+#pp input.ex{border-color:#f0a020;box-shadow:0 0 0 2px #f0a02055}   /* v7: поле размера, куда пойдёт лазер */
+#pp input.ok{color:#fff;font-weight:700}
 #ss{position:fixed;left:0;right:0;top:48px;bottom:0;background:var(--bg);z-index:8;display:none;padding:10px;overflow:auto}
 #ss.on{display:block}
 #ss .nw{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
@@ -119,7 +121,7 @@ const DCODES = Object.entries(DICT).map(([id, b]) => ({ id: +id, b: b.split('').
 /* ═══ [BLOCK] СОСТОЯНИЕ ═══ */
 const S = { frames: [], sol: null, mosaic: null, tool: 'view', rulers: [], pend: null, view: { s: 0.2, ox: 0, oy: 0 }, show: -1,
   sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'sel', und: [], la: {},
-  mode: 'wall', room: null, room0: null, psel: null, pund: [], planL: null, wsh: {} };   /* v6: mode 'plan' — план помещения */   /* v5: la — привязка концов линий к кадрам */   /* v4: mk 'sel' — выбор и правка */   /* v2: замер, разметка */
+  mode: 'wall', room: null, room0: null, psel: null, pund: [], planL: null, wsh: {}, adim: true, dimHits: [], dfoc: null };   /* v7: adim — авторазмеры всех объектов; dimHits — подписи размеров под пальцем; dfoc — поле размера в фокусе */   /* v6: mode 'plan' — план помещения */   /* v5: la — привязка концов линий к кадрам */   /* v4: mk 'sel' — выбор и правка */   /* v2: замер, разметка */
 const $ = id => document.getElementById(id);
 function setNum(id) { const v = $(id).value.trim(); if (!v) return null; try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) && r > 0 ? r : null } catch (e) { return null } }
 function sizeOf(id) { return id >= 100 ? (setNum('sA5') || 120) : (setNum('sA4') || 180) }
@@ -860,11 +862,11 @@ function mkHit(p) {                            // элемент под паль
 function mkDrag(g, p) {
   const e = S.els.find(x => x.id === g.edrag.id); if (!e) return;
   if (!g.edrag.snapped) { snap(); g.edrag.snapped = true }
-  const q = toPl(...p); e.c = add(g.edrag.c0, sub(q, g.edrag.q0)); if (S.sel !== e.id) { S.sel = e.id; mkPanel() } draw();
+  const q = toPl(...p); e.c = add(g.edrag.c0, sub(q, g.edrag.q0)); delete e.fx; delete e.fy; if (S.sel !== e.id) { S.sel = e.id; mkPanel() } draw();   /* v7: сдвиг — точные размеры сняты */
 }
 function mkTap(p) {
   const q = toPl(...p);
-  if (S.mk === 'sel') { const hit = mkHit(p); S.sel = hit ? hit.id : null; mkPanel(); draw(); return }   /* v4 */
+  if (S.mk === 'sel') { const dh = S.adim ? dimHit(p) : null; if (dh) { S.sel = dh.id; S.dfoc = dh.ax; mkPanel(); draw(); return } const hit = mkHit(p); S.sel = hit ? hit.id : null; S.dfoc = null; mkPanel(); draw(); return }   /* v4; v7: подпись размера */
   const K = KD[S.mk];
   if (K.line) {
     if (!S.pend) { S.pend = q } else { snap(); S.lines[K.k] = [S.pend, q]; S.pend = null; mkChips(); status(); saveSess(); if (corrH() || S.dispC) { mkPanel(); return refreshDisp() } if (K.k === 'floor') { mkPanel(); return fit() } }
@@ -943,6 +945,7 @@ function dimLine(a, b, side, txt, col) {       /* a, b — точки плоск
   const m = [(A2[0] + B2[0]) / 2, (A2[1] + B2[1]) / 2]; cx.save(); cx.translate(...m); cx.rotate(ang);
   cx.font = 'bold ' + (13 * d) + 'px system-ui'; const tw = cx.measureText(txt).width;
   cx.fillStyle = 'rgba(16,18,20,.85)'; cx.fillRect(-tw / 2 - 4 * d, -9 * d, tw + 8 * d, 18 * d); cx.fillStyle = col; cx.textBaseline = 'middle'; cx.fillText(txt, -tw / 2, 0); cx.restore();
+  const hw = Math.max(tw / 2 + 6 * d, 20 * d), hh = 13 * d, vert = Math.abs(Math.sin(ang)) > 0.7, ax = vert ? hh : hw, ay = vert ? hw : hh; return [m[0] - ax, m[1] - ay, m[0] + ax, m[1] + ay];   /* v7: зона касания подписи (по повороту) */
 }
 function drawDims() {
   if (S.tool === 'view' && !S.lines.floor) return;
@@ -953,11 +956,158 @@ function drawDims() {
   if (cl && cr) dimLine(cr, cl, 34, tv('Lt'), '#36c2d9');      /* над потолком */
   if (fl && cl) dimLine(cl, fl, 34, tv('Hl'), '#d65ad6');      /* слева */
   if (fr && cr) dimLine(fr, cr, 34, tv('Hr'), '#d65ad6');      /* справа */
+  S.dimHits = []; if (S.adim) return drawAutoDims();   /* v7 */
   const e = S.els.find(x => x.id === S.sel); if (!e) return;
   const W = wf(), K = KD[e.k], c = toW(e.c, W), w = +e.W || 0, h = +e.H || 0, X = K.rc ? c[0] - w / 2 : c[0], Y = K.rc ? c[1] - h / 2 : c[1];
   const g = elGeo(e, W, corrH());   /* v5: подписи — с подгонкой */
   if (W.left) dimLine(fromW([0, Y], W), fromW([X, Y], W), 16, f1(g.X), '#fff');
   if (W.floor) dimLine(fromW([X, Y], W), fromW([X, 0], W), 16, f1(g.Y), '#fff');
+}
+
+/* ─── [SUB] авторазмеры (v7): объект → размер от внутреннего угла (коробки — до центра первой со стороны угла; проём — до края), от пола; ширина / высота проёма ─── */
+/* Точный размер — только с дальномера или ввода (e.fx {s 'L'|'R', v}, e.fy); по фото — «≈». Угол: из плана помещения (внутренний / наружный), у отдельной плоскости — S.man.cL / cR. */
+function wEnds() {                             /* концы стены в координатах выдачи: L — 0 (есть левый край), R — длина (правый край) */
+  const W = wf(), C = corrH(), L = S.lines;
+  let R = null;
+  if (C) { const q = manV('Lb'); R = q ? q.v : null }
+  else if (L.right && L.floor) { const p = lnInter(L.right[0], sub(L.right[1], L.right[0]), L.floor); if (p) R = toW(p, W)[0] }
+  else if (L.right) R = toW(L.right[0], W)[0];
+  return { L: W.left ? 0 : null, R, W, C };
+}
+function wCorners() {                          /* {L, R}: 'in' — внутренний угол, 'out' — наружный, null — нет угла */
+  const r = S.room0, k = S.sess && S.sess.seg;
+  if (r && r.ms && r.ms.closed && k != null && r.ms.pts.length > 2) {
+    const m = r.ms, n = m.pts.length, ccw = plArea(m) > 0, cv = i => { const a = m.pts[(i - 1 + n) % n], b = m.pts[i], c = m.pts[(i + 1) % n], cr = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]); return (ccw ? cr > 0 : cr < 0) ? 'in' : 'out' };
+    const fl = plFlip(m, k), a = k, b = (k + 1) % n; return { L: cv(fl ? b : a), R: cv(fl ? a : b), plan: true };
+  }
+  const t = v => v === 'out' ? 'out' : v === 'none' ? null : 'in'; return { L: t(S.man.cL), R: t(S.man.cR), plan: false };
+}
+function elRef(e, g) {                         /* опорные x объекта в выдаче: от левого / от правого угла (коробки — центр крайней коробки со стороны угла) */
+  const K = KD[e.k], N = Math.max(1, Math.round(+e.N || 1)), st = +g.st || +g.W || 0;
+  if (K.pt) return { xl: g.X - (N - 1) * st / 2, xr: g.X + (N - 1) * st / 2, y: g.Y };
+  const w = +g.W || 0; return { xl: g.X, xr: g.X + w, y: g.Y };
+}
+function elSide(e, g, E, Cn) {                 /* сторона размера: заданная → внутренний угол (оба — ближний) → левый край → правый */
+  E = E || wEnds(); Cn = Cn || wCorners(); const r = elRef(e, g);
+  const hasL = E.L != null, hasR = E.R != null;
+  if (e.fx && (e.fx.s === 'L' ? hasL : hasR)) return e.fx.s;
+  const iL = hasL && Cn.L === 'in', iR = hasR && Cn.R === 'in';
+  if (iL && iR) return (r.xl - E.L) <= (E.R - r.xr) ? 'L' : 'R';
+  if (iL) return 'L'; if (iR) return 'R';
+  return hasL ? 'L' : hasR ? 'R' : null;
+}
+function elDist(e, g, s, E) { const r = elRef(e, g); return s === 'L' ? r.xl - E.L : E.R - r.xr }
+function exactOk(v, t) { return v != null && Math.abs(v - t) < 0.6 }
+function setOut(e, X, Y) {                     /* поставить объект по координатам выдачи (коробки — центр блока, проём — левый нижний угол) */
+  const W = wf(), C = corrH(), K = KD[e.k];
+  if (K.rc) { const lo = toW(fromWc([X, Y], W, C), W); e.c = fromW([lo[0] + (+e.W || 0) / 2, lo[1] + (+e.H || 0) / 2], W) } else e.c = fromWc([X, Y], W, C);
+}
+function setDim(e, ax, v, side) {              /* точный размер: dx — от угла (side), dy — от пола; объект переставляется */
+  const E = wEnds(), W = E.W, C = E.C, g = elGeo(e, W, C), K = KD[e.k], N = Math.max(1, Math.round(+e.N || 1)), st = +g.st || +g.W || 0, w = +g.W || 0;
+  if (ax === 'dy') { setOut(e, g.X, v); e.fy = v; return true }
+  const s = side || elSide(e, g, E); if (!s || (s === 'L' ? E.L == null : E.R == null)) return false;
+  let X;
+  if (K.pt) X = s === 'L' ? E.L + v + (N - 1) * st / 2 : E.R - v - (N - 1) * st / 2;
+  else X = s === 'L' ? E.L + v : E.R - v - w;
+  setOut(e, X, g.Y); e.fx = { s, v }; return true;
+}
+function drawAutoDims() {
+  const E = wEnds(), W = E.W, C = E.C, Cn = wCorners(), d = devicePixelRatio || 1; if (!W.floor && E.L == null) return;
+  const P = (x, y) => fromWc([x, y], W, C), hit = (r, id, ax) => r && S.dimHits.push({ r, id, ax });
+  const lab = (v, ok) => (ok ? '' : '≈') + f1(v).replace(',0', '');
+  S.els.forEach((e, i) => {
+    const K = KD[e.k]; if (!K || K.line) return;
+    const g = elGeo(e, W, C), r = elRef(e, g), s = elSide(e, g, E, Cn), sel = e.id === S.sel, cand = !!e.cand;
+    const col = cand ? '#9aa3ad' : sel ? '#ffffff' : '#ffd479', off = 14 + (i % 2) * 6;
+    if (s) {
+      const v = elDist(e, g, s, E), ok = !!(e.fx && e.fx.s === s && exactOk(e.fx.v, v)), y = K.pt ? r.y : g.Y + Math.min(+g.H || 0, 150) / 2;
+      const a = s === 'L' ? P(E.L, y) : P(r.xr, y), b = s === 'L' ? P(r.xl, y) : P(E.R, y);
+      hit(dimLine(a, b, off, lab(v, ok) + (s === 'R' ? ' ←' : ''), ok ? '#fff' : col), e.id, 'dx');
+    }
+    if (W.floor) {
+      const xv = K.pt ? r.xl : r.xl + Math.min(+g.W || 0, 150) / 2, y = K.pt ? r.y : g.Y, ok = exactOk(e.fy, y);
+      hit(dimLine(P(xv, y), P(xv, 0), off, lab(y, ok), ok ? '#fff' : col), e.id, 'dy');
+    }
+    if (K.rc && sel) {   /* проём / короб: ширина и высота — у выделенного */
+      const w = +g.W || 0, h = +g.H || 0;
+      if (w) hit(dimLine(P(g.X, g.Y + h), P(g.X + w, g.Y + h), 16, f1(w).replace(',0', ''), '#fff'), e.id, 'W');
+      if (h) hit(dimLine(P(g.X + w, g.Y + h), P(g.X + w, g.Y), 16, f1(h).replace(',0', ''), '#fff'), e.id, 'H');
+    }
+  });
+}
+function dimHit(p) { let best = null, bd = 1e9; for (const h of S.dimHits) { const r = h.r; if (p[0] >= r[0] && p[0] <= r[2] && p[1] >= r[1] && p[1] <= r[3]) { const dd = Math.hypot(p[0] - (r[0] + r[2]) / 2, p[1] - (r[1] + r[3]) / 2); if (dd < bd) { bd = dd; best = h } } } return best }   /* ближайшая подпись */
+/* ─── [SUB] автопоиск объектов на развёртке (v7): рамки розеток / выключателей (блоки по 71), окна, двери → кандидаты (подтвердить ✓) ─── */
+/* Сетка в осях стены (шаг ≥ 3 мм) → фон (среднее 160 мм) → отличие от фона → связные области → размеры. Маркеры с листом — исключены. Тип коробки — «розетка», меняется в панели. */
+function detectEls(dbg) {
+  const M = S.mosaic; if (!M) return { n: 0, why: 'нет развёртки' };
+  if (!M.data) M.data = M.c.getContext('2d').getImageData(0, 0, M.W, M.H).data;
+  const W = wf(), D = M.data, lum = p0 => { const p = toD(p0), i = Math.floor((p[0] - M.x0) / M.r), j = Math.floor((M.y1 - p[1]) / M.r); if (i < 0 || j < 0 || i >= M.W || j >= M.H) return -1; const o = (j * M.W + i) * 4; if (D[o] === 30 && D[o + 1] === 30 && D[o + 2] === 30) return -1; return (D[o] * 77 + D[o + 1] * 150 + D[o + 2] * 29) / 256 };
+  const E = wEnds(), dd = dims(); let x0 = E.L != null ? E.L : -1e9, x1 = E.R != null ? E.R : 1e9, y0 = W.floor ? 0 : -1e9, y1 = S.lines.ceil ? (dd.Hl || dd.Hr || 3000) : 1e9;
+  if (x0 < -1e8 || x1 > 1e8 || y0 < -1e8 || y1 > 1e8) {   /* без краёв — по развёртке */
+    const cs = [[M.x0, M.y1], [M.x0 + M.W * M.r, M.y1], [M.x0, M.y1 - M.H * M.r], [M.x0 + M.W * M.r, M.y1 - M.H * M.r]].map(q => toW(toP(q), W));
+    if (x0 < -1e8) x0 = Math.min(...cs.map(q => q[0])); if (x1 > 1e8) x1 = Math.max(...cs.map(q => q[0])); if (y0 < -1e8) y0 = Math.min(...cs.map(q => q[1])); if (y1 > 1e8) y1 = Math.max(...cs.map(q => q[1]));
+  }
+  const st = Math.max(3, M.r), nx = Math.max(1, Math.floor((x1 - x0) / st)), ny = Math.max(1, Math.floor((y1 - y0) / st)); if (nx * ny > 4e6) return { n: 0, why: 'стена слишком велика' };
+  const G = new Float32Array(nx * ny), V = new Uint8Array(nx * ny);
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const v = lum(fromW([x0 + (i + 0.5) * st, y0 + (j + 0.5) * st], W)); if (v >= 0) { G[j * nx + i] = v; V[j * nx + i] = 1 } }
+  const I = new Float64Array((nx + 1) * (ny + 1)), Ic = new Float64Array((nx + 1) * (ny + 1));   /* интегральные: сумма и счёт */
+  for (let j = 0; j < ny; j++) { let a = 0, c = 0; for (let i = 0; i < nx; i++) { const k = j * nx + i; a += V[k] ? G[k] : 0; c += V[k]; I[(j + 1) * (nx + 1) + i + 1] = I[j * (nx + 1) + i + 1] + a; Ic[(j + 1) * (nx + 1) + i + 1] = Ic[j * (nx + 1) + i + 1] + c } }
+  const rb = Math.max(4, Math.round(80 / st)), box = (A, i0, j0, i1, j1) => A[j1 * (nx + 1) + i1] - A[j0 * (nx + 1) + i1] - A[j1 * (nx + 1) + i0] + A[j0 * (nx + 1) + i0];
+  const F = new Uint8Array(nx * ny), dif = [], G0 = G.slice();
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const k = j * nx + i; if (!V[k]) continue; const i0 = Math.max(0, i - rb), i1 = Math.min(nx, i + rb + 1), j0 = Math.max(0, j - rb), j1 = Math.min(ny, j + rb + 1), c = box(Ic, i0, j0, i1, j1);
+    const df = c ? G[k] - box(I, i0, j0, i1, j1) / c : 0; dif.push(Math.abs(df)); F[k] = 0; G[k] = df;
+  }
+  const sd = dif.slice().sort((a, b) => a - b), med = sd[sd.length >> 1] || 0, thr = Math.max(14, med * 5);
+  for (let k = 0; k < nx * ny; k++) if (V[k] && Math.abs(G[k]) > thr) F[k] = 1;
+  for (let pass = 0; pass < 2; pass++) { /* второй и третий проходы: фон — без пикселей объектов (иначе ореол вокруг крупных объектов склеивает соседние) */
+    const I2 = new Float64Array((nx + 1) * (ny + 1)), C2 = new Float64Array((nx + 1) * (ny + 1));
+    for (let j = 0; j < ny; j++) { let a = 0, c = 0; for (let i = 0; i < nx; i++) { const k = j * nx + i, w = V[k] && !F[k] ? 1 : 0; a += w ? G0[k] : 0; c += w; I2[(j + 1) * (nx + 1) + i + 1] = I2[j * (nx + 1) + i + 1] + a; C2[(j + 1) * (nx + 1) + i + 1] = C2[j * (nx + 1) + i + 1] + c } }
+    const r2 = rb * 2;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const k = j * nx + i; if (!V[k]) continue; const i0 = Math.max(0, i - r2), i1 = Math.min(nx, i + r2 + 1), j0 = Math.max(0, j - r2), j1 = Math.min(ny, j + r2 + 1), c = box(C2, i0, j0, i1, j1);
+      F[k] = c > 20 && Math.abs(G0[k] - box(I2, i0, j0, i1, j1) / c) > thr ? 1 : 0;
+    }
+  }
+  if (S.sol) for (const m of S.sol.mks) {   /* лист с маркером — не объект: вырезать до разметки (A4 под 180, A5 под 120: полудиагональ листа ≈ 1,05·сторона) */
+    const c = toW([m.x, m.y], W), r = m.s * 1.05 + 15, ci = (c[0] - x0) / st, cj = (c[1] - y0) / st, rr = r / st;
+    for (let j = Math.max(0, Math.floor(cj - rr)); j <= Math.min(ny - 1, Math.ceil(cj + rr)); j++) for (let i = Math.max(0, Math.floor(ci - rr)); i <= Math.min(nx - 1, Math.ceil(ci + rr)); i++) if ((i - ci) ** 2 + (j - cj) ** 2 <= rr * rr) F[j * nx + i] = 0;
+  }
+  { /* размыкание 3×3: одиночные точки шума не склеивают объекты */
+    const Er = new Uint8Array(nx * ny);
+    for (let j = 1; j < ny - 1; j++) for (let i = 1; i < nx - 1; i++) { const k = j * nx + i; if (!F[k]) continue; let a = 1; for (let dj = -1; dj <= 1 && a; dj++) for (let di = -1; di <= 1; di++) if (!F[k + dj * nx + di]) { a = 0; break } Er[k] = a }
+    F.fill(0); for (let j = 1; j < ny - 1; j++) for (let i = 1; i < nx - 1; i++) { const k = j * nx + i; if (!Er[k]) continue; for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) F[k + dj * nx + di] = 1 }
+  }
+  const Lb = new Int32Array(nx * ny), comps = [], q = new Int32Array(nx * ny);   /* связные области (8 соседей) */
+  for (let k0 = 0; k0 < nx * ny; k0++) {
+    if (!F[k0] || Lb[k0]) continue; let h = 0, t = 0, n = 0, a = { i0: 1e9, i1: -1, j0: 1e9, j1: -1 }; q[t++] = k0; Lb[k0] = comps.length + 1;
+    while (h < t) { const k = q[h++], i = k % nx, j = (k / nx) | 0; n++; if (i < a.i0) a.i0 = i; if (i > a.i1) a.i1 = i; if (j < a.j0) a.j0 = j; if (j > a.j1) a.j1 = j;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const ii = i + di, jj = j + dj; if (ii < 0 || jj < 0 || ii >= nx || jj >= ny) continue; const kk = jj * nx + ii; if (F[kk] && !Lb[kk]) { Lb[kk] = comps.length + 1; q[t++] = kk } } }
+    a.n = n; comps.push(a);
+  }
+  const bb = a => ({ x0: x0 + a.i0 * st, x1: x0 + (a.i1 + 1) * st, y0: y0 + a.j0 * st, y1: y0 + (a.j1 + 1) * st, n: a.n });
+  let B = comps.filter(a => a.n * st * st > 600).map(bb);
+  /* вложенные — в объемлющий (переплёт внутри рамки окна); соседние рамки одной высоты встык (≤ 15 мм) — в блок */
+  const inside = (a, b) => a.x0 >= b.x0 - 6 && a.x1 <= b.x1 + 6 && a.y0 >= b.y0 - 6 && a.y1 <= b.y1 + 6;
+  B = B.filter((a, i) => !B.some((b, j) => j !== i && (b.x1 - b.x0) * (b.y1 - b.y0) > (a.x1 - a.x0) * (a.y1 - a.y0) && inside(a, b)));
+  B.sort((a, b) => a.x0 - b.x0);
+  for (let i = 0; i < B.length - 1; i++) { const a = B[i], b = B[i + 1], ha = a.y1 - a.y0, hb = b.y1 - b.y0; if (ha < 150 && hb < 150 && Math.abs(ha - hb) < 15 && Math.abs(a.y0 - b.y0) < 12 && b.x0 - a.x1 < 15 && b.x0 - a.x1 > -10) { B[i] = { x0: a.x0, x1: Math.max(a.x1, b.x1), y0: Math.min(a.y0, b.y0), y1: Math.max(a.y1, b.y1), n: a.n + b.n }; B.splice(i + 1, 1); i-- } }
+  if (dbg) return { B, thr, st, med, nx, ny, x0, y0, x1, y1, F: dbg === 2 ? Array.from(F).join('') : '' };
+  const have = S.els.map(e => { const g = elGeo(e, W, null), K = KD[e.k]; return K.pt ? { x: g.X, y: g.Y } : { x: g.X + (+g.W || 0) / 2, y: g.Y + (+g.H || 0) / 2 } });
+  const out = [], C = corrH(), uid = () => 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  for (const b of B) {
+    const w = b.x1 - b.x0, h = b.y1 - b.y0, cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+    if (have.some(p => p.x > b.x0 - 20 && p.x < b.x1 + 20 && p.y > b.y0 - 20 && p.y < b.y1 + 20)) continue;   /* уже размечен */
+    if (h >= 55 && h <= 140 && w >= 55 && w <= h * 5.6) {   /* рамка: одиночная или блок по 71 */
+      const N = w < h * 1.4 ? 1 : Math.min(5, Math.max(2, Math.round((w - h) / 71) + 1)), pw = r1(N > 1 ? w - (N - 1) * 71 : w);
+      out.push({ id: uid(), k: 'roz', c: fromW([cx, cy], W), W: pw, H: r1(h), D: '', N: N > 1 ? N : '', st: N > 1 ? 71 : '', note: '', cand: 1 });
+    } else if (w >= 400 && h >= 400 && w < 4000 && h < 3200) {
+      const door = W.floor && b.y0 < 250 && h > 1500, y0b = door ? 0 : b.y0;
+      out.push({ id: uid(), k: door ? 'door' : 'win', c: fromW([cx, (y0b + b.y1) / 2], W), W: r1(w), H: r1(b.y1 - y0b), D: '', N: '', st: '', note: '', cand: 1 });
+    }
+  }
+  if (out.length) { snap(); S.els.push(...out) }
+  return { n: out.length, why: '' };
 }
 /* ─── [SUB] рисование разметки ─── */
 function drawMarkup() {
@@ -975,7 +1125,8 @@ function drawMarkup() {
   for (const e of S.els) {
     const K = KD[e.k] || KD.roz, R = elRect(e, W).map(p => toScr(...p)), sel = e.id === S.sel;
     cx.lineWidth = (sel ? 3 : 2) * d; cx.strokeStyle = sel ? '#fff' : K.c; cx.fillStyle = K.c + '33';
-    cx.setLineDash(K.rc ? [6 * d, 4 * d] : []); cx.beginPath(); R.forEach((p, i) => i ? cx.lineTo(...p) : cx.moveTo(...p)); cx.closePath(); cx.fill(); cx.stroke(); cx.setLineDash([]);
+    cx.setLineDash(K.rc || e.cand ? [6 * d, 4 * d] : []); cx.beginPath(); R.forEach((p, i) => i ? cx.lineTo(...p) : cx.moveTo(...p)); cx.closePath(); cx.fill(); cx.stroke(); cx.setLineDash([]);
+    if (e.cand) { const q = R[2]; cx.font = 'bold ' + (14 * d) + 'px system-ui'; cx.fillStyle = '#ffd479'; cx.fillText('?', q[0] + 3 * d, q[1] - 2 * d) }   /* v7: найден автоматически — не подтверждён */
     if (sel && S.mk === 'sel') { cx.fillStyle = '#fff'; for (const q of R) cx.fillRect(q[0] - 5 * d, q[1] - 5 * d, 10 * d, 10 * d) }   /* v4: ручки размера */
     if (K.pt) {
       const N = Math.max(1, Math.round(+e.N || 1)), st = +e.st || 0, w = +e.W || 60, c = toW(e.c, W);
@@ -998,9 +1149,10 @@ function mkPanel() {
     pp.innerHTML = `<div class="row"><span class="t">Стена</span><span class="mu">по фото → рулетка (пусто — по фото)</span><span class="sp" style="flex:1"></span><button id="bUn" title="Отменить (Ctrl+Z)">↶</button></div>
       <div class="row">${f('Lb', 'L низ')}${f('Lt', 'L верх')}</div><div class="row">${f('Hl', 'H лево')}${f('Hr', 'H право')}</div>
       <div class="row"><label style="color:var(--tx)"><input type="checkbox" data-fit style="width:auto;height:auto"${S.man.fit ? ' checked' : ''}> подогнать по рулетке</label><span class="mu">${S.man.fit && !corrH() ? 'нужны пол, потолок и оба края' : S.man.fit ? 'стена — прямоугольник, элементы пересчитаны' : ''}</span></div>
+      ${adimRows()}
       ${S.sess && S.sess.room ? wsPanelRows() : ''}
       <div class="row mu">${d.dl != null ? 'завал левого края ' + f1(d.dl) + ' · ' : ''}${d.dr != null ? 'правого ' + f1(d.dr) + ' · ' : ''}${warn || 'ноль — пол × левый край'}</div>`;
-    wsBind(pp);   /* v6 */
+    wsBind(pp); adimBind(pp);   /* v6; v7 */
     pp.querySelector('[data-fit]').onchange = ev => { snap(); if (ev.target.checked) S.man.fit = true; else delete S.man.fit; status(); mkPanel(); draw(); saveSess(); refreshDisp() };
     pp.querySelectorAll('[data-man]').forEach(i => i.onchange = () => { snap(); const v = i.value.trim(), n = v ? evalN(v) : null; if (v && n == null) { i.value = S.man[i.dataset.man] || ''; return } if (n == null) delete S.man[i.dataset.man]; else S.man[i.dataset.man] = r1(n); unsnap(); status(); mkPanel(); saveSess(); refreshDisp() });
   } else {
@@ -1009,11 +1161,12 @@ function mkPanel() {
     const fi = (k, t, v, ph) => `<label>${t}<input data-ef="${k}" inputmode="decimal" placeholder="${ph || ''}" value="${v === '' || v == null ? '' : esc(v)}"></label>`;
     pp.innerHTML = `<div class="row"><select data-ef="k">${opts}</select>${fi('X', K.rc ? 'X лев.' : 'X', f1(X).replace(',', '.'))}${fi('Y', K.rc ? 'Y низ' : 'Y', f1(Y).replace(',', '.'))}<span style="flex:1"></span><button id="bUn" title="Отменить (Ctrl+Z)">↶</button><button id="bOk" title="Готово">✓</button></div>
       <div class="row">${fi('W', 'Ш', g.W, 'нет')}${fi('H', 'В', g.H, 'нет')}${K.pt ? fi('D', 'Ø', g.D, '') + fi('N', '×', e.N, '1') + fi('st', 'шаг', g.st, '') : ''}${K.pt ? '<button id="bFit" title="Подобрать рамку по фото">⊡</button>' : ''}<button id="bDel" title="Удалить (нажать дважды)">✕</button></div>
-      <div class="row"><input class="wide" data-ef="note" placeholder="примечание" value="${esc(e.note || '')}"></div>`;
+      ${elDimRow(e)}
+      <div class="row"><input class="wide" data-ef="note" placeholder="примечание" value="${esc(e.note || '')}">${e.cand ? '<span class="mu">найден автоматически</span><button id="bAcc" title="Подтвердить">✓ да</button>' : ''}</div>`;
     pp.querySelectorAll('[data-ef]').forEach(i => i.onchange = () => {
       const k = i.dataset.ef, v = i.value.trim(), old = (i.defaultValue || '').trim();
       if (k !== 'k' && (v === old || (v && old && evalN(v) != null && Math.abs(evalN(v) - evalN(old)) < 0.05))) return;   /* значение не изменилось */
-      snap();
+      snap(); delete e.cand;   /* v7: правка — подтверждение */
       if (k === 'k' || k === 'note') e[k] = v;
       else if (k === 'X' || k === 'Y') {
         const n = evalN(v); if (n == null) return mkPanel(); const t = [g.X, g.Y]; t[k === 'X' ? 0 : 1] = n;
@@ -1025,9 +1178,45 @@ function mkPanel() {
     });
     const bf = $('bFit'); if (bf) bf.onclick = () => { const f = autofit(e.c); if (f) { snap(); e.c = f.c; e.W = f.W; e.H = f.H; mkPanel(); draw(); saveSess() } else { bf.textContent = '✗'; setTimeout(() => bf.textContent = '⊡', 1200) } };
     const bd = $('bDel'); bd.onclick = () => { if (!bd.classList.contains('arm')) { bd.classList.add('arm'); setTimeout(() => bd.classList.remove('arm'), 2500); return } snap(); S.els = S.els.filter(x => x !== e); S.sel = null; mkPanel(); status(); draw(); saveSess() };
-    $('bOk').onclick = () => { S.sel = null; mkPanel(); draw() };
+    $('bOk').onclick = () => { if (e.cand) { snap(); delete e.cand; saveSess() } S.sel = null; S.dfoc = null; mkPanel(); draw() };
+    const ba = $('bAcc'); if (ba) ba.onclick = () => { snap(); delete e.cand; saveSess(); mkPanel(); draw() };
+    elDimBind(pp, e);   /* v7 */
   }
   const bu = $('bUn'); if (bu) bu.onclick = undo;
+}
+
+/* ─── [SUB] панель авторазмеров (v7) ─── */
+function adimRows() {
+  const Cn = wCorners(), nc = S.els.filter(e => e.cand).length, o = (k, v, t) => `<option value="${v}"${(S.man[k] || 'in') === v ? ' selected' : ''}>${t}</option>`;
+  const cs = k => Cn.plan ? `<span class="mu">${Cn[k === 'cL' ? 'L' : 'R'] === 'in' ? 'внутр.' : Cn[k === 'cL' ? 'L' : 'R'] === 'out' ? 'наруж.' : 'нет'}</span>` : `<select data-cn="${k}">${o(k, 'in', 'внутр.')}${o(k, 'out', 'наруж.')}${o(k, 'none', 'нет')}</select>`;
+  return `<div class="row"><button id="bDet" title="Найти розетки, выключатели, окна, двери на развёртке">🔍 найти объекты</button><label style="color:var(--tx)"><input type="checkbox" data-adim style="width:auto;height:auto"${S.adim ? ' checked' : ''}> размеры всех</label>${nc ? `<span class="mu">не подтверждено ${nc}</span><button id="bAccAll" title="Подтвердить все найденные">✓ все</button><button id="bRejAll" title="Удалить все неподтверждённые">✕</button>` : ''}</div>
+    <div class="row"><span class="mu">угол слева</span>${cs('cL')}<span class="mu">справа</span>${cs('cR')}${Cn.plan ? '<span class="mu">— из плана</span>' : ''}</div>`;
+}
+function adimBind(pp) {
+  const bd = pp.querySelector('#bDet'); if (bd) bd.onclick = () => { const r = detectEls(); toast(r.n ? 'Найдено ' + r.n + ' — проверьте и подтвердите' : 'Ничего не найдено' + (r.why ? ': ' + r.why : '')); status(); mkPanel(); draw(); saveSess() };
+  const ad = pp.querySelector('[data-adim]'); if (ad) ad.onchange = () => { S.adim = ad.checked; draw() };
+  const aa = pp.querySelector('#bAccAll'); if (aa) aa.onclick = () => { snap(); S.els.forEach(e => delete e.cand); saveSess(); mkPanel(); draw() };
+  const rj = pp.querySelector('#bRejAll'); if (rj) rj.onclick = () => { snap(); S.els = S.els.filter(e => !e.cand); saveSess(); status(); mkPanel(); draw() };
+  pp.querySelectorAll('[data-cn]').forEach(sl => sl.onchange = () => { snap(); S.man[sl.dataset.cn] = sl.value; saveSess(); mkPanel(); draw() });
+}
+function elDimRow(e) {
+  const E = wEnds(), W = E.W, C = E.C, g = elGeo(e, W, C), s = elSide(e, g, E), K = KD[e.k];
+  const dx = s ? elDist(e, g, s, E) : null, okx = !!(s && e.fx && e.fx.s === s && exactOk(e.fx.v, dx)), oky = exactOk(e.fy, g.Y);
+  const inp = (ax, v, ok) => `<input data-dm="${ax}" inputmode="decimal" class="${S.dfoc === ax ? 'ex' : ''}${ok ? ' ok' : ''}" placeholder="${v == null ? '' : '≈' + f1(v).replace(',', '.')}" value="${ok ? esc(r1(v)) : ''}">`;
+  const other = s === 'L' ? (E.R != null ? 'R' : null) : s === 'R' ? (E.L != null ? 'L' : null) : null;
+  return `<div class="row">${s ? `<button data-dside${other ? '' : ' disabled'} title="Сторона размера: от левого / правого угла">${s === 'L' ? '|← от Л' : 'от П →|'}</button>${inp('dx', dx, okx)}` : '<span class="mu">нет края стены — размер от угла недоступен</span>'}<label>от пола${inp('dy', g.Y, oky)}</label><span class="mu">${K.pt ? 'до центра' + (Math.round(+e.N || 1) > 1 ? ' первой' : '') : 'до края / низа'}</span></div>`;
+}
+function elDimBind(pp, e) {
+  const sb = pp.querySelector('[data-dside]'); if (sb) sb.onclick = () => { const E = wEnds(), g = elGeo(e, E.W, E.C), s = elSide(e, g, E), n = s === 'L' ? 'R' : 'L'; if ((n === 'L' ? E.L : E.R) == null) return; snap(); e.fx = { s: n, v: r1(elDist(e, g, n, E)) }; saveSess(); mkPanel(); draw() };
+  pp.querySelectorAll('[data-dm]').forEach(i => {
+    i.onchange = () => {
+      const v = i.value.trim(), n = v ? evalN(v) : null; if (v && (n == null || n < 0)) { i.value = ''; return }
+      snap(); const ax = i.dataset.dm;
+      if (n == null) { if (ax === 'dx') delete e.fx; else delete e.fy } else { const E = wEnds(), g = elGeo(e, E.W, E.C); setDim(e, ax, r1(n), ax === 'dx' ? elSide(e, g, E) : null) }
+      delete e.cand; S.dfoc = null; unsnap(); mkPanel(); status(); draw(); saveSess();
+    };
+    if (S.dfoc === i.dataset.dm) { btField = i; setTimeout(() => { try { i.focus({ preventScroll: true }) } catch (er) { } }, 0) }   /* лазер / клавиатура — в это поле */
+  });
 }
 function evalN(v) { try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) ? r : null } catch (e) { return null } }
 
@@ -1035,9 +1224,9 @@ function evalN(v) { try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const 
 function exportObj() {
   const W = wf(), d = dims(), m = S.man, dm = {};
   for (const k of ['Lb', 'Lt', 'Hl', 'Hr']) { const q = manV(k); if (q) dm[k] = { v: r1(q.v), photo: d[k] != null ? r1(d[k]) : null, src: q.src } }   /* v6 */
-  const C = corrH(), els = S.els.map((e, i) => {
+  const C = corrH(), els = S.els.filter(e => !e.cand).map((e, i) => {   /* v7: неподтверждённые — не выгружаются */
     const K = KD[e.k], g = elGeo(e, W, C), num = v => v === '' || v == null ? null : +v;
-    return { n: i + 1, t: K.pt ? 'pt' : 'rect', kind: e.k, name: K.n, x: r1(g.X), y: r1(g.Y), W: num(g.W), H: num(g.H), D: num(g.D), N: num(e.N), st: num(g.st), note: e.note || '' };
+    return { n: i + 1, t: K.pt ? 'pt' : 'rect', kind: e.k, name: K.n, x: r1(g.X), y: r1(g.Y), W: num(g.W), H: num(g.H), D: num(g.D), N: num(e.N), st: num(g.st), note: e.note || '', ...(e.fx ? { fx: e.fx } : {}), ...(e.fy != null ? { fy: e.fy } : {}) };
   });
   return {
     app: 'akrix-photo-measure', v: 2, date: new Date().toISOString(), units: 'mm', obj: S.sess ? S.sess.obj : '', plane: S.sess ? S.sess.name : '',
@@ -1280,7 +1469,7 @@ $('sMax').addEventListener('change', async () => { const fs = S.frames.map(f => 
 $('bJson').onclick = () => S.mode === 'plan' ? exportRoom() : exportJson();   /* v6 */
 $('bBt').onclick = btConnect;
 addEventListener('resize', resize); resize(); mkChips();
-window.PM = { S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
+window.PM = { detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
 dbOpen().then(() => { if (!/[?&]nolist/.test(location.search)) sessList(true) });
 </script>
