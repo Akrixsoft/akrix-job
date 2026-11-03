@@ -127,7 +127,7 @@ body.mk #rl{top:96px}
   <button id="bLay" title="Слои видимости">◫</button>
   <span class="sp"></span>
   <button id="bBt" title="Подключить дальномер Bosch GLM по Bluetooth">📡</button>
-  <button id="bJson" title="Отправить / сохранить замер (.json для Akrix); на плане — помещение целиком">⇪</button>
+  <button id="bJson" title="Отправить / сохранить замер (.json для Akrix); на плане — помещение целиком, в объекте из нескольких помещений — объект целиком">⇪</button>
   <button id="bSet" title="Настройки">⚙</button>
 </div>
 <canvas id="cv"></canvas>
@@ -1802,9 +1802,9 @@ function manV(k) {                             /* размер стены: ру�
 }
 /* ─── [SUB] выгрузка помещения (v6): лист sk.ms Akrix + по стенам H, пол / потолок, отвес, элементы листа, точки и зоны ─── */
 const AK_PT = { roz: 'so', vyk: 'sw', svet: 'li', slab: 'wi', hvs: 'wa', gvs: 'wh', kan: 'dr', gaz: 'ga', vent: 've' }, AK_RC = { win: 'win', door: 'door', pro: 'win', nis: 'niche', kol: 'col', rig: 'beam', kor: 'box' };
-async function exportRoomObj() {
+async function exportRoomObj(rIn) {   /* v12: rIn — помещение объекта (по умолчанию активное) */
   /* Akrix строит лист обходом против часовой (помещение слева); контур по часовой выдаём в обратном порядке — номера углов, отрезков, длин и углов пересчитываются */
-  const r = S.room, m0 = r.ms, N = m0.pts.length, rev = m0.closed && plArea(m0) < 0, nd = i => rev ? (N - i) % N : i, sg = j => rev ? (N - j - 1) % N : j;
+  const r = rIn || S.room, m0 = r.ms, N = m0.pts.length, rev = m0.closed && plArea(m0) < 0, nd = i => rev ? (N - i) % N : i, sg = j => rev ? (N - j - 1) % N : j;
   const m = rev ? { ...m0, pts: m0.pts.map((_, i) => m0.pts[(N - i) % N]) } : m0, n = plN(m), wl = {};
   for (let j = 0; j < n; j++) {
     const k = sg(j), sid = r.segs && r.segs[j], o = sid ? await dbGet('sess', sid) : null; if (!o || !o.out) continue;
@@ -1829,6 +1829,20 @@ async function exportRoomObj() {
     arcs: Object.fromEntries(Object.entries(m0.arcs || {}).map(([k, f]) => [sg(+k), f])), rnd: Object.fromEntries(Object.entries(m0.rnd || {}).map(([i, r]) => [nd(+i), r])),
     gn: Object.fromEntries([...Array(n).keys()].map(j => [sg(j), wN(r, j)])) } };   /* v11: сквозные номера стен объекта по отрезкам листа */   /* v10: дуги (стрела, мм, + наружу) по отрезкам, скругления (R) по углам */
 }
+/* ─── [SUB] ВЫГРУЗКА ОБЪЕКТА (v12): все помещения объекта в одном файле — порядок создания, общие координаты плана, сквозные номера (ms.gn) ─── */
+async function exportObjObj() {
+  await saveNow().catch(() => { }); if (S.room) { clearTimeout(roomT); S.room.upd = Date.now(); await dbPut('sess', JSON.parse(JSON.stringify(S.room))).catch(() => { }) }
+  const all = [S.room, ...S.objRooms].filter(r => r && r.ms && r.ms.pts.length >= 2).sort((a, b) => a.created - b.created), rooms = [];
+  for (const r of all) rooms.push(await exportRoomObj(r));
+  return { app: 'akrix-zamer', v: 3, kind: 'object', date: new Date().toISOString(), obj: S.room.obj, rooms, gnMax: gnMax() };
+}
+async function exportObj2() {
+  const o = await exportObjObj(), txt = JSON.stringify(o, null, 1), fn = 'obekt_' + (o.obj || 'obekt').replace(/[^\wа-яА-ЯёЁ.-]+/g, '_') + '_' + o.date.slice(0, 10) + '.json';
+  if (appSave(fn, txt)) return;
+  const file = new File([txt], fn, { type: 'application/json' });
+  try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: fn }); return } } catch (e) { if (e && e.name === 'AbortError') return }
+  try { const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = fn; document.body.appendChild(a); a.click(); a.remove() } catch (e) { toast('Сохранение отклонено') }
+}
 async function exportRoom() {
   const o = await exportRoomObj(), txt = JSON.stringify(o, null, 1), fn = 'pomeshchenie_' + ((o.obj ? o.obj + '_' : '') + o.name).replace(/[^\wа-яА-ЯёЁ.-]+/g, '_') + '_' + o.date.slice(0, 10) + '.json';
   if (appSave(fn, txt)) return;   /* v9 */
@@ -1848,10 +1862,10 @@ for (const id of ['sA4', 'sA5', 'sMax', 'sDist']) $(id).addEventListener('change
 $('sDist').addEventListener('change', () => { if (S.frames.length) recompute() });
 for (const id of ['sA4', 'sA5']) $(id).addEventListener('change', () => { if (S.frames.length) recompute() });
 $('sMax').addEventListener('change', async () => { const fs = S.frames.map(f => f.file).filter(Boolean), ks = S.frames.map(f => f.key); if (!fs.length) return; S.frames = []; await addFiles(fs, ks) });
-$('bJson').onclick = () => S.mode === 'plan' ? exportRoom() : exportJson();   /* v6 */
+$('bJson').onclick = () => S.mode === 'plan' ? (S.room && S.room.obj && S.objRooms.length ? exportObj2() : exportRoom()) : exportJson();   /* v6; v12: помещений объекта > 1 — файл объекта */
 $('bBt').onclick = btConnect;
 addEventListener('resize', resize); resize(); mkChips();
-window.PM = { wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
+window.PM = { exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
 dbOpen().then(() => { if (!/[?&]nolist/.test(location.search)) sessList(true) });
 </script>
