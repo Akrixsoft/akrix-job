@@ -1407,9 +1407,11 @@ function exportObj() {
     rulers: S.rulers.map(r => { const a = toWc(r.a, W, C), b = toWc(r.b, W, C); return { L: r1(Math.hypot(b[0] - a[0], b[1] - a[1])), a: a.map(r1), b: b.map(r1) } })
   };
 }
+function appSave(fn, txt) { if (!window.AkrixApp) return false; AkrixApp.save(fn, 'application/json', txt); return true }   /* v9: APK — в «Загрузки/Akrix» + меню «Поделиться» */
 async function exportJson() {
   if (!S.sol) return;
   const o = exportObj(), txt = JSON.stringify(o, null, 1), nm = ((o.obj ? o.obj + '_' : '') + (o.plane || 'zamer')).replace(/[^\wа-яА-ЯёЁ.-]+/g, '_'), fn = 'zamer_' + nm + '_' + o.date.slice(0, 10) + '.json';
+  if (appSave(fn, txt)) return;   /* v9 */
   const file = new File([txt], fn, { type: 'application/json' });
   try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: fn }); return } } catch (e) { if (e && e.name === 'AbortError') return }
   try { const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = fn; document.body.appendChild(a); a.click(); a.remove() }
@@ -1423,11 +1425,13 @@ function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add(
 /* ═══ [BLOCK] BT-ДАЛЬНОМЕР (v6, из Akrix v166): Bosch GLM по BLE → размер в активное поле (значение, change, blur). Только Chrome на https / файлом ═══ */
 const BT_SVC = '02a6c0d0-0451-4000-b000-fb3210111989', BT_CH = '02a6c0d1-0451-4000-b000-fb3210111989';
 const BT = { st: 'off', dev: null, ch: null, last: null, armOff: 0 };
-function btOk() { if (!navigator.bluetooth) return false; try { const pp = document.permissionsPolicy || document.featurePolicy; if (pp && !pp.allowsFeature('bluetooth')) return false } catch (e) { } return true }
+const btBr = () => !navigator.bluetooth && !!window.AkrixBT;   /* v9: APK — Bluetooth через Java */
+function btOk() { if (btBr()) return true; if (!navigator.bluetooth) return false; try { const pp = document.permissionsPolicy || document.featurePolicy; if (pp && !pp.allowsFeature('bluetooth')) return false } catch (e) { } return true }
 function btUi(rx) { const b = $('bBt'); b.classList.toggle('on', BT.st === 'on'); b.classList.toggle('arm', BT.st === 'wait'); b.title = BT.st === 'on' ? 'Дальномер подключён: замер на приборе → размер в активное поле. Дважды — отключить' : 'Подключить дальномер Bosch GLM по Bluetooth'; if (rx) { b.style.outline = '2px solid #4caf6a'; setTimeout(() => b.style.outline = '', 400) } }
 async function btConnect() {
   if (BT.st === 'on') { const t = Date.now(); if (t - BT.armOff < 2500) { BT.armOff = 0; try { BT.dev.gatt.disconnect() } catch (e) { } return } BT.armOff = t; toast('📡 ещё раз — отключить дальномер'); return }
   if (!btOk()) { toast('📡 Bluetooth недоступен — открой Замер в Chrome'); return }
+  if (btBr()) { BT.st = 'wait'; btUi(); AkrixBT.connect(); return }   /* v9 */
   try {
     BT.st = 'wait'; btUi();
     const dev = await navigator.bluetooth.requestDevice({ filters: [{ services: [BT_SVC] }, { namePrefix: 'GLM' }, { namePrefix: 'Bosch' }], optionalServices: [BT_SVC] });
@@ -1438,6 +1442,10 @@ async function btConnect() {
     Object.assign(BT, { dev, ch, st: 'on' }); btUi(); toast('📡 ' + (dev.name || 'GLM') + ' подключён');
   } catch (e) { BT.st = 'off'; btUi(); if (e.name !== 'NotFoundError') toast('📡 ' + e.message) }
 }
+/* v9: оболочка APK зовёт akrixBtState('wait' | 'on' | 'off', имя) и akrixBtPkt('C0 55 10 …') */
+window.akrixBtState = (st, nm) => { const was = BT.st; BT.st = st; if (st === 'on') { BT.dev = { name: nm || 'GLM', gatt: { disconnect: () => AkrixBT.disconnect() } }; BT.ch = 1; toast('📡 ' + (nm || 'GLM') + ' подключён') } else if (st === 'off') { BT.ch = null; if (was === 'on') toast('📡 дальномер отключён') } btUi() };
+window.akrixBtPkt = h => { const b = new Uint8Array(String(h).trim().split(/\s+/).map(x => parseInt(x, 16))); btPkt(new DataView(b.buffer)) };
+window.akrixBtMsg = t => toast('📡 ' + t);
 function btPkt(dv) { if (dv.byteLength < 11 || dv.getUint8(0) !== 0xC0 || dv.getUint8(1) !== 0x55 || dv.getUint8(2) !== 0x10) return; const m = dv.getFloat32(7, true); if (!(m > 0 && m < 300)) return; btVal(Math.round(m * 1000)) }
 let btField = null;   /* последнее поле ввода в фокусе: после blur от касания по кнопке размер всё равно идёт туда */
 addEventListener('focusin', e => { const a = e.target; if (a && a.tagName === 'INPUT' && a.type !== 'checkbox' && a.type !== 'file') btField = a });
@@ -1621,6 +1629,7 @@ async function exportRoomObj() {
 }
 async function exportRoom() {
   const o = await exportRoomObj(), txt = JSON.stringify(o, null, 1), fn = 'pomeshchenie_' + ((o.obj ? o.obj + '_' : '') + o.name).replace(/[^\wа-яА-ЯёЁ.-]+/g, '_') + '_' + o.date.slice(0, 10) + '.json';
+  if (appSave(fn, txt)) return;   /* v9 */
   const file = new File([txt], fn, { type: 'application/json' });
   try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: fn }); return } } catch (e) { if (e && e.name === 'AbortError') return }
   try { const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = fn; document.body.appendChild(a); a.click(); a.remove() } catch (e) { toast('Сохранение отклонено') }
