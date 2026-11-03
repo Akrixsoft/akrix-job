@@ -1,0 +1,17 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'ge.akrix.bt'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'ge.akrix.bt'
+        minSdk 26
+        targetSdk 34
+        versionCode Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+        versionName '0.' + (System.getenv('GITHUB_RUN_NUMBER') ?: '0')
+    }
+    signingConfigs {
+        release { storeFile file(System.getenv('AK_KS') ?: 'none.jks'); storePassword System.getenv('AK_PW'); keyAlias 'akrix'; keyPassword System.getenv('AK_PW') }
+    }
+    buildTypes { release { minifyEnabled false; signingConfig signingConfigs.release } }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}

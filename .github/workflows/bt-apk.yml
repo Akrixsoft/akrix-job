@@ -1,0 +1,37 @@
+name: BT test APK
+on:
+  push:
+    paths: ['android-bt/**', 'bt/index.html', '.github/workflows/bt-apk.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - id: ks
+        uses: actions/cache/restore@v4
+        with: { path: ~/ks, key: akrix-ks-v1 }
+      - if: steps.ks.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/ks && openssl rand -hex 16 > ~/ks/pw
+          keytool -genkeypair -keystore ~/ks/release.jks -alias akrix -keyalg RSA -keysize 2048 -validity 20000 \
+            -storepass "$(cat ~/ks/pw)" -keypass "$(cat ~/ks/pw)" -dname "CN=Akrix Job, O=Akrix, C=GE"
+      - if: steps.ks.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with: { path: ~/ks, key: akrix-ks-v1 }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.7' }
+      - name: Build
+        run: |
+          mkdir -p android-bt/app/src/main/assets && cp bt/index.html android-bt/app/src/main/assets/bt.html
+          export AK_KS=$HOME/ks/release.jks AK_PW=$(cat ~/ks/pw)
+          gradle -p android-bt assembleRelease --no-daemon
+      - name: Publish APK to Pages
+        run: |
+          mkdir -p apk && cp android-bt/app/build/outputs/apk/release/app-release.apk apk/akrix-bt.apk
+          git config user.name "akrix-build" && git config user.email "build@akrix.local"
+          git add apk/akrix-bt.apk && git commit -m "BT test APK 0.$GITHUB_RUN_NUMBER [skip ci]" && git pull --rebase && git push
