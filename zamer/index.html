@@ -232,7 +232,7 @@ const S = { frames: [], sol: null, mosaic: null, tool: 'view', rulers: [], pend:
   sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'sel', und: [], la: {},
   mode: 'wall', room: null, room0: null, psel: null, pund: [], planL: null, wsh: {}, adim: true, dimHits: [], dfoc: null, msel: [], rsr: null, colOpen: false, notes: [], nsel: null, gOpen: false, gsel: '2.0', objRooms: [], pf: null, poolW: [] };   /* v13: pf — выбранный кадр пула, poolW — кадры замеров стен объекта */   /* v11: objRooms — другие помещения объекта */   /* v10: notes — выноски, gsel — точка сетки 'ряд.столбец' */   /* v8: msel — группа (рамка выделения), rsr — рамка на экране */   /* v7: adim — авторазмеры всех объектов; dimHits — подписи размеров под пальцем; dfoc — поле размера в фокусе */   /* v6: mode 'plan' — план помещения */   /* v5: la — привязка концов линий к кадрам */   /* v4: mk 'sel' — выбор и правка */   /* v2: замер, разметка */
 const $ = id => document.getElementById(id);
-const ZVER = 'v31';
+const ZVER = 'v32';
 const PEN = { seen: false, mode: (() => { try { return localStorage.getItem('zamer.pen') || 'auto' } catch (e) { return 'auto' } })(), on() { return this.mode === 'auto' && this.seen } };   /* v21: стилус и палец */   /* v18: номер версии — подставляет build.py */
 function setNum(id) { const v = $(id).value.trim(); if (!v) return null; try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) && r > 0 ? r : null } catch (e) { return null } }
 function sizeOf(id) { return id >= 100 ? (setNum('sA5') || 120) : (setNum('sA4') || 180) }
@@ -1994,6 +1994,13 @@ function envBind(pp) {
     envApply();
   });
 }
+/* ─── [SUB] разрыв построения (v32): ломаная ⌗ остаётся открытой, следующая — новый участок стен объекта (отдельное «помещение» на том же холсте) ─── */
+async function zBreak() {
+  const r = S.room, m = r.ms; if (m.pts.length < 2 || m.closed) { toast('Разрыв — после 2 точек ломаной'); return }
+  if (!r.obj) { r.obj = r.name || 'Объект'; saveRoom() }
+  const n = [S.room, ...S.objRooms].length + 1; await newRoom(r.obj, 'Стены ' + n, true); PL.tool = 'ct'; mkChips(); mkPanel(); draw();
+  toast('⌇ Разрыв: новая ломаная — касайтесь (к углам соседних — прилипает)');
+}
 function ulContour(u, v) {   /* пиксели подложки → контур помещения (px) или причина */
   const M = ulMasks(), R0 = ulRegion(Math.round(u), Math.round(v)); if (!R0) return { err: 'здесь стена — коснитесь середины помещения' };
   if (R0.n < 2000 * M.D * M.D) return { err: 'слишком мало — коснитесь середины помещения' };
@@ -2399,7 +2406,8 @@ function plTap(p) {
   const m = S.room.ms, q = toPl(...p).map(v => Math.round(v));
   if (PL.tool === 'ct') {
     if (m.closed) { toast('Контур замкнут — правка в «↖ выбор»'); return }
-    const h = plHit(p); if (h && h.t === 'n' && h.i === 0 && m.pts.length >= 3) { plSnap(); m.closed = true; PL.tool = 'sel'; S.psel = { t: 's', i: m.pts.length - 1 }; mkChips() }
+    const h = plHit(p); if (h && h.t === 'n' && h.i === m.pts.length - 1 && m.pts.length >= 2) return zBreak();   /* v32: касание последней — разрыв */
+    if (h && h.t === 'n' && h.i === 0 && m.pts.length >= 3) { plSnap(); m.closed = true; PL.tool = 'sel'; S.psel = { t: 's', i: m.pts.length - 1 }; mkChips() }
     else { plSnap(); m.pts.push(plSnapPt(q, p)); if (m.pts.length >= 2) S.psel = { t: 's', i: m.pts.length - 2 } }   /* v11: привязка к углам соседних помещений */
   } else if (S.pf && poolGet(S.pf) && !poolGet(S.pf).ws) { const h = plHit(p); if (h && h.t === 's') return poolSet(S.pf, S.room, h.i, true); const o = plOtherHit(p); if (o) return openRoom(o.id, null, true); S.pf = null }   /* v13: кадр выбран — касание стены назначает */
   else { S.psel = plHit(p); if (!S.psel && ulGet()) { const si = stHit(p); if (si != null) { PL.tool = 'st'; S.ust = si; mkChips(); mkPanel(); draw(); return } }   /* v21: штрих — выбрать в любом режиме */
@@ -2416,7 +2424,7 @@ function plPanel() {
   if (s && s.t === 's' && s.i < plN(m)) {
     const L = plLen(m, s.i), d = plDim(m, s.i), done = S.room.segs && S.room.segs[s.i];
     const fa = (m.arcs || {})[s.i], ai = fa && L ? arcInfo(L.v, fa) : null;   /* v10 */
-    pp.innerHTML = `<div class="row"><span class="t">Стена С${wN(S.room, s.i)}</span>${fi('L', 'L', d && d.v, L ? '≈' + L.v : 'мм', 90)}${fi('f', 'дуга f', fa, '0', 64)}<span style="flex:1"></span><button id="bPu" title="Отменить">↶</button></div>
+    pp.innerHTML = `<div class="row"><span class="t">Стена С${wN(S.room, s.i)}</span>${fi('L', 'L', d && d.v, L ? '≈' + L.v : 'мм', 90)}${fi('f', 'дуга f', fa, '0', 64)}${PL.tool === 'ct' && !m.closed && m.pts.length >= 2 ? '<button id="bBrk" title="Разрыв: эта ломаная остаётся, следующая — отдельно (или касание последней точки)">⌇ разрыв</button>' : ''}<span style="flex:1"></span><button id="bPu" title="Отменить">↶</button></div>
       ${ai ? `<div class="row mu">дуга: L — хорда, f — стрела (+ наружу) · R ≈ ${ai.R} · по дуге ≈ ${ai.s}</div>` : ''}
       <div class="row"><button id="bNdA" title="Узел посередине стены">+ узел</button>${m.closed ? '<button id="bOpnK" title="Разомкнуть контур по этой стене (стена убирается)">⌇ разомкнуть здесь</button>' : ''}</div>
       ${m.raw ? `<div class="row"><label title="Уступ у этой стены: глубже — отдельные стены, мельче — элемент общей стены">уступ до<input data-env="w" inputmode="decimal" value="${esc(envAt(plMid(m, s.i)) || '')}" placeholder="${m.envD || ZENV}" style="width:70px">мм</label></div>` : ''}
@@ -2436,7 +2444,7 @@ function plPanel() {
       ${m.pts.length > (m.closed ? 3 : 2) ? '<div class="row"><button id="bNdX" title="Удалить узел (соседние стены — одна)">✕ узел</button></div>' : ''}`;   /* v17 */
   } else {
     const uo = ulGet();   /* v21: одна строка; остальное — под ⋯ */
-    pp.innerHTML = `<div class="row"><span class="t">${esc(S.room.name)}</span>${fi('H', 'H', m.H, 'мм', 64)}${!uo && !m.pts.length ? `<label class="ulb">📐 план<input data-ul type="file" accept="image/*" style="display:none"></label>` : ''}${uo && !uo.ul.ok ? '<span class="er" style="font-size:12px" title="Масштаб плана не задан: введите длину L любой стены">масштаб ≈</span>' : ''}<span style="flex:1"></span><button id="bRmM" title="Ещё: объект, помещение, план, контур"${S.rmMore ? ' class="arm" style="background:var(--ac);border-color:var(--ac)"' : ''}>⋯</button><button id="bPu" title="Отменить">↶</button></div>
+    pp.innerHTML = `<div class="row"><span class="t">${esc(S.room.name)}</span>${fi('H', 'H', m.H, 'мм', 64)}${!uo && !m.pts.length ? `<label class="ulb">📐 план<input data-ul type="file" accept="image/*" style="display:none"></label>` : ''}${uo && !uo.ul.ok ? '<span class="er" style="font-size:12px" title="Масштаб плана не задан: введите длину L любой стены">масштаб ≈</span>' : ''}<span style="flex:1"></span>${PL.tool === 'ct' && !m.closed && m.pts.length >= 2 ? '<button id="bBrk" title="Разрыв: эта ломаная остаётся, следующая — отдельно (или касание последней точки)">⌇ разрыв</button>' : ''}<button id="bRmM" title="Ещё: объект, помещение, план, контур"${S.rmMore ? ' class="arm" style="background:var(--ac);border-color:var(--ac)"' : ''}>⋯</button><button id="bPu" title="Отменить">↶</button></div>
       ${S.rmMore ? `<div class="row"><label>объект<input data-ob class="wide" value="${esc(S.room.obj || '')}" placeholder="клиент, адрес" style="text-align:left"></label></div>
       <div class="row"><input data-nr class="wide" placeholder="новое помещение" style="text-align:left"><button id="bAddR" title="Добавить помещение в объект — на этот же холст" style="background:var(--ac);border-color:var(--ac);color:#111">＋ помещение</button></div>
       ${m.pts.length ? `<div class="row">${m.closed && m.pts.length > 2 ? '<button id="bOpn" title="Разомкнуть контур (убрать замыкающую стену) — правка узлов, ⌗ продолжает">⌇ разомкнуть</button>' : ''}<button id="bCtX" title="Удалить контур (↶ — вернуть)">✕ контур</button></div>` : ''}
@@ -2445,6 +2453,7 @@ function plPanel() {
   }
   $('bPu').onclick = zUndo; plObjBind(pp); ulBind(pp); ctBind(pp);   /* v11; v14; v17 */
   const bm = $('bRmM'); if (bm) bm.onclick = () => { S.rmMore = !S.rmMore; plPanel() };   /* v21 */
+  const bk = $('bBrk'); if (bk) bk.onclick = zBreak;   /* v32 */
   envBind(pp);   /* v31 */
   pp.querySelectorAll('[data-pf]').forEach(i => i.onchange = () => {
     const k = i.dataset.pf, v = i.value.trim(), n = v ? evalN(v) : null; if (v && n == null) return plPanel(); if (v === (i.defaultValue || '').trim() || !i.isConnected) return; plSnap();   /* v23: без изменений — не шаг ↶; v26: поле уже перерисовано */
@@ -2915,7 +2924,7 @@ function lqDraw() {   /* цель — оранжевая подсветка ст
   cx.restore();
 }
 function zTapSel(p) {   /* касание пальцем при стилусе: только выбор, инструмент прежний */
-  if (S.mode === 'plan') { const t = PL.tool, h = plHit(p); if (!h && !zpHit(p)) return; PL.tool = 'sel'; plTap(p); PL.tool = t; mkChips(); mkPanel(); return draw() }
+  if (S.mode === 'plan') { if (PL.tool === 'rm') return plTap(p);   /* v32: ⌂ — касанием пальца */ const t = PL.tool, h = plHit(p); if (!h && !zpHit(p)) return; PL.tool = 'sel'; plTap(p); PL.tool = t; mkChips(); mkPanel(); return draw() }
   if (S.tool === 'mk' && S.mosaic && S.show < 0) { const k = S.mk, pd = S.pend; S.mk = 'sel'; mkTap(p); S.mk = k; S.pend = pd; mkChips(); mkPanel(); draw() }
 }
 $('bLq').onclick = () => S.lq ? (S.lq = null, mkPanel(), draw(), zLay()) : lqStart();
@@ -3065,7 +3074,7 @@ $('bBt').onclick = btConnect;
 addEventListener('resize', resize); resize(); mkChips();
 zInit();   /* v22: каркас */
 $('zVer').textContent = 'Замер ' + ZVER; $('zVer2').textContent = 'Akrix Замер ' + ZVER;   /* v18 */
-window.PM = { envApply, envAt, zEnv, ulSteps, lqStart, lqNext, zTapSel, zMosaic, frEnsure, zWarn, zBackup, zRestore, opOut, ZD, zdPts, zdCopy, nAttach, LAY, BT, btUi, mkChips, ZPX, zpOut, zwOut, zpGet, ZN_K, ZOPT, zOpt, zMod, dmOut, dmTap, zLW, zdGet, zFrDel, zFrBack, ZA, ulRetrace, zmSet, zCur, zSheet, zLay, zUndo, zRedo, zDone, PEN, status, ZVER, geoBuild, plUndo, ctOpen, ctAddNode, ctDelNode, ctClear, sessList, opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
+window.PM = { zBreak, envApply, envAt, zEnv, ulSteps, lqStart, lqNext, zTapSel, zMosaic, frEnsure, zWarn, zBackup, zRestore, opOut, ZD, zdPts, zdCopy, nAttach, LAY, BT, btUi, mkChips, ZPX, zpOut, zwOut, zpGet, ZN_K, ZOPT, zOpt, zMod, dmOut, dmTap, zLW, zdGet, zFrDel, zFrBack, ZA, ulRetrace, zmSet, zCur, zSheet, zLay, zUndo, zRedo, zDone, PEN, status, ZVER, geoBuild, plUndo, ctOpen, ctAddNode, ctDelNode, ctClear, sessList, opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
 dbOpen().then(() => { if (!/[?&]nolist/.test(location.search)) sessList(true) });
 </script>
