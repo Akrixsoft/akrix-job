@@ -233,7 +233,7 @@ const S = { frames: [], sol: null, mosaic: null, tool: 'view', rulers: [], pend:
   sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'sel', und: [], la: {},
   mode: 'wall', room: null, room0: null, psel: null, pund: [], planL: null, wsh: {}, adim: true, dimHits: [], dfoc: null, msel: [], rsr: null, colOpen: false, notes: [], nsel: null, gOpen: false, gsel: '2.0', objRooms: [], pf: null, poolW: [] };   /* v13: pf — выбранный кадр пула, poolW — кадры замеров стен объекта */   /* v11: objRooms — другие помещения объекта */   /* v10: notes — выноски, gsel — точка сетки 'ряд.столбец' */   /* v8: msel — группа (рамка выделения), rsr — рамка на экране */   /* v7: adim — авторазмеры всех объектов; dimHits — подписи размеров под пальцем; dfoc — поле размера в фокусе */   /* v6: mode 'plan' — план помещения */   /* v5: la — привязка концов линий к кадрам */   /* v4: mk 'sel' — выбор и правка */   /* v2: замер, разметка */
 const $ = id => document.getElementById(id);
-const ZVER = 'v34';
+const ZVER = 'v35';
 const PEN = { seen: false, mode: (() => { try { return localStorage.getItem('zamer.pen') || 'auto' } catch (e) { return 'auto' } })(), on() { return this.mode === 'auto' && this.seen } };   /* v21: стилус и палец */   /* v18: номер версии — подставляет build.py */
 function setNum(id) { const v = $(id).value.trim(); if (!v) return null; try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) && r > 0 ? r : null } catch (e) { return null } }
 function sizeOf(id) { return id >= 100 ? (setNum('sA5') || 120) : (setNum('sA4') || 180) }
@@ -768,7 +768,7 @@ function status() {
   if (S.mode === 'plan') return plStatus();   /* v6 */
   const st = $('st'), sol = S.sol;
   if (!S.frames.length) { st.innerHTML = 'Добавьте кадры: 📷 или 🖼.'; return }
-  if (!sol) { st.innerHTML = S.q4 && S.q4.ok && S.mosaic ? `Фото по 4 углам · L <b>${S.q4.L}</b> · H <b>${S.q4.H}</b> · размеры — рулетка / лазер в полях` : 'Фото: коснитесь 4 углов стены — низ-лево, низ-право, верх-право, верх-лево; L и H — лазером'; return }   /* v34 */
+  if (!sol) { st.innerHTML = S.q4 && S.q4.ok && S.mosaic ? `Фото по 4 углам${S.q4.fr && Object.keys(S.q4.fr).length > 1 ? ' · кадров ' + q4Use().length : ''} · L <b>${S.q4.L}</b> · H <b>${S.q4.H}</b> · размеры — рулетка / лазер в полях` : 'Фото: коснитесь 4 углов стены — низ-лево, низ-право, верх-право, верх-лево; L и H — лазером'; return }   /* v34 */
   const bad = S.frames.filter(f => !f.h).length, c = sol.ctrl.length ? sol.ctrl.reduce((a, b) => Math.abs(b.d) > Math.abs(a.d) ? b : a) : null;  /* контроль: сторона маркера по снимкам при свободном размере, против заданной */
   st.innerHTML = `Маркеров <b>${sol.mks.length}</b> · кадров <b>${S.frames.length - bad}</b>${bad ? ` <span class="er">· не связаны ${bad}</span>` : ''} · невязка СКО <b>${f1(sol.rms)}</b>, макс <b>${f1(sol.max)}</b> мм · ` +   /* v22: одна строка */
     wallLine() + (c ? `контроль сторон: № ${c.id} — ${f1(c.side)} (${c.d >= 0 ? '+' : ''}${f1(c.d)} мм)` : 'контроль: нужно ≥ 2 маркеров') + ` · ноль — центр № ${sol.ref} · дисторсия k1 ${(sol.k1 || 0).toFixed(4)} (${sol.kwhy || ''})` + (S.mosaic ? ` · ${f1(S.mosaic.r)} мм/px` : '');
@@ -2994,43 +2994,58 @@ function zTapSel(p) {   /* касание пальцем при стилусе: 
 }
 $('bLq').onclick = () => S.lq ? (S.lq = null, mkPanel(), draw(), zLay()) : lqStart();
 
-/* ═══ [BLOCK] ФОТО БЕЗ МАРКЕРОВ (v34, R10): 4 угла стены на фото + L, H → развёртка в мм (S.q4 {k, pts [[u, v]×4], L, H, ok}) ═══ */
+/* ═══ [BLOCK] ФОТО БЕЗ МАРКЕРОВ (v34–v35, R10): кадр — 4 точки участка стены (низ-лево, низ-право, верх-право, верх-лево) + X вертикалей (xa, xb); стена — L, H → развёртка в мм ═══ */
+/* S.q4 = {L, H, ok, fr: {key кадра: {pts [[u, v]×4], xa, xb}}}; старая запись v34 {k, pts, L, H, ok} — читается как один кадр 0…L */
 S.q4 = null;
+function q4Q() { let q = S.q4; if (!q) q = S.q4 = { L: '', H: '', ok: 0, fr: {} }; if (q.pts && q.k) { q.fr = { [q.k]: { pts: q.pts, xa: 0, xb: q.L } }; delete q.pts; delete q.k } q.fr = q.fr || {}; return q }
 const q4Need = () => S.mode !== 'plan' && S.frames.length > 0 && !S.sol && !(S.q4 && S.q4.ok);
+const q4F = () => S.frames[Math.max(0, S.show)];
+function q4E(f) { const q = q4Q(); return q.fr[f.key] = q.fr[f.key] || { pts: [], xa: '', xb: '' } }
 function q4Tap(p) {
   if (S.show < 0) { S.show = 0; strip(); fit(); return }
-  const v = S.view, f = S.frames[S.show]; S.q4 = S.q4 && S.q4.k === f.key ? S.q4 : { k: f.key, pts: [], L: '', H: '' };
-  if (S.q4.pts.length >= 4) S.q4.pts = []; S.q4.pts.push([(p[0] - v.ox) / v.s, (p[1] - v.oy) / v.s]); mkPanel(); draw();
+  const v = S.view, e = q4E(q4F()); if (e.pts.length >= 4) e.pts = []; e.pts.push([(p[0] - v.ox) / v.s, (p[1] - v.oy) / v.s]); mkPanel(); draw();
 }
 const Q4N = ['низ-лево', 'низ-право', 'верх-право', 'верх-лево'];
 function q4Panel() {
   const pp = $('pp'); pp.classList.add('on'); if (S.show < 0 && S.frames.length) { S.show = 0; strip(); fit() }
-  const q = S.q4 || { pts: [] }, n = q.pts.length, L0 = S.planL || '', H0 = (S.room0 && S.room0.ms && S.room0.ms.H) || '';
-  pp.innerHTML = `<div class="row"><span class="t">📐 ${n < 4 ? 'угол ' + (n + 1) + ' / 4: ' + Q4N[n] : 'углы ✓'}</span><label>L<input data-q4="L" inputmode="decimal" value="${esc(q.L || L0)}" placeholder="мм" style="width:72px"></label><label>H<input data-q4="H" inputmode="decimal" value="${esc(q.H || H0)}" placeholder="мм" style="width:72px"></label><button id="bQ4ok" title="Выровнять фото по углам"${n < 4 ? ' disabled' : ''}>✓</button><button id="bQ4r" title="Углы заново">↺</button></div>
-    <div class="row mu">касания по углам стены на фото: низ-лево, низ-право, верх-право, верх-лево; L — по полу, H — высота (лазер); точные размеры — потом в полях</div>`;
-  pp.querySelectorAll('[data-q4]').forEach(i => { if (i.dataset.q4 === 'L') btField = i; i.onchange = () => { S.q4 = S.q4 || { k: S.frames[Math.max(0, S.show)].key, pts: [], L: '', H: '' }; const n2 = evalN(i.value.trim()); S.q4[i.dataset.q4] = n2 > 0 ? r1(n2) : '' } });
-  $('bQ4ok').onclick = () => { const L = evalN(pp.querySelector('[data-q4="L"]').value), H = evalN(pp.querySelector('[data-q4="H"]').value); if (!(L > 0 && H > 0)) { toast('Введите L и H (лазер)'); return } q4Set(L, H) };
-  $('bQ4r').onclick = () => { if (S.q4) S.q4.pts = []; mkPanel(); draw() };
+  const q = q4Q(), f = q4F(), e = q4E(f), n = e.pts.length, nf = S.frames.length, i = S.frames.indexOf(f), one = nf === 1;
+  const L0 = q.L || S.planL || '', H0 = q.H || (S.room0 && S.room0.ms && S.room0.ms.H) || '', ready = S.frames.filter(g => { const x = (q.fr || {})[g.key]; return x && x.pts.length === 4 }).length;
+  pp.innerHTML = `<div class="row"><span class="t">📐 ${nf > 1 ? `кадр ${i + 1}/${nf} · ` : ''}${n < 4 ? 'точка ' + (n + 1) + '/4: ' + Q4N[n] : 'точки ✓'}</span>${nf > 1 ? '<button id="bQ4p" title="Предыдущий кадр">◀</button><button id="bQ4n" title="Следующий кадр">▶</button>' : ''}
+      <label>L<input data-q4="L" inputmode="decimal" value="${esc(L0)}" placeholder="мм" style="width:70px"></label><label>H<input data-q4="H" inputmode="decimal" value="${esc(H0)}" placeholder="мм" style="width:70px"></label>
+      ${one ? '' : `<label title="X левой вертикали участка — от левого угла стены (лазер)">X от<input data-q4f="xa" inputmode="decimal" value="${esc(e.xa)}" placeholder="мм" style="width:66px"></label><label title="X правой вертикали участка">до<input data-q4f="xb" inputmode="decimal" value="${esc(e.xb)}" placeholder="мм" style="width:66px"></label>`}
+      <button id="bQ4ok" title="Выровнять и склеить (кадров с точками: ${ready})"${ready ? '' : ' disabled'}>✓</button><button id="bQ4r" title="Точки этого кадра заново">↺</button></div>
+    <div class="row mu">${one ? 'касания по углам стены: низ-лево, низ-право, верх-право, верх-лево; L — по полу, H — высота (лазер)' : 'на каждом кадре — пол и потолок на двух вертикалях (угол, край проёма, шов): низ-лево, низ-право, верх-право, верх-лево; X вертикалей — лазером от левого угла стены'}; точные размеры — потом в полях</div>`;
+  pp.querySelectorAll('[data-q4]').forEach(x => x.onchange = () => { const v = evalN(x.value.trim()); q[x.dataset.q4] = v > 0 ? r1(v) : '' });
+  pp.querySelectorAll('[data-q4f]').forEach(x => x.onchange = () => { const v = evalN(x.value.trim()); e[x.dataset.q4f] = v >= 0 && x.value.trim() !== '' ? r1(v) : '' });
+  const fm = pp.querySelector('[data-q4f]:placeholder-shown') || pp.querySelector('[data-q4]:placeholder-shown'); if (fm) btField = fm;   /* лазер — в первое пустое */
+  const go = d => { S.show = (S.frames.indexOf(f) + d + nf) % nf; strip(); fit(); mkPanel() };
+  const bp = $('bQ4p'); if (bp) bp.onclick = () => go(-1); const bn = $('bQ4n'); if (bn) bn.onclick = () => go(1);
+  $('bQ4ok').onclick = () => { const L = evalN(pp.querySelector('[data-q4="L"]').value), H = evalN(pp.querySelector('[data-q4="H"]').value); if (!(L > 0 && H > 0)) { toast('Введите L и H (лазер)'); return } q.L = r1(L); q.H = r1(H);
+    if (one) { e.xa = 0; e.xb = q.L } const bad = S.frames.filter(g => { const x = q.fr[g.key]; return x && x.pts.length === 4 && !(x.xa !== '' && x.xb !== '' && +x.xb > +x.xa) }); if (bad.length) { toast(`Кадр ${S.frames.indexOf(bad[0]) + 1}: X от / до`); return } q4Set() };
+  $('bQ4r').onclick = () => { e.pts = []; mkPanel(); draw() };
 }
-async function q4Set(L, H) {
-  const q = S.q4; if (!q || q.pts.length < 4) return; q.L = r1(L); q.H = r1(H); q.ok = 1;
+async function q4Set() {
+  const q = q4Q(); q.ok = 1;
   S.lines = { floor: [[0, 0], [q.L, 0]], left: [[0, 0], [0, q.H]], right: [[q.L, 0], [q.L, q.H]], ceil: [[0, q.H], [q.L, q.H]] }; S.show = -1;
-  document.body.classList.add('q4'); await recompute(); saveSess(); mkChips(); mkPanel(); toast('Фото выровнено: L ' + q.L + ' · H ' + q.H);
+  document.body.classList.add('q4'); await recompute(); saveSess(); mkChips(); mkPanel(); toast(`Фото: кадров ${q4Use().length} · L ${q.L} · H ${q.H}`);
 }
-async function q4Mosaic() {   /* стена (мм, y вверх) → кадр: гомография по 4 углам; развёртка 2400 px по большей стороне */
-  const q = S.q4, f = S.frames.find(x => x.key === q.k) || S.frames[0]; await frEnsure(f); if (!f.rgba) return null;
-  const L = q.L, H = q.H, h = hDLT([[0, 0], [L, 0], [L, H], [0, H]], q.pts), r = Math.max(L, H) / 2400, W = Math.ceil(L / r), Hh = Math.ceil(H / r);
-  const c = document.createElement('canvas'); c.width = W; c.height = Hh; const g = c.getContext('2d'), id = g.createImageData(W, Hh), D = id.data, A = f.rgba;
+function q4Use() { const q = q4Q(); return S.frames.map(f => [f, q.fr[f.key]]).filter(([f, x]) => x && x.pts.length === 4 && x.xa !== '' && x.xb !== '' && +x.xb > +x.xa).map(([f, x]) => ({ f, xa: +x.xa, xb: +x.xb, h: hDLT([[+x.xa, 0], [+x.xb, 0], [+x.xb, q.H], [+x.xa, q.H]], x.pts) })) }
+async function q4Mosaic() {   /* стена → кадр по участкам; столбец — кадр, где X ближе к середине участка */
+  const q = q4Q(), U = q4Use(); if (!U.length) return null; for (const u of U) await frEnsure(u.f);
+  const L = q.L, H = q.H, r = Math.max(L, H) / 2400, W = Math.ceil(L / r), Hh = Math.ceil(H / r);
+  const c = document.createElement('canvas'); c.width = W; c.height = Hh; const g = c.getContext('2d'), id = g.createImageData(W, Hh), D = id.data;
+  const col = new Array(W); for (let i = 0; i < W; i++) { const X = (i + 0.5) * r; let b = null, bs = 1e9; for (const u of U) { if (X < u.xa - 0.02 * L || X > u.xb + 0.02 * L) continue; const sc = Math.abs(X - (u.xa + u.xb) / 2) / (u.xb - u.xa); if (sc < bs) { bs = sc; b = u } } col[i] = b }
   for (let j = 0; j < Hh; j++) for (let i = 0; i < W; i++) {
-    const [u, v] = hApply(h, (i + 0.5) * r, H - (j + 0.5) * r), o = (j * W + i) * 4; D[o + 3] = 255;
+    const o = (j * W + i) * 4, u0 = col[i]; D[o + 3] = 255; if (!u0 || !u0.f.rgba) { D[o] = D[o + 1] = D[o + 2] = 30; continue }
+    const f = u0.f, A = f.rgba, [u, v] = hApply(u0.h, (i + 0.5) * r, H - (j + 0.5) * r);
     if (u < 0 || v < 0 || u > f.W - 2 || v > f.H - 2) { D[o] = D[o + 1] = D[o + 2] = 30; continue }
     const xi = u | 0, yi = v | 0, fx = u - xi, fy = v - yi, s0 = (yi * f.W + xi) * 4, s1 = s0 + f.W * 4;
     for (let k = 0; k < 3; k++) D[o + k] = (A[s0 + k] * (1 - fx) + A[s0 + 4 + k] * fx) * (1 - fy) + (A[s1 + k] * (1 - fx) + A[s1 + 4 + k] * fx) * fy;
   }
-  g.putImageData(id, 0, 0); f.rgba = null;
+  g.putImageData(id, 0, 0); for (const u of U) u.f.rgba = null;
   return { c, x0: 0, y1: H, r, W, H: Hh };
 }
-const zDraw1 = draw; draw = function () { zDraw1(); if (S.mode === 'plan' || S.show < 0 || !S.q4 || S.q4.ok) return; const d = devicePixelRatio || 1, v = S.view, P = S.q4.pts.map(([u, w]) => [v.ox + u * v.s, v.oy + w * v.s]);   /* углы на кадре */
+const zDraw1 = draw; draw = function () { zDraw1(); if (S.mode === 'plan' || S.show < 0 || !S.q4 || S.q4.ok || !S.frames[S.show]) return; const e = (q4Q().fr || {})[S.frames[S.show].key]; if (!e) return; const d = devicePixelRatio || 1, v = S.view, P = e.pts.map(([u, w]) => [v.ox + u * v.s, v.oy + w * v.s]);   /* точки на кадре */
   cx.strokeStyle = '#e07a00'; cx.fillStyle = '#e07a00'; cx.lineWidth = 2 * d; cx.beginPath(); P.forEach((q, i) => i ? cx.lineTo(...q) : cx.moveTo(...q)); if (P.length === 4) cx.closePath(); cx.stroke();
   cx.font = 'bold ' + (13 * d) + 'px system-ui'; P.forEach((q, i) => { cx.beginPath(); cx.arc(q[0], q[1], 6 * d, 0, 7); cx.fill(); cx.fillText(String(i + 1), q[0] + 8 * d, q[1] - 6 * d) }) };
 $('bQ4').onclick = () => { if (!S.q4) return; S.q4.ok = 0; S.mosaic = null; S.show = 0; document.body.classList.remove('q4'); strip(); fit(); mkPanel(); status() };
@@ -3180,7 +3195,7 @@ $('bBt').onclick = btConnect;
 addEventListener('resize', resize); resize(); mkChips();
 zInit();   /* v22: каркас */
 $('zVer').textContent = 'Замер ' + ZVER; $('zVer2').textContent = 'Akrix Замер ' + ZVER;   /* v18 */
-window.PM = { q4Need, q4Tap, q4Set, q4Mosaic, ulWalls, wpTap, zBreak, envApply, envAt, zEnv, ulSteps, lqStart, lqNext, zTapSel, zMosaic, frEnsure, zWarn, zBackup, zRestore, opOut, ZD, zdPts, zdCopy, nAttach, LAY, BT, btUi, mkChips, ZPX, zpOut, zwOut, zpGet, ZN_K, ZOPT, zOpt, zMod, dmOut, dmTap, zLW, zdGet, zFrDel, zFrBack, ZA, ulRetrace, zmSet, zCur, zSheet, zLay, zUndo, zRedo, zDone, PEN, status, ZVER, geoBuild, plUndo, ctOpen, ctAddNode, ctDelNode, ctClear, sessList, opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
+window.PM = { q4Q, q4Use, q4Need, q4Tap, q4Set, q4Mosaic, ulWalls, wpTap, zBreak, envApply, envAt, zEnv, ulSteps, lqStart, lqNext, zTapSel, zMosaic, frEnsure, zWarn, zBackup, zRestore, opOut, ZD, zdPts, zdCopy, nAttach, LAY, BT, btUi, mkChips, ZPX, zpOut, zwOut, zpGet, ZN_K, ZOPT, zOpt, zMod, dmOut, dmTap, zLW, zdGet, zFrDel, zFrBack, ZA, ulRetrace, zmSet, zCur, zSheet, zLay, zUndo, zRedo, zDone, PEN, status, ZVER, geoBuild, plUndo, ctOpen, ctAddNode, ctDelNode, ctClear, sessList, opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
 dbOpen().then(() => { if (!/[?&]nolist/.test(location.search)) sessList(true) });
 </script>
