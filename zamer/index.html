@@ -233,7 +233,7 @@ const S = { frames: [], sol: null, mosaic: null, tool: 'view', rulers: [], pend:
   sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'sel', und: [], la: {},
   mode: 'wall', room: null, room0: null, psel: null, pund: [], planL: null, wsh: {}, adim: true, dimHits: [], dfoc: null, msel: [], rsr: null, colOpen: false, notes: [], nsel: null, gOpen: false, gsel: '2.0', objRooms: [], pf: null, poolW: [] };   /* v13: pf — выбранный кадр пула, poolW — кадры замеров стен объекта */   /* v11: objRooms — другие помещения объекта */   /* v10: notes — выноски, gsel — точка сетки 'ряд.столбец' */   /* v8: msel — группа (рамка выделения), rsr — рамка на экране */   /* v7: adim — авторазмеры всех объектов; dimHits — подписи размеров под пальцем; dfoc — поле размера в фокусе */   /* v6: mode 'plan' — план помещения */   /* v5: la — привязка концов линий к кадрам */   /* v4: mk 'sel' — выбор и правка */   /* v2: замер, разметка */
 const $ = id => document.getElementById(id);
-const ZVER = 'v36';
+const ZVER = 'v37';
 const PEN = { seen: false, mode: (() => { try { return localStorage.getItem('zamer.pen') || 'auto' } catch (e) { return 'auto' } })(), on() { return this.mode === 'auto' && this.seen } };   /* v21: стилус и палец */   /* v18: номер версии — подставляет build.py */
 function setNum(id) { const v = $(id).value.trim(); if (!v) return null; try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) && r > 0 ? r : null } catch (e) { return null } }
 function sizeOf(id) { return id >= 100 ? (setNum('sA5') || 120) : (setNum('sA4') || 180) }
@@ -823,7 +823,7 @@ async function saveNow() { clearTimeout(saveT); if (S.sess) await doSave() }   /
 async function doSave() {
   {
     if (S.recomp) return saveSess(); anchorAll();   /* v5 */
-    const o = S.sess; if (!o) return; o.wsh = S.wsh; o.q4 = S.q4 || null;   /* v34 */   /* v33: замер уже закрыт — отложенное сохранение не нужно */ if (S.sol) try { o.out = exportObj() } catch (e) { }   /* v6: снимок для выгрузки помещения */ Object.assign(o, { upd: Date.now(), frames: S.frames.filter(f => f.key).map(f => ({ key: f.key, name: f.name, ...(f.pool ? { pool: 1 } : {}), W: f.W, H: f.H, det: f.det }))   /* v27: + кэш маркеров */,   /* v13: pool — кадр из пула */ lines: S.lines, la: S.la, man: S.man, els: S.els, notes: S.notes, dms: S.dms, drw: S.drw, rts: S.rts, polys: S.polys, rulers: S.rulers, und: S.und.filter(t => !t.startsWith('ZA:')).slice(-40), set: { a4: $('sA4').value, a5: $('sA5').value, max: $('sMax').value, dist: $('sDist').value }, q: S.sol ? { rms: S.sol.rms, mk: S.sol.mks.length } : null });
+    const o = S.sess; if (!o) return; o.wsh = S.wsh; o.q4 = S.q4 || null;   /* v34 */   /* v33: замер уже закрыт — отложенное сохранение не нужно */ if (S.sol || (S.q4 && S.q4.ok && S.mosaic)) try { o.out = exportObj() } catch (e) { }   /* v6: снимок для выгрузки помещения; v37: и фото без маркеров */ Object.assign(o, { upd: Date.now(), frames: S.frames.filter(f => f.key).map(f => ({ key: f.key, name: f.name, ...(f.pool ? { pool: 1 } : {}), W: f.W, H: f.H, det: f.det }))   /* v27: + кэш маркеров */,   /* v13: pool — кадр из пула */ lines: S.lines, la: S.la, man: S.man, els: S.els, notes: S.notes, dms: S.dms, drw: S.drw, rts: S.rts, polys: S.polys, rulers: S.rulers, und: S.und.filter(t => !t.startsWith('ZA:')).slice(-40), set: { a4: $('sA4').value, a5: $('sA5').value, max: $('sMax').value, dist: $('sDist').value }, q: S.sol ? { rms: S.sol.rms, mk: S.sol.mks.length } : null });
     await dbPut('sess', JSON.parse(JSON.stringify(o))).catch(() => { });
   }
 }
@@ -2837,7 +2837,7 @@ function zpHit(p) {
 }
 function zpOut(m) {   /* выгрузка: точки — в координатах листа (как ms.pts: y вниз) */
   const f = p => [p[0], -p[1]], num = v => v === '' || v == null ? undefined : +v, o = {};
-  if ((m.shp || []).length) o.shp = m.shp.map(q => ({ t: q.t, pts: q.pts.map(f), ...(q.bulge ? { bulge: q.bulge } : {}), note: q.note || '' }));
+  if ((m.shp || []).length) o.shp = m.shp.map(q => ({ t: q.t === 'box' && (q.auto || q.note === 'выступ') ? 'wall' : q.t, pts: q.pts.map(f),   /* v37: выступ основной стены — t 'wall' */ ...(q.bulge ? { bulge: q.bulge } : {}), note: q.note || '' }));
   if ((m.rt || []).length) o.rt = m.rt.map(q => ({ t: q.t, lvl: q.lvl, pts: q.pts.map(f), ...(num(q.d) ? { d: num(q.d) } : {}) }));
   if (m.ceil && m.ceil.p.every(x => x[2] !== '')) o.ceil = { t: 'slope', p: m.ceil.p.map(x => [x[0], -x[1], +x[2]]) };
   return o;
