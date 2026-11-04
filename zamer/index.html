@@ -32,7 +32,7 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:14px/1.
 .th i{position:absolute;right:1px;top:1px;width:22px;height:22px;border-radius:5px;background:rgba(0,0,0,.6);font-style:normal;text-align:center;line-height:22px;font-size:13px}
 .th i.arm{background:var(--er)}
 .th[data-pk] span{color:#fff} .th.pw{opacity:.75} .th.na span{background:rgba(217,48,37,.8)}   /* v13: пул — кадр замера стены / без стены */
-#set{position:fixed;right:6px;top:76px;width:270px;background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:10px;z-index:6;display:none}
+#set{position:fixed;right:6px;top:122px;width:270px;background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:10px;z-index:6;display:none}
 #set.on{display:block}
 #set div{display:flex;align-items:center;justify-content:space-between;margin:6px 0;gap:8px}
 #set input{width:90px;height:32px;background:var(--in);border:1px solid var(--ln);border-radius:6px;color:var(--tx);padding:0 6px;font-size:15px;text-align:right}
@@ -164,6 +164,10 @@ body.mk #rl{top:76px}
 #zb>#ch{position:static;display:none!important;flex:1 1 auto;min-width:0;height:auto;min-height:0;flex-wrap:nowrap;overflow-x:auto;align-items:center;padding:5px 6px;scrollbar-width:none}
 #zf.m-plan #ch,#zf.m-mk #ch{display:flex!important}
 #zb>#ch.wr{flex-wrap:wrap}
+#zBt{position:fixed;right:3px;top:3px;width:9px;height:9px;border-radius:50%;display:none;z-index:6;cursor:pointer}   /* v25: дальномер — точка */
+#zBt.wait{display:block;background:#f0a020;animation:zbl 1s infinite} #zBt.on{display:block;background:#2e9e4f} @keyframes zbl{50%{opacity:.3}}
+#bView,#pp #bUn,#pp #bPu{display:none!important}   /* v25: ✋ — режим «Стена»; ↶ — в шапке */
+#bFit{position:fixed;right:8px;top:78px;width:38px;height:38px;border-radius:10px;border:1px solid var(--ln);background:var(--pn);color:var(--tx);font-size:18px;z-index:4;box-shadow:0 2px 8px rgba(26,32,39,.15);cursor:pointer}
 #tb{top:auto;bottom:44px;max-height:60vh;border-radius:16px 16px 0 0;box-shadow:0 -6px 18px rgba(26,32,39,.18);border-top:1px solid var(--ln)}   /* v22: полный набор — футляр ≤ 60 vh */
 </style>
 </head>
@@ -177,16 +181,17 @@ body.mk #rl{top:76px}
   <button id="bRed" title="Повторить">↷</button>
   <button id="bJson" title="Отправить / сохранить замер (.json для Akrix); на плане — помещение целиком, в объекте из нескольких помещений — объект целиком">⇪</button>
   <button id="bPen" title="Стилус: рисует стилус, палец двигает и масштабирует (выкл — не разделять)">🖊</button>
-  <button id="bMore" title="Ещё: настройки, маркеры">⋮</button>
+  <button id="bMore" title="Ещё: настройки, слои, линейка, маркеры">⋮</button><i id="zBt" title="Дальномер"></i>
 </div>
 <div id="hl" title="Коснуться — строка целиком"><span id="zIn"></span> <span id="st">Добавьте кадры: 📷 или 🖼.</span></div>
-<div id="zMenu"><button id="bSet" title="Настройки">⚙ Настройки</button><a href="akrix_markers.pdf" target="_blank">🖨 Маркеры (PDF)</a></div>
+<div id="zMenu"><button id="bSet" title="Настройки">⚙ Настройки</button><button id="bLay" title="Слои видимости">◫ Слои</button><button id="bRul" title="Линейка: два касания — отрезок, концы перетаскиваются">📏 Линейка</button><a href="akrix_markers.pdf" target="_blank">🖨 Маркеры (PDF)</a></div>
 <canvas id="cv"></canvas>
 <div id="rl"></div>
 <div id="set">
   <div><span>Сторона маркера A4, мм</span><input id="sA4" inputmode="decimal" placeholder="180"></div>
   <div><span>Сторона маркера A5, мм</span><input id="sA5" inputmode="decimal" placeholder="120"></div>
   <div><span>Макс. сторона кадра, px</span><input id="sMax" inputmode="numeric" placeholder="4096"></div>
+  <div><span>Дальномер Bosch GLM</span><button id="bBt" title="Подключить дальномер Bosch GLM по Bluetooth" style="height:32px;min-width:44px;border:1px solid var(--ln);border-radius:6px;background:var(--bt);font-size:17px">📡</button></div>   <!-- v25: из панели — в ⚙ -->
   <div><span>Дисторсия объектива</span><select id="sDist" style="height:32px;background:var(--in);border:1px solid var(--ln);border-radius:6px;color:var(--tx)"><option value="auto">авто</option><option value="off">не учитывать</option><option value="on">учитывать</option></select></div>
   <small id="zVer2" style="display:block;margin-bottom:4px"></small><small>Авто: учитывается, только если есть кадр с 3+ маркерами и невязка без неё заметно больше.<br>Сторона — фактическая, по рулетке на распечатке. № 1–99 — A4, № 101+ — A5. Пусто — значение по умолчанию. Ноль координат — центр маркера с меньшим номером, оси — по нему.</small>
 </div>
@@ -201,12 +206,12 @@ body.mk #rl{top:76px}
   <div id="zx"></div>
   <div id="zopt"></div>   <!-- v24: опции инструмента — строкой справа -->
   <div id="zb">
-    <div id="zgW" class="zg"><label title="Снять кадр камерой (на плане — в пул кадров объекта)">📷<input id="fCam" type="file" accept="image/*" capture="environment"></label><label title="Добавить кадры из галереи (несколько; на плане — в пул кадров объекта)">🖼<input id="fGal" type="file" accept="image/*" multiple></label><button id="bView" class="on" title="Просмотр: двигать и масштабировать">✋</button><button id="bRul" title="Линейка: два касания — отрезок, концы перетаскиваются">📏</button></div>
-    <div id="zgD" class="zg"><button id="bBt" title="Подключить дальномер Bosch GLM по Bluetooth">📡</button><button id="bDim" title="Размер: два касания (опции — справа)">↔</button></div>
+    <div id="zgW" class="zg"><label title="Снять кадр камерой (на плане — в пул кадров объекта)">📷<input id="fCam" type="file" accept="image/*" capture="environment"></label><label title="Добавить кадры из галереи (несколько; на плане — в пул кадров объекта)">🖼<input id="fGal" type="file" accept="image/*" multiple></label><button id="bView" class="on" title="Просмотр: двигать и масштабировать">✋</button></div>
+    <div id="zgD" class="zg"><button id="bDim" title="Размер: два касания (опции — справа)">↔</button></div>
     <div id="ch"></div>
-    <div id="zmod" class="zg"><button id="bFit" title="Показать всё">⤢</button><button id="bLay" title="Слои видимости">◫</button></div>
   </div>
 </div>
+<button id="bFit" title="Показать всё">⤢</button>   <!-- v25: в углу холста -->
 <div id="zm">   <!-- v22: режимы -->
   <button id="zmP" data-zm="plan" title="План помещения: контур, стены, углы"><i>⌂</i></button>
   <button id="zmW" data-zm="wall" title="Стена: кадры, камера, просмотр"><i>📷</i></button>
@@ -226,7 +231,7 @@ const S = { frames: [], sol: null, mosaic: null, tool: 'view', rulers: [], pend:
   sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'sel', und: [], la: {},
   mode: 'wall', room: null, room0: null, psel: null, pund: [], planL: null, wsh: {}, adim: true, dimHits: [], dfoc: null, msel: [], rsr: null, colOpen: false, notes: [], nsel: null, gOpen: false, gsel: '2.0', objRooms: [], pf: null, poolW: [] };   /* v13: pf — выбранный кадр пула, poolW — кадры замеров стен объекта */   /* v11: objRooms — другие помещения объекта */   /* v10: notes — выноски, gsel — точка сетки 'ряд.столбец' */   /* v8: msel — группа (рамка выделения), rsr — рамка на экране */   /* v7: adim — авторазмеры всех объектов; dimHits — подписи размеров под пальцем; dfoc — поле размера в фокусе */   /* v6: mode 'plan' — план помещения */   /* v5: la — привязка концов линий к кадрам */   /* v4: mk 'sel' — выбор и правка */   /* v2: замер, разметка */
 const $ = id => document.getElementById(id);
-const ZVER = 'v24';
+const ZVER = 'v25';
 const PEN = { seen: false, mode: (() => { try { return localStorage.getItem('zamer.pen') || 'auto' } catch (e) { return 'auto' } })(), on() { return this.mode === 'auto' && this.seen } };   /* v21: стилус и палец */   /* v18: номер версии — подставляет build.py */
 function setNum(id) { const v = $(id).value.trim(); if (!v) return null; try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) && r > 0 ? r : null } catch (e) { return null } }
 function sizeOf(id) { return id >= 100 ? (setNum('sA5') || 120) : (setNum('sA4') || 180) }
@@ -803,7 +808,7 @@ async function saveNow() { clearTimeout(saveT); if (S.sess) await doSave() }   /
 async function doSave() {
   {
     if (S.recomp) return saveSess(); anchorAll();   /* v5 */
-    const o = S.sess; o.wsh = S.wsh; if (S.sol) try { o.out = exportObj() } catch (e) { }   /* v6: снимок для выгрузки помещения */ Object.assign(o, { upd: Date.now(), frames: S.frames.filter(f => f.key).map(f => f.pool ? { key: f.key, name: f.name, pool: 1 } : { key: f.key, name: f.name }),   /* v13: pool — кадр из пула */ lines: S.lines, la: S.la, man: S.man, els: S.els, notes: S.notes, dms: S.dms, drw: S.drw, rulers: S.rulers, und: S.und.filter(t => !t.startsWith('ZA:')).slice(-40), set: { a4: $('sA4').value, a5: $('sA5').value, max: $('sMax').value, dist: $('sDist').value }, q: S.sol ? { rms: S.sol.rms, mk: S.sol.mks.length } : null });
+    const o = S.sess; o.wsh = S.wsh; if (S.sol) try { o.out = exportObj() } catch (e) { }   /* v6: снимок для выгрузки помещения */ Object.assign(o, { upd: Date.now(), frames: S.frames.filter(f => f.key).map(f => f.pool ? { key: f.key, name: f.name, pool: 1 } : { key: f.key, name: f.name }),   /* v13: pool — кадр из пула */ lines: S.lines, la: S.la, man: S.man, els: S.els, notes: S.notes, dms: S.dms, drw: S.drw, rts: S.rts, polys: S.polys, rulers: S.rulers, und: S.und.filter(t => !t.startsWith('ZA:')).slice(-40), set: { a4: $('sA4').value, a5: $('sA5').value, max: $('sMax').value, dist: $('sDist').value }, q: S.sol ? { rms: S.sol.rms, mk: S.sol.mks.length } : null });
     await dbPut('sess', JSON.parse(JSON.stringify(o))).catch(() => { });
   }
 }
@@ -841,7 +846,7 @@ async function sessPurge(o) {   /* навсегда: замер / помещен
   await dbDel('sess', o.id).catch(() => { });
 }
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-function clearAll() { S.dms = []; S.drw = []; S.dsel = null; S.zRef = null;   /* v24 */ S.notes = []; S.nsel = null; S.msel = []; S.rsr = null; S.wsh = {}; S.planL = null; S.room0 = null; S.frames = []; S.sol = null; S.mosaic = null; S.rulers = []; S.pend = null; S.show = -1; S.lines = {}; S.la = {}; S.man = {}; S.els = []; S.sel = null; S.und = []; S.sess = null; updRul(); strip(); status(); mkPanel(); draw() }
+function clearAll() { S.dms = []; S.drw = []; S.rts = []; S.polys = []; S.zpl = []; S.dsel = null; S.zRef = null;   /* v24 */ S.notes = []; S.nsel = null; S.msel = []; S.rsr = null; S.wsh = {}; S.planL = null; S.room0 = null; S.frames = []; S.sol = null; S.mosaic = null; S.rulers = []; S.pend = null; S.show = -1; S.lines = {}; S.la = {}; S.man = {}; S.els = []; S.sel = null; S.und = []; S.sess = null; updRul(); strip(); status(); mkPanel(); draw() }
 async function newSess(obj, name) {
   leavePlan(); clearAll(); S.sess = { id: 's' + Date.now(), obj: obj || '', name: name || 'Плоскость', created: Date.now(), frames: [] };
   for (const id of ['sA4', 'sA5', 'sMax']) $(id).value = ''; $('sDist').value = 'auto';
@@ -852,7 +857,7 @@ async function openSess(id) {
   if (S.mode === 'plan') leavePlan();
   clearAll(); S.sess = o; S.lines = o.lines || {}; S.la = o.la || {}; S.wsh = o.wsh || {};
   if (o.room) { const r = await dbGet('sess', o.room); if (r) { S.room0 = r; const L = plLen(r.ms, o.seg); S.planL = L && L.ok ? L.v : null } }   /* v6: длина стены из плана */
-  $('bSes').title = o.room ? 'К плану помещения' : 'Замеры: список, новый, открыть'; S.man = o.man || {}; S.els = o.els || []; S.notes = o.notes || []; S.und = (o.und || []).slice(); S.red = []; S.dms = o.dms || []; S.drw = o.drw || [];   /* v24 */   /* v23: ↶ из базы */ S.rulers = o.rulers || [];
+  $('bSes').title = o.room ? 'К плану помещения' : 'Замеры: список, новый, открыть'; S.man = o.man || {}; S.els = o.els || []; S.notes = o.notes || []; S.und = (o.und || []).slice(); S.red = []; S.dms = o.dms || []; S.drw = o.drw || []; S.rts = o.rts || []; S.polys = o.polys || [];   /* v24; v25 */   /* v23: ↶ из базы */ S.rulers = o.rulers || [];
   const st = o.set || {}; $('sA4').value = st.a4 || ''; $('sA5').value = st.a5 || ''; $('sMax').value = st.max || ''; $('sDist').value = st.dist || 'auto';
   sessList(false); title();
   const files = [], keys = [];
@@ -872,7 +877,9 @@ const KINDS = [
   { k: 'floor', n: 'пол', line: 1, c: '#0f8fa8' }, { k: 'ceil', n: 'потолок', line: 1, c: '#0f8fa8' }, { k: 'left', n: 'левый край', line: 1, c: '#a8329f' }, { k: 'right', n: 'правый край', line: 1, c: '#a8329f' },
   { k: 'roz', n: 'розетка', pt: 1, c: '#f0a020' }, { k: 'vyk', n: 'выключатель', pt: 1, c: '#7b3fc4' }, { k: 'svet', n: 'вывод света', pt: 1, c: '#d4a300' }, { k: 'slab', n: 'ТВ / интернет', pt: 1, c: '#3d7be0' },
   { k: 'hvs', n: 'ХВС', pt: 1, c: '#3d9bff' }, { k: 'gvs', n: 'ГВС', pt: 1, c: '#ff5c5c' }, { k: 'kan', n: 'канализация', pt: 1, c: '#8d6e63' }, { k: 'gaz', n: 'газ', pt: 1, c: '#c98a00' }, { k: 'vent', n: 'вентиляция', pt: 1, c: '#1fa98f' },
-  { k: 'win', n: 'окно', rc: 1, c: '#2e9e4f' }, { k: 'door', n: 'дверь', rc: 1, c: '#1f8a78' }, { k: 'nis', n: 'ниша', rc: 1, c: '#5b5bd0' }, { k: 'kol', n: 'колонна', rc: 1, c: '#b8602e' }, { k: 'rig', n: 'ригель', rc: 1, c: '#a07a10' }, { k: 'kor', n: 'короб', rc: 1, c: '#6b7785' }, { k: 'zon', n: 'зона', rc: 1, c: '#b44cc0' }, { k: 'pro', n: 'проём', rc: 1, c: '#2e9e4f', hide: 1 }];   /* v6: проём → окно / дверь; старые «проём» читаются */
+  { k: 'win', n: 'окно', rc: 1, c: '#2e9e4f' }, { k: 'door', n: 'дверь', rc: 1, c: '#1f8a78' }, { k: 'nis', n: 'ниша', rc: 1, c: '#5b5bd0' }, { k: 'kol', n: 'колонна', rc: 1, c: '#b8602e' }, { k: 'rig', n: 'ригель', rc: 1, c: '#a07a10' }, { k: 'kor', n: 'короб', rc: 1, c: '#6b7785' }, { k: 'zon', n: 'зона', rc: 1, c: '#b44cc0' }, { k: 'pro', n: 'проём', rc: 1, c: '#2e9e4f', hide: 1 },
+  { k: 'shch', n: 'щит', pt: 1, c: '#7b3fc4' }, { k: 'znd', n: 'не сверлить', rc: 1, c: '#d93025' }, { k: 'znt', n: 'техника', rc: 1, c: '#1f6fd1' }, { k: 'znf', n: 'фартук', rc: 1, c: '#2bb673' }];   /* v25 */
+const ZN_K = ['zon', 'znd', 'znt', 'znf'];   /* v6: проём → окно / дверь; старые «проём» читаются */
 const KD = Object.fromEntries(KINDS.map(k => [k.k, k]));
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1]], dot = (a, b) => a[0] * b[0] + a[1] * b[1], add = (a, b, k = 1) => [a[0] + b[0] * k, a[1] + b[1] * k];
 function lnInter(p, d, L) {                     // точка p + t·d на прямой L [a, b]
@@ -955,8 +962,10 @@ function elGeo(e, W, C) {                      /* положение и разм
 function mkChips() {
   const el = $('ch'); el.innerHTML = ''; el.classList.remove('pre');
   if (S.mode === 'plan') {   /* v6: инструменты плана */
-    for (const [k, t, ti] of [['sel', '↖', 'Выбор: касание — стена (длина, фото) или угол (отклонение); углы тянутся'], ['ct', '⌗ контур', 'Касания по углам помещения; касание первого — замкнуть'], ...(ulGet() ? [['rm', '⌂ по плану', 'Касание внутри помещения на подложке — контур по стенам плана'], ['st', '✎ штрих', 'Провести вдоль стены — прилипает к стене плана (ось, толщина, 0 / 90°); где стены нет — новая перегородка; касание штриха — выбрать']] : []), ['op', '⊓ проём', 'Два касания по стене активного помещения — края проёма (по плану — к краям стены)']]) {   /* v14; v15: штрих, проём */
+    for (const [k, t, ti] of [['sel', '↖', 'Выбор: касание — стена (длина, фото) или угол (отклонение); углы тянутся'], ['ct', '⌗ контур', 'Касания по углам помещения; касание первого — замкнуть'], ...(ulGet() ? [['rm', '⌂ по плану', 'Касание внутри помещения на подложке — контур по стенам плана'], ['st', '✎ штрих', 'Провести вдоль стены — прилипает к стене плана (ось, толщина, 0 / 90°); где стены нет — новая перегородка; касание штриха — выбрать']] : []), ['op', '⊓ проём', 'Два касания по стене активного помещения — края проёма (по плану — к краям стены)'], ...Object.entries(ZPX).map(([k, v]) => [k, v[0], v[1]])]) {   /* v14; v15: штрих, проём */
+      if (ZPX[k] && PL.tool !== k) continue;   /* v25: редкие — на панели, только пока выбраны */
       const c = document.createElement('button'); c.className = 'chip' + (PL.tool === k ? ' on' : ''); c.dataset.pk = k; c.title = ti; c.textContent = t; c.onclick = () => { PL.tool = k; mkChips() }; el.appendChild(c) }
+    { const a = document.createElement('button'); a.className = 'chip'; a.id = 'plAll'; a.title = 'Ещё инструменты плана: элемент в плане, трасса, скат потолка'; a.textContent = '+'; a.onclick = zpTb; el.appendChild(a) }   /* v25 */
     return;
   }
   return preBar(el);   /* v8 */
@@ -975,7 +984,7 @@ function mkChips() {
 }
 /* ─── [SUB] пресеты инструментов (v8, по образцу DrawNote) ─── */
 /* Ряд: кольцо — цвет инструмента; удержание 0,3 с — тянуть по ряду (свой порядок), увести вверх / вниз — убрать; «+» — весь набор (★ — в пресеты); 🎨 — цвет текущего инструмента. Хранится в localStorage. */
-const TOOLX = { sel: { n: 'выбор', c: '#1f6fd1' }, rsel: { n: 'рамка выделения', c: '#1f6fd1' }, vyn: { n: 'выноска', c: '#c2410c' }, dim: { n: 'размер', c: '#1f6fd1' }, ln: { n: 'линия', c: '#d93025' }, rect: { n: 'прямоугольник', c: '#e07a00' } };   /* v24: размер, пометки */   /* v10: выноска */
+const TOOLX = { sel: { n: 'выбор', c: '#1f6fd1' }, rsel: { n: 'рамка выделения', c: '#1f6fd1' }, vyn: { n: 'выноска', c: '#c2410c' }, dim: { n: 'размер', c: '#1f6fd1' }, ln: { n: 'линия', c: '#d93025' }, rect: { n: 'прямоугольник', c: '#e07a00' }, wrt: { n: 'трасса', c: '#e07a00' }, poly: { n: 'фасон: короб / ниша', c: '#6b7785' } };   /* v25 */   /* v24: размер, пометки */   /* v10: выноска */
 const PRE0 = ['sel', 'rsel', 'dim', 'floor', 'ceil', 'left', 'right', 'roz', 'vyk', 'svet', 'hvs', 'gvs', 'kan', 'win', 'door'];
 const QCOL = ['#1a2027', '#d93025', '#e07a00', '#d4a300', '#2e9e4f', '#1f6fd1', '#7b3fc4', '#8d6e63'];
 const PREF = (() => { let o = {}; try { o = JSON.parse(localStorage.getItem('zamer.pre') || '{}') } catch (e) { } return { order: Array.isArray(o.order) && o.order.length ? o.order : PRE0.slice(), cols: o.cols || {} } })();
@@ -1010,11 +1019,13 @@ function kIco(k) {   /* полноцветная иконка 28×28 */
     case 'dim': return S2(`<path d="M4 18h20M4 13v10M24 13v10" stroke="${c}" stroke-width="2"/><path d="M4 18l4-3v6zM24 18l-4-3v6z" fill="${c}"/><rect x="9" y="5" width="10" height="7" rx="1.5" fill="#fff" stroke="${o}" stroke-width="1.2"/>`);   /* v24 */
     case 'ln': return S2(`<path d="M5 23L23 5" stroke="${c}" stroke-width="3" stroke-linecap="round"/>`);
     case 'rect': return S2(`<rect x="4" y="6" width="20" height="16" rx="2" fill="none" stroke="${c}" stroke-width="2.6"/>`);
+    case 'wrt': return S2(`<path d="M4 22h8V8h12" fill="none" stroke="${c}" stroke-width="3" stroke-dasharray="4 2"/>`);   /* v25 */
+    case 'poly': return S2(`<path d="M5 22V9l7-5h11v18z" fill="${c}" fill-opacity=".2" stroke="${c}" stroke-width="2.2"/>`);
     case 'zon': return S2(`<rect x="4" y="5" width="20" height="18" rx="2" fill="${c}" fill-opacity=".22" stroke="${c}" stroke-width="2" stroke-dasharray="4 2"/>`);
   }
   return S2(`<circle cx="14" cy="14" r="9" fill="${c}"/>`);
 }
-function pickTool(k) { S.mk = k; S.pend = null; S.nsel = null; S.dsel = null; if (k !== 'rsel' && k !== 'sel') S.msel = []; mkChips(); mkPanel(); draw() }
+function pickTool(k) { S.mk = k; S.pend = null; S.zpl = []; S.nsel = null; S.dsel = null; if (k !== 'rsel' && k !== 'sel') S.msel = []; mkChips(); mkPanel(); draw() }
 let preDr = null;
 function preBar(el) {
   el.classList.add('pre');
@@ -1052,7 +1063,7 @@ addEventListener('pointerup', () => {
   prefSave(); mkChips(); const nb = $('ch').querySelector(`[data-k="${g.k}"]`); if (nb) nb.dataset.drag = 1; setTimeout(() => { const x = $('ch').querySelector(`[data-k="${g.k}"]`); if (x) delete x.dataset.drag }, 400);
 });
 function tbOpen() {
-  const t = $('tb'), G = [['Правка', ['sel', 'rsel']], ['Линии стены', ['floor', 'ceil', 'left', 'right']], ['Коммуникации', KINDS.filter(k => k.pt).map(k => k.k)], ['Проёмы и элементы', KINDS.filter(k => k.rc && !k.hide && k.k !== 'zon').map(k => k.k)], ['Зоны', ['zon']], ['Выноски', ['vyn']], ['Размеры и пометки', ['dim', 'ln', 'rect']]];   /* v24 */   /* v10 */
+  const t = $('tb'), G = [['Правка', ['sel', 'rsel']], ['Линии стены', ['floor', 'ceil', 'left', 'right']], ['Коммуникации', KINDS.filter(k => k.pt).map(k => k.k)], ['Проёмы и элементы', KINDS.filter(k => k.rc && !k.hide && !ZN_K.includes(k.k)).map(k => k.k)], ['Зоны', ZN_K], ['Трассы и фасон', ['wrt', 'poly']], ['Выноски', ['vyn']], ['Размеры и пометки', ['dim', 'ln', 'rect']]];   /* v24 */   /* v10 */
   t.innerHTML = `<div class="hd"><button id="tbX" title="Закрыть">✕</button><b style="flex:1">Инструменты</b><span class="mu" style="font-size:12px">★ — в пресеты · касание — взять</span></div>` +
     G.map(([n, ks]) => `<h4>${n}</h4><div class="g">${ks.map(k => `<div class="tl${PREF.order.includes(k) ? ' st' : ''}" data-k="${k}" style="--c:${kC(k)}">${kIco(k)}<span>${esc(kN(k))}</span><b data-star="${k}">★</b></div>`).join('')}</div>`).join('');
   t.classList.add('on');
@@ -1060,9 +1071,9 @@ function tbOpen() {
   t.querySelectorAll('[data-star]').forEach(b => b.onclick = ev => { ev.stopPropagation(); const k = b.dataset.star; if (PREF.order.includes(k)) { if (PREF.order.length > 1) PREF.order = PREF.order.filter(x => x !== k) } else PREF.order.push(k); prefSave(); tbOpen(); mkChips() });
   t.querySelectorAll('.tl').forEach(d => d.onclick = () => { t.classList.remove('on'); pickTool(d.dataset.k) });
 }
-function snap() { S.und.push(JSON.stringify({ lines: S.lines, els: S.els, man: S.man, notes: S.notes, dms: S.dms, drw: S.drw })); if (S.und.length > 60) S.und.shift() }
-function unsnap() { const t = S.und[S.und.length - 1]; if (t && t === JSON.stringify({ lines: S.lines, els: S.els, man: S.man, notes: S.notes, dms: S.dms, drw: S.drw })) S.und.pop() }   /* правка без изменений — не шаг истории */
-function undo() { const t = S.und.pop(); if (!t) return; if (t.startsWith('ZA:')) { const a = ZA.get(t); if (a) a.u(); return }   /* v23 */ const o = JSON.parse(t); S.lines = o.lines; S.els = o.els; S.man = o.man; S.notes = o.notes || S.notes; if (o.dms) S.dms = o.dms; if (o.drw) S.drw = o.drw; if (S.dsel && !zdGet(S.dsel)) S.dsel = null;   /* v24 */ if (S.nsel && !S.notes.some(n => n.id === S.nsel)) S.nsel = null; S.msel = S.msel.filter(id => S.els.some(e => e.id === id)); if (S.sel && !S.els.find(e => e.id === S.sel)) S.sel = null; mkChips(); mkPanel(); status(); if (Math.abs(viewRot() - (S.view.rot || 0)) > 1e-9) fit(); else draw(); saveSess(); refreshDisp() }
+function snap() { S.und.push(JSON.stringify({ lines: S.lines, els: S.els, man: S.man, notes: S.notes, dms: S.dms, drw: S.drw, rts: S.rts, polys: S.polys })); if (S.und.length > 60) S.und.shift() }
+function unsnap() { const t = S.und[S.und.length - 1]; if (t && t === JSON.stringify({ lines: S.lines, els: S.els, man: S.man, notes: S.notes, dms: S.dms, drw: S.drw, rts: S.rts, polys: S.polys })) S.und.pop() }   /* правка без изменений — не шаг истории */
+function undo() { const t = S.und.pop(); if (!t) return; if (t.startsWith('ZA:')) { const a = ZA.get(t); if (a) a.u(); return }   /* v23 */ const o = JSON.parse(t); S.lines = o.lines; S.els = o.els; S.man = o.man; S.notes = o.notes || S.notes; if (o.dms) S.dms = o.dms; if (o.drw) S.drw = o.drw; if (o.rts) S.rts = o.rts; if (o.polys) S.polys = o.polys; if (S.dsel && !zdGet(S.dsel)) S.dsel = null;   /* v24 */ if (S.nsel && !S.notes.some(n => n.id === S.nsel)) S.nsel = null; S.msel = S.msel.filter(id => S.els.some(e => e.id === id)); if (S.sel && !S.els.find(e => e.id === S.sel)) S.sel = null; mkChips(); mkPanel(); status(); if (Math.abs(viewRot() - (S.view.rot || 0)) > 1e-9) fit(); else draw(); saveSess(); refreshDisp() }
 addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !/INPUT|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); zUndo() } if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y' && !/INPUT|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); zRedo() } });   /* v23 */
 function elRect(e, W) {                        // углы элемента в плоскости (с поворотом стены)
   W = W || wf(); const w = (+e.W || +e.D || 60), h = (+e.H || +e.D || 60), N = Math.max(1, Math.round(+e.N || 1)), st = +e.st || w;
@@ -1421,6 +1432,7 @@ function mkPanel() {
   pp.classList.add('on'); const W = wf(), e = S.els.find(x => x.id === S.sel);
   if (S.nsel && S.notes.some(n => n.id === S.nsel)) return nPanel(pp);   /* v10 */
   if (S.dsel && zdGet(S.dsel)) return dmPanel(pp);   /* v24 */
+  if (S.zpl.length && (S.mk === 'wrt' || S.mk === 'poly')) return zwPend(pp);   /* v25 */
   if (!e && S.msel.length) {   /* v8: группа */
     pp.innerHTML = `<div class="row"><span class="t">Выбрано ${S.msel.length}</span><span class="mu">тянуть любой — переносится группа</span><span style="flex:1"></span><button id="bUn" title="Отменить">↶</button></div>
       <div class="row"><button id="gAcc">✓ подтвердить</button><button id="gDel" title="Удалить (↶ — вернуть)">✕ удалить</button><button id="gClr">снять выбор</button></div>`;
@@ -2143,7 +2155,7 @@ function exportObj() {
     markers: S.sol ? S.sol.mks.map(mk => { const c = toWc([mk.x, mk.y], W, C); return { id: mk.id, x: r1(c[0]), y: r1(c[1]), s: mk.s } }) : [],
     rulers: S.rulers.map(r => { const a = toWc(r.a, W, C), b = toWc(r.b, W, C); return { L: r1(Math.hypot(b[0] - a[0], b[1] - a[1])), a: a.map(r1), b: b.map(r1) } }),
     grid: gOut(), notes: nOut(W, C),   /* v10 */
-    ...dmOut(W, C)   /* v24: dm — размеры, drw — пометки */
+    ...dmOut(W, C), ...zwOut(W, C)   /* v24: dm — размеры, drw — пометки; v25: rt — трассы, poly — фасон */
   };
 }
 function appSave(fn, txt) { if (!window.AkrixApp) return false; AkrixApp.save(fn, 'application/json', txt); return true }   /* v9: APK — в «Загрузки/Akrix» + меню «Поделиться» */
@@ -2166,7 +2178,8 @@ const BT_SVC = '02a6c0d0-0451-4000-b000-fb3210111989', BT_CH = '02a6c0d1-0451-40
 const BT = { st: 'off', dev: null, ch: null, last: null, armOff: 0 };
 const btBr = () => !navigator.bluetooth && !!window.AkrixBT;   /* v9: APK — Bluetooth через Java */
 function btOk() { if (btBr()) return true; if (!navigator.bluetooth) return false; try { const pp = document.permissionsPolicy || document.featurePolicy; if (pp && !pp.allowsFeature('bluetooth')) return false } catch (e) { } return true }
-function btUi(rx) { const b = $('bBt'); b.classList.toggle('on', BT.st === 'on'); b.classList.toggle('arm', BT.st === 'wait'); b.title = BT.st === 'on' ? 'Дальномер подключён: замер на приборе → размер в активное поле. Дважды — отключить' : 'Подключить дальномер Bosch GLM по Bluetooth'; if (rx) { b.style.outline = '2px solid #4caf6a'; setTimeout(() => b.style.outline = '', 400) } }
+function btUi(rx) { const z = $('zBt'); if (z) { z.className = BT.st === 'on' ? 'on' : BT.st === 'wait' ? 'wait' : ''; if (rx) { z.style.boxShadow = '0 0 0 4px #4caf6a88'; setTimeout(() => z.style.boxShadow = '', 400) } }   /* v25: точка в шапке */
+ const b = $('bBt'); b.classList.toggle('on', BT.st === 'on'); b.classList.toggle('arm', BT.st === 'wait'); b.title = BT.st === 'on' ? 'Дальномер подключён: замер на приборе → размер в активное поле. Дважды — отключить' : 'Подключить дальномер Bosch GLM по Bluetooth'; if (rx) { b.style.outline = '2px solid #4caf6a'; setTimeout(() => b.style.outline = '', 400) } }
 async function btConnect() {
   if (BT.st === 'on') { const t = Date.now(); if (t - BT.armOff < 2500) { BT.armOff = 0; try { BT.dev.gatt.disconnect() } catch (e) { } return } BT.armOff = t; toast('📡 ещё раз — отключить дальномер'); return }
   if (!btOk()) { toast('📡 Bluetooth недоступен — открой Замер в Chrome'); return }
@@ -2277,6 +2290,7 @@ function plDraw() {
   plRndDraw(m);   /* v10 */
   opDraw(m);   /* v15: проёмы */
   geoDraw();   /* v18 */
+  zpDraw();   /* v25 */
   m.pts.forEach((p, i) => {
     const s = toScr(...p), sel = S.psel && S.psel.t === 'n' && S.psel.i === i; cx.fillStyle = sel ? '#1f6fd1' : i === 0 ? '#e07a00' : '#0f8fa8'; cx.beginPath(); cx.arc(s[0], s[1], (sel ? 9 : 7) * d, 0, 7); cx.fill();
     const q = m.angs[i]; if (q && (q.d || q.u)) { const t = (q.d ? 'н' + (q.d.mm > 0 ? '+' : '') + q.d.mm + '/' + q.d.at : '') + (q.u ? ' в' + (q.u.mm > 0 ? '+' : '') + q.u.mm + '/' + q.u.at : ''); cx.font = (12 * d) + 'px system-ui'; cx.fillStyle = '#9a6200'; cx.textBaseline = 'bottom'; cx.fillText(t, s[0] + 10 * d, s[1] - 8 * d); cx.font = 'bold ' + (13 * d) + 'px system-ui' }
@@ -2289,6 +2303,8 @@ function plHit(p) {
   return null;
 }
 function plTap(p) {
+  if (ZPX[PL.tool]) return zpTap(p);   /* v25 */
+  if (PL.tool === 'sel' && !plHit(p)) { const zh = zpHit(p); S.zps = zh; if (zh) { S.psel = null; mkPanel(); draw(); return } } else S.zps = null;
   { const m0 = S.room.ms, h0 = plHit(p);   /* v23: касание стены / угла — выбор в любом инструменте (кроме ⊓ и рисования контура) */
     if ((PL.tool === 'ct' && m0.closed) || (h0 && ((PL.tool === 'rm' && zNear(p) < 8 * (devicePixelRatio || 1)) || (PL.tool === 'st' && !(ulGet() && stHit(p) != null))))) { PL.tool = 'sel'; S.ust = null; mkChips() } }
   if (PL.tool === 'rm') return ulTap(p);   /* v14 */
@@ -2305,6 +2321,7 @@ function plTap(p) {
   gnFix(); saveRoom(); mkPanel(); status(); strip(); draw();
 }
 function plPanel() {
+  if ((S.zps && zpGet(S.zps)) || ZPX[PL.tool]) return zpPanel();   /* v25 */
   if (S.pf && poolGet(S.pf)) return poolPanel();   /* v13 */
   if (PL.tool === 'st' && S.ust != null && ulGet() && (ulGet().ul.st || [])[S.ust]) return stPanel();   /* v15 */
   const pp = $('pp'); pp.classList.add('on'); const m = S.room.ms, s = S.psel;
@@ -2390,7 +2407,7 @@ function manV(k) {                             /* размер стены: ру�
   return d[k] != null ? { v: d[k], src: 'фото' } : null;
 }
 /* ─── [SUB] выгрузка помещения (v6): лист sk.ms Akrix + по стенам H, пол / потолок, отвес, элементы листа, точки и зоны ─── */
-const AK_PT = { roz: 'so', vyk: 'sw', svet: 'li', slab: 'wi', hvs: 'wa', gvs: 'wh', kan: 'dr', gaz: 'ga', vent: 've' }, AK_RC = { win: 'win', door: 'door', pro: 'win', nis: 'niche', kol: 'col', rig: 'beam', kor: 'box' };
+const AK_PT = { shch: 'el', roz: 'so', vyk: 'sw', svet: 'li', slab: 'wi', hvs: 'wa', gvs: 'wh', kan: 'dr', gaz: 'ga', vent: 've' }, AK_RC = { win: 'win', door: 'door', pro: 'win', nis: 'niche', kol: 'col', rig: 'beam', kor: 'box' };
 async function exportRoomObj(rIn) {   /* v12: rIn — помещение объекта (по умолчанию активное) */
   /* Akrix строит лист обходом против часовой (помещение слева); контур по часовой выдаём в обратном порядке — номера углов, отрезков, длин и углов пересчитываются */
   const r = rIn || S.room, m0 = r.ms, N = m0.pts.length, rev = m0.closed && plArea(m0) < 0, nd = i => rev ? (N - i) % N : i, sg = j => rev ? (N - j - 1) % N : j;
@@ -2405,11 +2422,12 @@ async function exportRoomObj(rIn) {   /* v12: rIn — помещение объ�
     const yc = cols(w.yc); if (yc.every(v => v == null) && out.dims.Hl && out.dims.Hr) { const a = [out.dims.Hl.v, (out.dims.Hl.v + out.dims.Hr.v) / 2, out.dims.Hr.v].map(r1); (flip ? a.reverse() : a).forEach((v, c) => yc[c] = v) }
     const W = { H, yf: cols(w.yf), yc, pl: { d: cols(w.pld), u: cols(w.plu) }, els: [], pts: [], zn: [], photo: { rms: out.quality && out.quality.rms, fit: out.fit, frames: out.quality && out.quality.frames, L: L, src: out.dims.Lb ? out.dims.Lb.src : 'план' } };
     W.gn = wN(r, j);   /* v11 */
-    const xy = q => [r1(xs(q[0])), q[1]]; if ((out.dm || []).length) W.dm = out.dm.map(q => ({ ...q, a: xy(q.a), b: xy(q.b) })); if ((out.drw || []).length) W.drw = out.drw.map(q => ({ ...q, a: xy(q.a), b: xy(q.b) }));   /* v24: от левого края вида из помещения */
+    const xy = q => [r1(xs(q[0])), q[1]]; if ((out.dm || []).length) W.dm = out.dm.map(q => ({ ...q, a: xy(q.a), b: xy(q.b) })); if ((out.drw || []).length) W.drw = out.drw.map(q => ({ ...q, a: xy(q.a), b: xy(q.b) }));
+    if ((out.rt || []).length) W.rt = out.rt.map(q => ({ ...q, pts: q.pts.map(xy) })); for (const q of out.poly || []) W.els.push({ id: 'p' + k + '_' + W.els.length, t: 'poly', kind: q.kind, pts: q.pts.map(xy), ...(q.d ? { d: q.d } : {}), note: q.note || '' });   /* v25 */   /* v24: от левого края вида из помещения */
     if (G) W.grid = gFlip(G, flip); W.notes = (out.notes || []).map(n => ({ ...n, x: r1(xs(n.x)), tx: r1(xs(n.tx)) }));   /* v10 */
     for (const e of out.els) {
       if (e.t === 'pt') W.pts.push({ t: AK_PT[e.kind] || 'ot', x: r1(xs(e.x)), y: e.y, W: e.W, H: e.H, D: e.D, N: e.N, st: e.st, note: e.note || '' });
-      else if (e.kind === 'zon') W.zn.push({ x: r1(Math.min(xs(e.x), xs(e.x + (e.W || 0)))), y: e.y, W: e.W, H: e.H, note: e.note || '' });
+      else if (ZN_K.includes(e.kind)) W.zn.push({ ...(e.kind !== 'zon' ? { t: e.kind } : {}), x: r1(Math.min(xs(e.x), xs(e.x + (e.W || 0)))), y: e.y, W: e.W, H: e.H, note: e.note || '' });
       else { const a = xs(e.x), b = xs(e.x + (e.W || 0)); W.els.push({ id: 'p' + k + '_' + W.els.length, t: AK_RC[e.kind] || 'box', x0: r1(Math.min(a, b)), x1: r1(Math.max(a, b)), y0: e.y, y1: r1(e.y + (e.H || 0)), note: e.note || '' }) }
     }
     wl[k] = W;
@@ -2417,7 +2435,7 @@ async function exportRoomObj(rIn) {   /* v12: rIn — помещение объ�
   return { app: 'akrix-zamer', v: 3, kind: 'room', date: new Date().toISOString(), obj: r.obj, name: r.name,
     ms: { v: 1, lvl: 'd', pts: m.pts.map(p => [p[0], -p[1]]), closed: !!m.closed, dims: m0.dims.map(d => ({ id: d.id, a: { p: nd(d.a.p) }, b: { p: nd(d.b.p) }, v: d.v })), angs: Object.fromEntries(Object.entries(m0.angs).map(([i, q]) => [nd(+i), JSON.parse(JSON.stringify(q))])), ink: [], H: m0.H || '', wl, ccw: true,
     arcs: Object.fromEntries(Object.entries(m0.arcs || {}).map(([k, f]) => [sg(+k), f])), rnd: Object.fromEntries(Object.entries(m0.rnd || {}).map(([i, r]) => [nd(+i), r])),
-    gn: Object.fromEntries([...Array(n).keys()].map(j => [sg(j), wN(r, j)])), ...(m0.ul && ulGet() && ulGet().ul.ok ? { mm: 1 } : {}), ...geoOut(r, sg) } };   /* v18: ms.geo — построение Замера */   /* v16: эскиз по плану с масштабом — в мм */   /* v11: сквозные номера стен объекта по отрезкам листа */   /* v10: дуги (стрела, мм, + наружу) по отрезкам, скругления (R) по углам */
+    gn: Object.fromEntries([...Array(n).keys()].map(j => [sg(j), wN(r, j)])), ...(m0.ul && ulGet() && ulGet().ul.ok ? { mm: 1 } : {}), ...geoOut(r, sg), ...zpOut(m0) } };   /* v25: shp, rt, ceil */   /* v18: ms.geo — построение Замера */   /* v16: эскиз по плану с масштабом — в мм */   /* v11: сквозные номера стен объекта по отрезкам листа */   /* v10: дуги (стрела, мм, + наружу) по отрезкам, скругления (R) по углам */
 }
 /* ─── [SUB] ВЫГРУЗКА ОБЪЕКТА (v12): все помещения объекта в одном файле — порядок создания, общие координаты плана, сквозные номера (ms.gn) ─── */
 async function exportObjObj() {
@@ -2443,8 +2461,8 @@ async function exportRoom() {
 
 /* ═══ [BLOCK] РАЗМЕРЫ И ПОМЕТКИ, ОПЦИИ ИНСТРУМЕНТА (v24, R6): размер (↔ / →, цепочка, привязка) → выгрузка dm; линия / прямоугольник (пунктир, скругление, заливка) → drw; L, ∥, 1:1; толщина по масштабу ═══ */
 /* S.dms [{id, a, b, t 'both' | 'from'}], S.drw [{id, k 'ln' | 'rect', a, b, c, dash, rnd, fill}] — точки в координатах плоскости (как разметка). Опции — PREF.opt[k]. */
-S.dms = []; S.drw = []; S.dsel = null;
-const ZT = { dim: 1, ln: 1, rect: 1 };
+S.dms = []; S.drw = []; S.rts = []; S.polys = []; S.zpl = []; S.dsel = null;
+const ZT = { dim: 1, ln: 1, rect: 1, wrt: 1, poly: 1 };
 const ZO = {   /* опция: значок, подсказка */
   L: ['L', 'Только вертикально / горизонтально (вдоль осей стены)'], P: ['∥', 'Параллельно последней / выбранной линии'], sq: ['1:1', 'Квадрат'],
   t: ['↔', 'Размер: стрелки с двух сторон (↔) / от угла (→)'], ch: ['⛓', 'Цепочка: следующий размер — от конца предыдущего'], sn: ['🧲', 'Привязка к краям, линиям, углам элементов'],
@@ -2455,7 +2473,7 @@ const ZO0 = { dim: { L: 1, sn: 1, t: 'both' } };
 function zo(k) { PREF.opt = PREF.opt || {}; return PREF.opt[k] = PREF.opt[k] || { ...(ZO0[k] || {}) } }
 function zOpt(m) {   /* полоса опций выбранного инструмента (в режимах «Разметка» / «Размеры» / «Стена» — линейка) */
   $('bDim').classList.toggle('on', S.mk === 'dim' && S.tool === 'mk');
-  const el = $('zopt'), k = S.mode === 'plan' ? null : m === 'mk' || m === 'dim' ? S.mk : m === 'wall' && S.tool === 'rul' ? 'rul' : null, L = k && ZOPT[k] || [];
+  const el = $('zopt'), k = S.mode === 'plan' ? (ZPX[PL.tool] && ZOPT[PL.tool] ? PL.tool : null) : m === 'mk' || m === 'dim' ? S.mk : m === 'wall' && S.tool === 'rul' ? 'rul' : null, L = k && ZOPT[k] || [];
   const h = L.map(o => { const v = zo(k)[o], ic = o === 't' ? (v === 'from' ? '→' : '↔') : ZO[o][0]; return `<button data-zo="${o}" class="${o === 't' || v ? 'on' : ''}" title="${ZO[o][1]}">${ic}</button>` }).join('');
   el.classList.toggle('on', !!L.length); if (el.dataset.h === k + h) return; el.dataset.h = k + h; el.innerHTML = h;
   el.querySelectorAll('[data-zo]').forEach(b => b.onclick = () => { const o = zo(k), q = b.dataset.zo; if (q === 't') o.t = o.t === 'from' ? 'both' : 'from'; else o[q] = o[q] ? 0 : 1; if (q === 'ch' && !o.ch) S.pend = null; prefSave(); zLay(); draw() });
@@ -2474,9 +2492,10 @@ function zSnapPts() {   /* точки привязки: концы линий с
   for (const q of [...S.dms, ...S.drw]) P.push(q.a, q.b); return P;
 }
 function zSnap(q, p) { const d = devicePixelRatio || 1; let best = null, bd = 16 * d; for (const t of zSnapPts()) { const s2 = toScr(...t), l = Math.hypot(s2[0] - p[0], s2[1] - p[1]); if (l < bd) { bd = l; best = t } } return best ? best.slice() : q }
-const zdGet = id => S.dms.find(x => x.id === id) || S.drw.find(x => x.id === id);
+const zdGet = id => S.dms.find(x => x.id === id) || S.drw.find(x => x.id === id) || S.rts.find(x => x.id === id) || S.polys.find(x => x.id === id);
 function dmTap(q, p) {
   const k = S.mk, o = zo(k), d = devicePixelRatio || 1;
+  if (k === 'wrt' || k === 'poly') return zwTap(q, p);   /* v25 */
   if (k === 'dim' && o.sn) q = zSnap(q, p);
   if (!S.pend) { S.pend = q; return draw() }
   { const s0 = toScr(...S.pend); if (Math.hypot(s0[0] - p[0], s0[1] - p[1]) < 12 * d) { S.pend = null; return draw() } }   /* касание в ту же точку — конец (цепочка) */
@@ -2492,7 +2511,7 @@ function zLW(w) {   /* толщина в px устройства: от масш�
 const dmVal = q => { const W = wf(), C = corrH(), a = toWc(q.a, W, C), b = toWc(q.b, W, C); return Math.round(Math.hypot(b[0] - a[0], b[1] - a[1])) };
 function rectPts(q) { const W = wf(), A = toW(q.a, W), B = toW(q.b, W); return [[A[0], A[1]], [B[0], A[1]], [B[0], B[1]], [A[0], B[1]]].map(w => toScr(...fromW(w, W))) }
 function dmDraw() {
-  const d = devicePixelRatio || 1;
+  const d = devicePixelRatio || 1; zwDraw();   /* v25 */
   for (const q of S.drw) {
     const sel = q.id === S.dsel; cx.strokeStyle = sel ? '#1f6fd1' : q.c || kC(q.k); cx.lineWidth = zLW(sel ? 3 : 2.2); cx.setLineDash(q.dash ? [8 * d, 5 * d] : []); cx.beginPath();
     if (q.k === 'ln') { cx.moveTo(...toScr(...q.a)); cx.lineTo(...toScr(...q.b)) }
@@ -2514,11 +2533,13 @@ function dmDraw() {
 }
 function dmHit(p) {
   const d = devicePixelRatio || 1, sd = (P, A, B) => { const v = sub(B, A), l2 = v[0] * v[0] + v[1] * v[1] || 1, t = Math.max(0, Math.min(1, ((P[0] - A[0]) * v[0] + (P[1] - A[1]) * v[1]) / l2)); return Math.hypot(A[0] + v[0] * t - P[0], A[1] + v[1] * t - P[1]) };
+  { const h = zwHit(p, sd); if (h) return h }   /* v25 */
   for (const q of S.dms) if (sd(p, toScr(...q.a), toScr(...q.b)) < 12 * d) return q.id;
   for (const q of S.drw) { if (q.k === 'ln') { if (sd(p, toScr(...q.a), toScr(...q.b)) < 12 * d) return q.id } else { const P = rectPts(q); for (let i = 0; i < 4; i++) if (sd(p, P[i], P[(i + 1) % 4]) < 12 * d) return q.id } }
   return null;
 }
 function dmPanel(pp) {
+  if (S.rts.includes(zdGet(S.dsel)) || S.polys.includes(zdGet(S.dsel))) return zwPanel(pp);   /* v25 */
   const q = zdGet(S.dsel), dm = !!S.dms.includes(q), tg = (o, v) => `<button data-zd="${o}"${v ? ' style="background:var(--ac);border-color:var(--ac)"' : ''} title="${ZO[o][1]}">${o === 't' ? (q.t === 'from' ? '→' : '↔') : ZO[o][0]}</button>`;
   pp.innerHTML = `<div class="row"><span class="t">${dm ? 'Размер' : q.k === 'ln' ? 'Линия' : 'Прямоугольник'}</span>${dm ? `<b>${dmVal(q)}</b><span class="mu">мм</span>${tg('t', 0)}` : tg('dash', q.dash) + (q.k === 'rect' ? tg('rnd', q.rnd) + tg('fill', q.fill) : '')}<span style="flex:1"></span><button id="bUn" title="Отменить">↶</button><button id="bDmX" title="Удалить (↶ — вернуть)">✕</button></div>
     <div class="row mu">${dm ? 'в выгрузку: от левого края и пола, мм' : 'пометка: в выгрузку — как рисунок (drw)'}</div>`;
@@ -2532,6 +2553,122 @@ function dmOut(W, C) {   /* выгрузка: x вдоль стены от ле�
   if (S.drw.length) o.drw = S.drw.map(q => ({ k: q.k, a: w(q.a), b: w(q.b), c: q.c, ...(q.dash ? { dash: 1 } : {}), ...(q.rnd ? { rnd: 1 } : {}), ...(q.fill ? { fill: 1 } : {}) }));
   return o;
 }
+
+/* ═══ [BLOCK] ДАННЫЕ ДЛЯ AKRIX (v25, R7а): стена — трасса (rt), фасон (poly); план — элемент (ms.shp), трасса пол / потолок (ms.rt), скат потолка (ms.ceil) ═══ */
+/* Стена: S.rts [{id, t, d, pts}], S.polys [{id, kind 'box' | 'niche', d, pts}] — точки плоскости. План: ms.shp [{t 'box' | 'col', pts, bulge?, note}], ms.rt [{t, lvl 'f' | 'c', d, pts}], ms.ceil {t 'slope', p [[x, y, h]×3]} — мм эскиза (y вверх). */
+const RT_T = [['el', 'электрика'], ['lo', 'слаботочка'], ['wa', 'ХВС'], ['wh', 'ГВС'], ['dr', 'канализация'], ['ga', 'газ'], ['ve', 'вентиляция']];
+const RT_C = { el: '#e07a00', lo: '#7b3fc4', wa: '#3d9bff', wh: '#ff5c5c', dr: '#8d6e63', ga: '#c98a00', ve: '#1fa98f' };
+const rtSel = (v, a) => `<select ${a}>${RT_T.map(([k, n]) => `<option value="${k}"${k === v ? ' selected' : ''}>${n}</option>`).join('')}</select>`;
+/* ─── стена ─── */
+function zwTap(q, p) {   /* трасса: касания — точки, касание последней — готово; фасон: касание первой — замкнуть */
+  const k = S.mk, d = devicePixelRatio || 1, P = S.zpl;
+  if (P.length) { const f = toScr(...P[0]), l = toScr(...P[P.length - 1]);
+    if (k === 'wrt' && P.length >= 2 && Math.hypot(l[0] - p[0], l[1] - p[1]) < 14 * d) return zwDone();
+    if (k === 'poly' && P.length >= 3 && Math.hypot(f[0] - p[0], f[1] - p[1]) < 14 * d) return zwDone();
+    q = zMod(k, P[P.length - 1], q) }
+  P.push(q); mkPanel(); draw();
+}
+function zwDone() {
+  const k = S.mk, P = S.zpl, o = zo(k); if (P.length < (k === 'poly' ? 3 : 2)) return; snap(); const id = 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  if (k === 'wrt') S.rts.push({ id, t: o.rt || 'el', d: o.rd || '', pts: P.slice() }); else S.polys.push({ id, kind: o.pk || 'box', d: o.pd || '', pts: P.slice() });
+  S.zpl = []; S.dsel = id; S.mk = 'sel'; saveSess(); mkChips(); mkPanel(); draw(); toast(k === 'wrt' ? 'Трасса · вид и Ø — в строке' : 'Фасон · вид и глубина — в строке');
+}
+function zwPend(pp) {
+  const k = S.mk; pp.innerHTML = `<div class="row"><span class="t">${k === 'wrt' ? 'Трасса' : 'Фасон'}</span><span class="mu">точек ${S.zpl.length}</span><button id="zwOk" title="Готово">✓</button><button id="zwX" title="Отмена">✕</button></div><div class="row mu">${k === 'wrt' ? 'касание последней точки — готово' : 'касание первой точки — замкнуть'}</div>`;
+  $('zwOk').onclick = zwDone; $('zwX').onclick = () => { S.zpl = []; mkPanel(); draw() };
+}
+function zwPath(P, close) { cx.beginPath(); P.forEach((q, i) => i ? cx.lineTo(...toScr(...q)) : cx.moveTo(...toScr(...q))); if (close) cx.closePath() }
+function zwDraw() {
+  const d = devicePixelRatio || 1;
+  for (const q of S.polys) { const sel = q.id === S.dsel, c = sel ? '#1f6fd1' : kC('poly'); zwPath(q.pts, 1); cx.fillStyle = c + (q.kind === 'niche' ? '22' : '44'); cx.fill(); cx.strokeStyle = c; cx.lineWidth = zLW(sel ? 3 : 2); cx.setLineDash(q.kind === 'niche' ? [6 * d, 4 * d] : []); cx.stroke(); cx.setLineDash([]) }
+  for (const q of S.rts) { const sel = q.id === S.dsel; zwPath(q.pts); cx.strokeStyle = sel ? '#1f6fd1' : RT_C[q.t] || '#e07a00'; cx.lineWidth = zLW(sel ? 4 : 3); cx.setLineDash([10 * d, 4 * d]); cx.stroke(); cx.setLineDash([]) }
+  if (S.zpl.length && S.tool === 'mk') { zwPath(S.zpl); cx.strokeStyle = kC(S.mk); cx.lineWidth = zLW(2); cx.setLineDash([4 * d, 3 * d]); cx.stroke(); cx.setLineDash([]); for (const q of S.zpl) { const s2 = toScr(...q); cx.beginPath(); cx.arc(s2[0], s2[1], 5 * d, 0, 7); cx.stroke() } }
+}
+function zwHit(p, sd) {
+  const d = devicePixelRatio || 1;
+  for (const q of S.rts) for (let i = 1; i < q.pts.length; i++) if (sd(p, toScr(...q.pts[i - 1]), toScr(...q.pts[i])) < 12 * d) return q.id;
+  for (const q of S.polys) { const n = q.pts.length; for (let i = 0; i < n; i++) if (sd(p, toScr(...q.pts[i]), toScr(...q.pts[(i + 1) % n])) < 12 * d) return q.id; if (inPoly(toPl(...p), q.pts)) return q.id }
+  return null;
+}
+function zwPanel(pp) {
+  const q = zdGet(S.dsel), rt = S.rts.includes(q);
+  pp.innerHTML = `<div class="row"><span class="t">${rt ? 'Трасса' : 'Фасон'}</span>${rt ? rtSel(q.t, 'data-zw="t"') : `<select data-zw="kind"><option value="box"${q.kind === 'box' ? ' selected' : ''}>короб</option><option value="niche"${q.kind === 'niche' ? ' selected' : ''}>ниша</option></select>`}<label>${rt ? 'Ø' : 'глуб.'}<input data-zw="d" inputmode="decimal" value="${esc(q.d || '')}" placeholder="мм"></label><span style="flex:1"></span><button id="bZwX" title="Удалить (↶ — вернуть)">✕</button></div>
+    <div class="row mu">${rt ? 'в выгрузку: wl.rt — точки x, y от левого края и пола' : 'в выгрузку: wl.els poly — выступ (короб) / углубление (ниша)'}</div>`;
+  pp.querySelectorAll('[data-zw]').forEach(i => i.onchange = () => { const f = i.dataset.zw, v = i.value.trim(); snap(); if (f === 'd') { const n = v ? evalN(v) : ''; q.d = n == null ? '' : n === '' ? '' : r1(n) } else q[f] = v; const o = zo(rt ? 'wrt' : 'poly'); if (f === 't') o.rt = v; if (f === 'kind') o.pk = v; if (f === 'd') o[rt ? 'rd' : 'pd'] = q.d; prefSave(); saveSess(); mkPanel(); draw() });
+  $('bZwX').onclick = () => { snap(); S.rts = S.rts.filter(x => x !== q); S.polys = S.polys.filter(x => x !== q); S.dsel = null; toast('Удалено · ↶ — вернуть'); saveSess(); mkPanel(); draw() };
+}
+function zwOut(W, C) {
+  const w = p => toWc(p, W, C).map(r1), num = v => v === '' || v == null ? undefined : +v, o = {};
+  if (S.rts.length) o.rt = S.rts.map(q => ({ t: q.t, ...(num(q.d) ? { d: num(q.d) } : {}), pts: q.pts.map(w) }));
+  if (S.polys.length) o.poly = S.polys.map(q => ({ kind: q.kind, ...(num(q.d) ? { d: num(q.d) } : {}), pts: q.pts.map(w) }));
+  return o;
+}
+/* ─── план ─── */
+const ZPX = { shp: ['▣ элемент', 'Элемент в плане (колонна, выступ, короб): касания по углам, касание первого — замкнуть; ◯ — круглая колонна двумя касаниями'], prt: ['┅ трасса', 'Трасса по полу / потолку: касания — точки, касание последней — готово'], ceil: ['◿ скат', 'Скат потолка: три касания — точки, высота каждой — в строке'] };
+S.zpp = []; S.zps = null;
+function zpTb() {   /* набор инструментов плана: редкое */
+  const t = $('tb'); t.innerHTML = `<div class="hd"><button id="tbX" title="Закрыть">✕</button><b style="flex:1">Инструменты плана</b></div><h4>Помещение</h4><div class="g">${Object.entries(ZPX).map(([k, v]) => `<div class="tl" data-pk="${k}"><span style="font-size:22px">${v[0].split(' ')[0]}</span><span>${esc(v[0].split(' ').slice(1).join(' '))}</span></div>`).join('')}</div>`;
+  t.classList.add('on'); $('tbX').onclick = () => t.classList.remove('on');
+  t.querySelectorAll('[data-pk]').forEach(x => x.onclick = () => { t.classList.remove('on'); PL.tool = x.dataset.pk; S.zpp = []; S.psel = null; S.zps = null; mkChips(); mkPanel(); draw() });
+}
+const zpGet = z => z && (S.room.ms[z.t] || [])[z.i];
+function zpTap(p) {
+  const m = S.room.ms, q = toPl(...p).map(Math.round), d = devicePixelRatio || 1, P = S.zpp, k = PL.tool;
+  if (k === 'ceil') { P.push(q); if (P.length === 3) { plSnap(); m.ceil = { t: 'slope', p: P.map(x => [x[0], x[1], '']) }; S.zpp = []; saveRoom(); toast('Скат: высоты точек — в строке') } mkPanel(); return draw() }
+  if (k === 'shp' && zo('shp').circ) { P.push(q); if (P.length === 2) { const r = Math.round(Math.hypot(P[1][0] - P[0][0], P[1][1] - P[0][1]) / 2); plSnap(); m.shp = m.shp || []; m.shp.push({ t: 'col', pts: P.slice(), bulge: [r, r], note: '' }); S.zpp = []; S.zps = { t: 'shp', i: m.shp.length - 1 }; PL.tool = 'sel'; saveRoom(); mkChips() } mkPanel(); return draw() }
+  if (P.length) { const f = toScr(...P[0]), l = toScr(...P[P.length - 1]);
+    if (k === 'prt' && P.length >= 2 && Math.hypot(l[0] - p[0], l[1] - p[1]) < 14 * d) return zpDone();
+    if (k === 'shp' && P.length >= 3 && Math.hypot(f[0] - p[0], f[1] - p[1]) < 14 * d) return zpDone() }
+  P.push(q); mkPanel(); draw();
+}
+function zpDone() {
+  const m = S.room.ms, k = PL.tool, P = S.zpp, o = zo(k); if (P.length < (k === 'shp' ? 3 : 2)) return; plSnap();
+  if (k === 'shp') { m.shp = m.shp || []; m.shp.push({ t: 'box', pts: P.slice(), note: '' }); S.zps = { t: 'shp', i: m.shp.length - 1 } }
+  else { m.rt = m.rt || []; m.rt.push({ t: o.rt || 'wa', lvl: o.lvl || 'f', d: o.rd || '', pts: P.slice() }); S.zps = { t: 'rt', i: m.rt.length - 1 } }
+  S.zpp = []; PL.tool = 'sel'; saveRoom(); mkChips(); mkPanel(); draw();
+}
+function zpPanel() {
+  const pp = $('pp'); pp.classList.add('on'); const m = S.room.ms, z = S.zps, q = zpGet(z), k = PL.tool;
+  if (k === 'ceil' || (!q && !ZPX[k] && m.ceil)) {
+    const c = m.ceil; pp.innerHTML = `<div class="row"><span class="t">Скат потолка</span>${c ? c.p.map((x, i) => `<label>h${i + 1}<input data-zc="${i}" inputmode="decimal" value="${esc(x[2])}" placeholder="мм"></label>`).join('') : `<span class="mu">точек ${S.zpp.length} / 3</span>`}<span style="flex:1"></span>${c ? '<button id="bZcX" title="Убрать скат (↶ — вернуть)">✕</button>' : ''}<button id="bZcOk" title="Готово">✓</button></div><div class="row mu">три касания на плане — точки; h — высота потолка от пола, мм</div>`;
+    pp.querySelectorAll('[data-zc]').forEach(i => i.onchange = () => { const n = i.value.trim() ? evalN(i.value.trim()) : ''; if (n == null) return zpPanel(); plSnap(); m.ceil.p[+i.dataset.zc][2] = n === '' ? '' : r1(n); saveRoom(); zpPanel() });
+    const x = $('bZcX'); if (x) x.onclick = () => { plSnap(); delete m.ceil; saveRoom(); toast('Скат убран · ↶ — вернуть'); zpPanel(); draw() };
+    $('bZcOk').onclick = () => { PL.tool = 'sel'; S.zpp = []; mkChips(); mkPanel(); draw() }; return;
+  }
+  if (!q) {
+    const o = zo(k); pp.innerHTML = `<div class="row"><span class="t">${ZPX[k][0]}</span><span class="mu">точек ${S.zpp.length}</span>${k === 'prt' ? rtSel(o.rt || 'wa', 'data-zo2="rt"') + `<select data-zo2="lvl"><option value="f"${(o.lvl || 'f') === 'f' ? ' selected' : ''}>пол</option><option value="c"${o.lvl === 'c' ? ' selected' : ''}>потолок</option></select>` : ''}<span style="flex:1"></span>${S.zpp.length ? '<button id="bZpOk" title="Готово">✓</button>' : ''}<button id="bZpX" title="Отмена — к выбору">✕</button></div><div class="row mu">${ZPX[k][1]}</div>`;
+    pp.querySelectorAll('[data-zo2]').forEach(i => i.onchange = () => { o[i.dataset.zo2] = i.value; prefSave() });
+    const ok = $('bZpOk'); if (ok) ok.onclick = zpDone; $('bZpX').onclick = () => { S.zpp = []; PL.tool = 'sel'; mkChips(); mkPanel(); draw() }; return;
+  }
+  const rt = z.t === 'rt';
+  pp.innerHTML = `<div class="row"><span class="t">${rt ? 'Трасса' : q.t === 'col' ? 'Колонна ◯' : 'Элемент'}</span>${rt ? rtSel(q.t, 'data-zp="t"') + `<select data-zp="lvl"><option value="f"${q.lvl === 'f' ? ' selected' : ''}>пол</option><option value="c"${q.lvl === 'c' ? ' selected' : ''}>потолок</option></select><label>Ø<input data-zp="d" inputmode="decimal" value="${esc(q.d || '')}" placeholder="мм"></label>` : `<input data-zp="note" class="wide" value="${esc(q.note || '')}" placeholder="примечание" style="text-align:left">`}<span style="flex:1"></span><button id="bZpD" title="Удалить (↶ — вернуть)">✕</button></div>
+    <div class="row mu">${rt ? 'в выгрузку: ms.rt' : 'в выгрузку: ms.shp — от пола до потолка' + (q.bulge ? ' · R ' + q.bulge[0] : '')}</div>`;
+  pp.querySelectorAll('[data-zp]').forEach(i => i.onchange = () => { const f = i.dataset.zp, v = i.value.trim(); plSnap(); if (f === 'd') { const n = v ? evalN(v) : ''; q.d = n == null || n === '' ? '' : r1(n) } else q[f] = v; saveRoom(); zpPanel(); draw() });
+  $('bZpD').onclick = () => { plSnap(); m[z.t].splice(z.i, 1); S.zps = null; saveRoom(); toast('Удалено · ↶ — вернуть'); mkPanel(); draw() };
+}
+function zpPath(P, close) { cx.beginPath(); P.forEach((q, i) => i ? cx.lineTo(...toScr(...q)) : cx.moveTo(...toScr(...q))); if (close) cx.closePath() }
+function zpDraw() {
+  const m = S.room.ms, d = devicePixelRatio || 1, sel = (t, i) => S.zps && S.zps.t === t && S.zps.i === i;
+  (m.shp || []).forEach((q, i) => { const c = sel('shp', i) ? '#1f6fd1' : '#3e4954'; cx.fillStyle = c + '55'; cx.strokeStyle = c; cx.lineWidth = 2 * d;
+    if (q.t === 'col') { const a = toScr(...q.pts[0]), b = toScr(...q.pts[1]); cx.beginPath(); cx.arc((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, Math.hypot(b[0] - a[0], b[1] - a[1]) / 2, 0, 7) } else zpPath(q.pts, 1); cx.fill(); cx.stroke() });
+  (m.rt || []).forEach((q, i) => { zpPath(q.pts); cx.strokeStyle = sel('rt', i) ? '#1f6fd1' : RT_C[q.t] || '#e07a00'; cx.lineWidth = 3 * d; cx.setLineDash(q.lvl === 'c' ? [3 * d, 4 * d] : [10 * d, 4 * d]); cx.stroke(); cx.setLineDash([]) });
+  if (m.ceil) { cx.fillStyle = '#7b3fc4'; cx.font = 'bold ' + (12 * d) + 'px system-ui'; m.ceil.p.forEach((x, i) => { const s2 = toScr(x[0], x[1]); cx.beginPath(); cx.moveTo(s2[0], s2[1] - 7 * d); cx.lineTo(s2[0] + 6 * d, s2[1] + 5 * d); cx.lineTo(s2[0] - 6 * d, s2[1] + 5 * d); cx.fill(); cx.fillText('h' + (i + 1) + (x[2] !== '' ? ' ' + x[2] : ''), s2[0] + 8 * d, s2[1] - 6 * d) }) }
+  if (S.zpp.length) { zpPath(S.zpp); cx.strokeStyle = '#1f6fd1'; cx.lineWidth = 2 * d; cx.setLineDash([4 * d, 3 * d]); cx.stroke(); cx.setLineDash([]); for (const q of S.zpp) { const s2 = toScr(...q); cx.beginPath(); cx.arc(s2[0], s2[1], 5 * d, 0, 7); cx.stroke() } }
+}
+function zpHit(p) {
+  const m = S.room.ms, d = devicePixelRatio || 1, sd = (P, A, B) => { const v = sub(B, A), l2 = v[0] * v[0] + v[1] * v[1] || 1, t = Math.max(0, Math.min(1, ((P[0] - A[0]) * v[0] + (P[1] - A[1]) * v[1]) / l2)); return Math.hypot(A[0] + v[0] * t - P[0], A[1] + v[1] * t - P[1]) }, q = toPl(...p);
+  for (let i = 0; i < (m.rt || []).length; i++) { const P = m.rt[i].pts; for (let j = 1; j < P.length; j++) if (sd(p, toScr(...P[j - 1]), toScr(...P[j])) < 12 * d) return { t: 'rt', i } }
+  for (let i = 0; i < (m.shp || []).length; i++) { const s0 = m.shp[i]; if (s0.t === 'col') { const c = [(s0.pts[0][0] + s0.pts[1][0]) / 2, (s0.pts[0][1] + s0.pts[1][1]) / 2]; if (Math.hypot(q[0] - c[0], q[1] - c[1]) <= s0.bulge[0] + 12 * d / S.view.s) return { t: 'shp', i } } else if (inPoly(q, s0.pts)) return { t: 'shp', i } }
+  return null;
+}
+function zpOut(m) {   /* выгрузка: точки — в координатах листа (как ms.pts: y вниз) */
+  const f = p => [p[0], -p[1]], num = v => v === '' || v == null ? undefined : +v, o = {};
+  if ((m.shp || []).length) o.shp = m.shp.map(q => ({ t: q.t, pts: q.pts.map(f), ...(q.bulge ? { bulge: q.bulge } : {}), note: q.note || '' }));
+  if ((m.rt || []).length) o.rt = m.rt.map(q => ({ t: q.t, lvl: q.lvl, pts: q.pts.map(f), ...(num(q.d) ? { d: num(q.d) } : {}) }));
+  if (m.ceil && m.ceil.p.every(x => x[2] !== '')) o.ceil = { t: 'slope', p: m.ceil.p.map(x => [x[0], -x[1], +x[2]]) };
+  return o;
+}
+ZOPT.shp = ['circ']; ZO.circ = ['◯', 'Круглая колонна: два касания — диаметр'];
 
 /* ═══ [BLOCK] КАРКАС (v22, R1 по DrawNote): режимы, плавающие полосы, футляр, шапка (↶ ↷ ✓ 🖊 ⋮), строка «объект · помещение · С№ · статус» ═══ */
 /* Режим: S.zm — 'plan' | 'wall' | 'mk' | 'dim' | 'exp'; фактический — zCur() по контексту (план / стена) и инструменту. Полосы перерисовывает zLay() (наблюдатель за #pp, #ch, #fr). */
@@ -2598,7 +2735,7 @@ function zExp() {   /* выгрузка: строка статуса целик�
   x.querySelectorAll('[data-zx]').forEach(b => b.onclick = () => { const k = b.dataset.zx; if (k === 'r') exportRoom(); else if (k === 'o') exportObj2(); else if (k === 'w') exportJson(); else zmSet('plan') });
 }
 /* ↶ ↷ в шапке: план — снимки помещения (S.pund / S.pred), стена — разметки (S.und / S.red) */
-const zState = () => JSON.stringify({ lines: S.lines, els: S.els, man: S.man, notes: S.notes, dms: S.dms, drw: S.drw });
+const zState = () => JSON.stringify({ lines: S.lines, els: S.els, man: S.man, notes: S.notes, dms: S.dms, drw: S.drw, rts: S.rts, polys: S.polys });
 async function zUndo() {
   if (S.mode === 'plan') { if (!S.pund.length) return toast('Отменять нечего'); S.pred.push(JSON.stringify(plState())); await plUndo() }
   else { const t = S.und[S.und.length - 1]; if (!t) return toast('Отменять нечего'); S.red.push(t.startsWith('ZA:') ? t : zState()); undo(); toast('↶ отменено') }
@@ -2652,6 +2789,8 @@ function zInit() {
   $('bPen').onclick = () => { PEN.mode = PEN.mode === 'auto' ? 'off' : 'auto'; try { localStorage.setItem('zamer.pen', PEN.mode) } catch (e) { } toast(PEN.mode === 'auto' ? '🖊 стилус рисует, палец двигает' : '🖊 выкл: палец и стилус — одинаково'); zLay() };
   $('bMore').onclick = () => $('zMenu').classList.toggle('on');
   $('bSet').addEventListener('click', () => $('zMenu').classList.remove('on'));
+  for (const id of ['bLay', 'bRul']) $(id).addEventListener('click', () => $('zMenu').classList.remove('on'));   /* v25 */
+  $('zBt').onclick = () => $('set').classList.add('on');
   $('hl').onclick = () => $('hl').classList.toggle('ex');
   for (const id of ['fCam', 'fGal']) $(id).addEventListener('change', () => { if (S.mode === 'plan') { S.zm = 'wall'; zLay() } });   /* кадры в пул — показать полосу */
   const mo = new MutationObserver(() => zLay());
@@ -2675,7 +2814,7 @@ $('bBt').onclick = btConnect;
 addEventListener('resize', resize); resize(); mkChips();
 zInit();   /* v22: каркас */
 $('zVer').textContent = 'Замер ' + ZVER; $('zVer2').textContent = 'Akrix Замер ' + ZVER;   /* v18 */
-window.PM = { ZOPT, zOpt, zMod, dmOut, dmTap, zLW, zdGet, zFrDel, zFrBack, ZA, ulRetrace, zmSet, zCur, zSheet, zLay, zUndo, zRedo, zDone, PEN, status, ZVER, geoBuild, plUndo, ctOpen, ctAddNode, ctDelNode, ctClear, sessList, opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
+window.PM = { BT, btUi, mkChips, ZPX, zpOut, zwOut, zpGet, ZN_K, ZOPT, zOpt, zMod, dmOut, dmTap, zLW, zdGet, zFrDel, zFrBack, ZA, ulRetrace, zmSet, zCur, zSheet, zLay, zUndo, zRedo, zDone, PEN, status, ZVER, geoBuild, plUndo, ctOpen, ctAddNode, ctDelNode, ctClear, sessList, opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
 dbOpen().then(() => { if (!/[?&]nolist/.test(location.search)) sessList(true) });
 </script>
