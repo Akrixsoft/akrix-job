@@ -1,0 +1,843 @@
+<title>Замер — макеты интерфейса</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;700&display=swap">
+<style>
+/* Раскладка: заголовок → три варианта, в каждом ряд из трёх телефонов (на узком экране — столбиком) → тезисы. Единая тёмная тема, как в DrawNote. */
+:root{
+  color-scheme:dark;
+  --bg:#111418; --fg:#E8EBEF; --mute:#8B93A1; --line:#2A2F37;
+  --bar:#1B1E23; --bar2:#23272E; --chip:#2B3039;
+  --canvas:#EDEFF2; --accent:#1F6FD1; --accent2:#4DA3FF; --warn:#F2A33A;
+  --ui:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px;
+  font-variant-numeric:tabular-nums}
+h1{font-size:24px;line-height:1.2;margin:0 0 6px;text-wrap:balance}
+h2{font-size:19px;margin:0;line-height:1.25}
+h3{font-size:13px;margin:0 0 6px;color:var(--mute);font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+p{margin:0}
+.lead{color:var(--mute);max-width:62ch;margin-bottom:14px}
+.common{display:flex;flex-wrap:wrap;gap:6px 10px;margin:0 0 30px;padding:0;list-style:none;max-width:760px}
+.common li{background:var(--chip);border-radius:8px;padding:5px 10px;font-size:13px;color:#cfd4dc}
+.var{margin:0 0 44px;padding-top:18px;border-top:1px solid var(--line)}
+.var-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;font-weight:700;font-size:15px;align-self:center}
+.var .lead{margin-bottom:16px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,360px);gap:22px;justify-content:start;max-width:100%}
+.shot{display:flex;flex-direction:column;gap:8px;min-width:0}
+.cap{font-size:13px;color:var(--mute)}
+.cap b{color:var(--fg);font-weight:600}
+.theses{margin:18px 0 0;padding:0;list-style:none;display:grid;gap:6px;max-width:720px}
+.theses li{padding-left:26px;position:relative;font-size:14px}
+.theses li::before{position:absolute;left:0;top:0;font-weight:700}
+.theses li.p::before{content:"+";color:#2BB673}
+.theses li.m::before{content:"−";color:#E0442B}
+
+/* ---------- телефон ---------- */
+.ph{width:360px;height:800px;border-radius:40px;background:#05070a;padding:6px;flex:none;box-shadow:0 10px 30px rgba(0,0,0,.5),inset 0 0 0 1px #2a2f37;max-width:100%}
+.sc{position:relative;width:348px;height:788px;border-radius:34px;overflow:hidden;background:var(--canvas)}
+.st{height:26px;background:var(--bar);color:#fff;font-size:11px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-weight:500}
+.hd{height:46px;background:var(--bar);display:flex;align-items:center;justify-content:space-between;padding:0 6px}
+.hi{width:36px;height:36px;display:grid;place-items:center;color:#fff;border-radius:9px;flex:none}
+.hi svg{width:24px;height:24px}
+.hi.dim{color:#4A5260}
+.hi.on{background:var(--warn);color:#1A2027}
+.hd .sp{flex:1}
+.hi.chk{position:relative}.hi .cnt{position:absolute;right:-1px;top:0;min-width:16px;height:16px;border-radius:8px;background:#E0442B;color:#fff;font-style:normal;font-size:10px;font-weight:700;display:grid;place-items:center;padding:0 3px;border:1.5px solid #1B1E23}
+.kb{position:absolute;left:0;right:0;bottom:0;height:196px;background:#2B2F35;z-index:6;padding:6px 6px 8px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.kb div{background:#3A3F47;border-radius:7px;display:grid;place-items:center;color:#E8EBEF;font-size:17px;font-weight:500}
+.kb .ok{background:#1F6FD1;font-size:14px;font-weight:700;grid-row:span 2}
+.kb .kl{border-radius:7px;border-width:2px!important;border-style:solid}
+.kb .kl{padding:5px 8px}.kb .kl svg{width:100%;height:100%}
+.fab{position:absolute;right:12px;bottom:208px;z-index:7;display:flex;flex-direction:column;align-items:center;gap:4px}
+.fab .btn{width:58px;height:58px;border-radius:16px;background:#2E9E4F;display:grid;place-items:center;box-shadow:0 6px 16px rgba(0,0,0,.45);border:2px solid #C8F0D6}
+.fab .btn svg{width:44px;height:44px}
+.fl{background:#3A3F47!important;border:2px solid #5B6472!important;color:#8B93A1}
+.fl.on{background:#2BB673!important;border-color:#C8F0D6!important;color:#FF2D20;box-shadow:0 6px 16px rgba(0,0,0,.45)}
+.fl.pulse{background:#2BB673!important;border-color:#C8F0D6!important;color:#FF2D20}
+.fl.pulse svg{filter:drop-shadow(0 0 4px #FF2D20)}
+@media (prefers-reduced-motion:no-preference){.fl.pulse svg{animation:blink .6s steps(1) infinite}}
+@keyframes blink{50%{opacity:.15}}
+.fstates .btn.kst{width:76px;height:42px;border-radius:7px;padding:5px 8px}.fstates .btn.kst svg{width:100%;height:100%}
+.fstates{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}.fstates div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--mute)}.fstates .btn{width:44px;height:44px;border-radius:12px;display:grid;place-items:center}.fstates .btn svg{width:34px;height:34px}
+.fab .grip{font-size:9px;color:#fff;background:rgba(27,30,35,.9);padding:2px 6px;border-radius:6px}
+.walls{position:absolute;left:0;top:72px;width:348px;height:44px;background:#15181C;display:flex;gap:5px;align-items:center;padding:0 8px;border-bottom:1px solid #2A2F37;z-index:2}
+.wch{min-width:32px;height:28px;border-radius:7px;background:#262A31;color:#CFD4DC;font-weight:700;font-size:13px;display:grid;place-items:center;padding:0 6px}
+.wch.on{background:var(--accent);color:#fff;box-shadow:0 0 0 2px #15181C,0 0 0 3.5px var(--accent2)}
+.wch.add{color:var(--accent2);background:transparent;border:1.5px dashed #3A4150;font-size:16px;min-width:28px}
+.cv{position:absolute;left:0;top:72px;width:348px;height:716px;display:block}
+.cv2{top:116px;height:672px}
+svg text{font-family:var(--ui)}
+
+/* полосы и кольца */
+.bar{position:absolute;display:flex;align-items:center;gap:4px;background:#2B2F35;border-radius:16px;padding:6px 8px;box-shadow:0 6px 18px rgba(0,0,0,.45);z-index:3}
+.ring{width:46px;height:46px;border-radius:10px;border:3px solid var(--c,#8B93A1);display:grid;place-items:center;background:#3A3F47;flex:none;position:relative}
+.ring svg{width:30px;height:30px}
+.ring.on{background:color-mix(in srgb,var(--c) 30%,#3A3F47);box-shadow:0 0 0 2px #2B2F35,0 0 0 4px var(--c)}
+.ring.big{width:60px;height:60px;border-width:4px}
+.ring.big svg{width:36px;height:36px}
+.plus{width:34px;height:34px;display:grid;place-items:center;flex:none}
+.plus svg{width:26px;height:26px}
+.sm{width:26px;height:26px;display:grid;place-items:center;flex:none;border-radius:8px}
+.sm svg{width:22px;height:22px}
+.sm.on{background:#2E3A4D;box-shadow:inset 0 0 0 1.5px var(--accent2)}
+.dot{width:24px;height:24px;border-radius:50%;flex:none;border:2px solid #0d1013}
+.dot.on{box-shadow:0 0 0 2px var(--accent2)}
+.sep{width:1px;height:26px;background:#3A4150;flex:none;margin:0 2px}
+.tip{position:absolute;background:#0B0D10;color:#fff;font-size:11.5px;padding:5px 9px;border-radius:8px;z-index:4;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.5)}
+.tip::after{content:"";position:absolute;left:50%;bottom:-5px;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:#0B0D10}
+.mode{position:absolute;display:flex;gap:2px;background:rgba(22,25,30,.95);border-radius:12px;padding:3px;z-index:3;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.mode .sm{width:32px;height:32px;color:#CFD4DC}
+.mode .sm.on{background:var(--accent);color:#fff;box-shadow:none}
+.mode.vert{flex-direction:column}
+
+/* панели набора */
+.tb{position:absolute;left:8px;right:8px;background:#2B2F35;border-radius:16px;padding:8px 10px 10px;z-index:5;box-shadow:0 10px 30px rgba(0,0,0,.55);border:1px solid #2A2F37}
+.tb-h{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:6px}
+.tb-h span{color:var(--mute);font-weight:400;font-size:11px}
+.x{width:22px;height:22px;display:grid;place-items:center;color:var(--mute);font-size:16px}
+.g8{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.g6{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.cell{aspect-ratio:1;border-radius:9px;background:#3A3F47;display:grid;place-items:center;position:relative}
+.cell svg{width:72%;height:72%}
+.cell.on{background:#2E3A4D;box-shadow:inset 0 0 0 1.5px var(--accent2)}
+.cell .star{position:absolute;right:2px;top:1px;font-size:8px;color:var(--warn)}
+.hr{height:1px;background:#2A2F37;margin:6px 0}
+.colors{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.colors .dot{width:22px;height:22px}
+.sect{font-size:10.5px;color:var(--mute);margin:4px 0 3px;letter-spacing:.03em}
+
+/* V2 — колонка */
+.col{position:absolute;right:8px;bottom:12px;display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(22,25,30,.95);border-radius:30px;padding:6px;box-shadow:0 6px 18px rgba(0,0,0,.45);z-index:3}
+.col .ring{width:46px;height:46px}
+.col .cdots{display:flex;flex-direction:column;gap:5px;padding:4px 0}
+.dr{position:absolute;top:72px;right:0;bottom:0;width:246px;background:#1B1E23;border-left:1px solid #2A2F37;padding:10px 10px 12px;z-index:5;box-shadow:-10px 0 30px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:2px}
+
+/* V3 — контекст, веер, выдвижной футляр */
+.ctx{position:absolute;left:10px;bottom:10px;display:flex;align-items:center;gap:4px;background:rgba(22,25,30,.95);border-radius:14px;padding:5px 6px;z-index:3;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.ctx .tag{height:30px;padding:0 8px;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;gap:4px}
+.ctx .sm{width:32px;height:32px}
+.ctx .seg{display:flex;background:#0d1013;border-radius:9px;padding:2px;gap:2px}
+.fan{position:absolute;z-index:3}
+.hub{position:absolute;left:274px;top:670px;z-index:4}
+.hint{position:absolute;font-size:10.5px;color:#CFD4DC;background:rgba(22,25,30,.9);padding:3px 7px;border-radius:7px;z-index:4;white-space:nowrap}
+.sheet{position:absolute;left:0;right:0;bottom:0;top:404px;background:#1B1E23;border-radius:20px 20px 0 0;border-top:1px solid #2A2F37;z-index:5;box-shadow:0 -10px 30px rgba(0,0,0,.55);padding:6px 10px 10px}
+.handle{width:44px;height:4px;border-radius:2px;background:#3A4150;margin:0 auto 6px}
+.sheet-body{display:grid;grid-template-columns:72px 1fr;gap:8px}
+.tabs{display:flex;flex-direction:column;gap:3px}
+.tabs div{font-size:11px;color:var(--mute);padding:5px 7px;border-radius:7px}
+.tabs div.on{background:#2E3A4D;color:#fff}
+.presets{display:flex;gap:6px;align-items:center;margin:2px 0 6px}
+.presets .ring{width:40px;height:40px;border-width:2.5px}
+.presets .ring svg{width:26px;height:26px}
+/* вариант 1 (правка 04.11): кольца и иконки — размером как в варианте 3 */
+.v1 .bar .ring{width:28px;height:28px;border-width:2px;border-radius:7px}
+.v1 .bar .ring svg{width:20px;height:20px}
+.v1 .bar .ring.on{box-shadow:0 0 0 2px #2B2F35,0 0 0 3.5px var(--c)}
+.v1 .bar .plus{width:24px;height:24px}.v1 .bar .plus svg{width:20px;height:20px}
+.v1 .bar{padding:5px 7px}
+.iso{position:absolute;left:8px;right:8px;top:118px;z-index:4;background:#2B2F35;border-radius:12px;padding:22px 12px 6px;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+.iso .trk{position:relative;height:6px;border-radius:3px;background:#4A505A;margin:10px 4px 4px}
+.iso .th{position:absolute;top:-8px;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#4DA3FF;border:3px solid #fff}
+.iso .tk{display:flex;justify-content:space-between;font-size:10px;color:#9AA3AD;margin-top:6px}
+.iso .val{position:absolute;top:-30px;margin-left:-26px;width:52px;text-align:center;font-weight:700;font-size:12px;color:#fff}
+.wch.isob{margin-left:auto;background:#3A3F47;color:#4DA3FF;font-size:14px}
+.v1 .bar.mods{padding:5px 6px;gap:2px;bottom:52px!important}.v1 .mod{min-width:24px;height:24px;font-size:12px}
+.v1 .bar[style*="bottom:14px"]{gap:3px;max-width:calc(100% - 16px)}.v1 .bar[style*="bottom:14px"] .sm{width:24px;height:24px}.v1 .bar[style*="bottom:14px"] .sm svg{width:20px;height:20px}.v1 .bar[style*="bottom:14px"] .dot{width:20px;height:20px}.v1 .bar[style*="bottom:14px"] .sep{margin:0 1px}.mod{min-width:28px;height:28px;display:grid;place-items:center;color:#E8EBEF;font-weight:700;font-size:14px;border-radius:7px;padding:0 3px}.mod.on{color:#4DA3FF;background:#3A3F47}
+.cur{width:26px;height:26px;border-radius:7px;border:2px solid #E8EBEF;flex:none;box-shadow:inset 0 0 0 2px #2B2F35}
+.more{width:14px;height:24px;display:grid;place-items:center;color:#8B93A1;font-size:16px;font-weight:700;flex:none;margin-left:-2px}
+.addc{width:22px;height:22px;border-radius:50%;border:1.5px dashed #8B93A1;color:#8B93A1;display:grid;place-items:center;font-size:14px}
+.ctxbar .tag,.v1 .bar .tag{height:28px;padding:0 8px;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;gap:4px;flex:none}
+.v1 .bar[style*="bottom:72px"]{bottom:52px!important;gap:3px}
+@media (prefers-reduced-motion:no-preference){.caret{animation:bl 1s steps(1) infinite}}
+@keyframes bl{50%{opacity:0}}
+.logos{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin:6px 0 10px}
+.lg{background:#1B1E23;border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.lg .row1{display:flex;align-items:center;gap:16px}
+.lg .big{width:104px;height:104px;flex:none}
+.lg .wm{display:flex;flex-direction:column;gap:2px;min-width:0}
+.lg .wm b{font-size:24px;letter-spacing:.02em;line-height:1}
+.lg .wm span{font-size:11px;color:var(--mute);letter-spacing:.18em;text-transform:uppercase}
+.lg .sizes{display:flex;align-items:flex-end;gap:14px}
+.lg .home{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#E8EBEF}
+.lg p{font-size:13px;color:var(--mute);margin:0}
+</style>
+
+<!-- ============ библиотека иконок (inline SVG symbols) ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="#DCE0E6" stroke-width="1"/></pattern>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#C9CED6"/><path d="M0 0V6" stroke="#3E4954" stroke-width="2"/></pattern>
+<pattern id="openz" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="rgba(242,163,58,.08)"/><path d="M0 0V8" stroke="rgba(242,163,58,.45)" stroke-width="1.5"/></pattern>
+<pattern id="nodrill" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="rgba(217,48,37,.10)"/><path d="M0 0V7" stroke="#D93025" stroke-width="1.6"/></pattern>
+<linearGradient id="photo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#DED6C8"/><stop offset=".6" stop-color="#CCC3B3"/><stop offset="1" stop-color="#B2A999"/></linearGradient>
+
+<!-- шапка -->
+<symbol id="h-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#2BB673"/><path d="M7 12.5l3.3 3.3L17.2 8.8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="h-menu" viewBox="0 0 24 24"><path d="M2.5 6.5a2 2 0 012-2h5l2 2.2h8a2 2 0 012 2V18a2 2 0 01-2 2h-15a2 2 0 01-2-2z" fill="#F2B233"/><path d="M2.5 9.5h19" stroke="#C98A00" stroke-width="1.3"/><path d="M6.5 13h11M6.5 16.3h7" stroke="#7A5200" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="h-undo" viewBox="0 0 24 24"><path d="M9 6L4 10.5 9 15" fill="none" stroke="#4DA3FF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 10.5H14a5 5 0 010 10h-3" fill="none" stroke="#4DA3FF" stroke-width="2.4" stroke-linecap="round"/></symbol>
+<symbol id="h-redo" viewBox="0 0 24 24"><g transform="matrix(-1 0 0 1 24 0)"><path d="M9 6L4 10.5 9 15" fill="none" stroke="#4DA3FF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 10.5H14a5 5 0 010 10h-3" fill="none" stroke="#4DA3FF" stroke-width="2.4" stroke-linecap="round"/></g></symbol>
+<symbol id="h-trash" viewBox="0 0 24 24"><path d="M4.5 7h15" stroke="#E0442B" stroke-width="2.2" stroke-linecap="round"/><path d="M9.5 7V4.8h5V7" fill="none" stroke="#E0442B" stroke-width="2"/><path d="M6.5 7.5l1 13h9l1-13z" fill="#E0442B"/><path d="M10 11v6.5M14 11v6.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="h-play" viewBox="0 0 24 24"><rect x="1.5" y="8" width="8" height="11" rx="2" fill="#2E9E4F"/><rect x="3" y="10" width="5" height="3.5" rx=".6" fill="#C8F0D6"/><path d="M9.5 11h3" stroke="#E0442B" stroke-width="1.6"/><circle cx="14.5" cy="11" r="2.6" fill="#1F6FD1"/><text x="14.5" y="12.6" font-size="4.2" font-weight="700" fill="#fff" text-anchor="middle">1</text><path d="M17.5 11h1.5" stroke="#8B93A1" stroke-width="1.2"/><circle cx="21" cy="11" r="2.2" fill="#5B6472"/><text x="21" y="12.4" font-size="3.6" font-weight="700" fill="#fff" text-anchor="middle">2</text></symbol>
+<symbol id="h-laser" viewBox="0 0 24 24"><rect x="3" y="5" width="11" height="16" rx="2.5" fill="#2E9E4F"/><rect x="4.8" y="7" width="7.4" height="4.6" rx=".8" fill="#C8F0D6"/><text x="8.5" y="10.7" font-size="3.6" font-weight="700" fill="#1A2027" text-anchor="middle">3450</text><circle cx="6.5" cy="15.5" r="1.2" fill="#1A2027"/><circle cx="10.5" cy="15.5" r="1.2" fill="#E0442B"/><path d="M14 9h7" stroke="#E0442B" stroke-width="1.8" stroke-linecap="round"/><circle cx="21.5" cy="9" r="1.4" fill="#E0442B"/><circle cx="19" cy="18.5" r="3.4" fill="#2BB673" stroke="#1B1E23" stroke-width="1.4"/></symbol>
+<symbol id="h-laser-off" viewBox="0 0 24 24"><rect x="3" y="5" width="11" height="16" rx="2.5" fill="#5B6472"/><rect x="4.8" y="7" width="7.4" height="4.6" rx=".8" fill="#9AA3AD"/><circle cx="19" cy="18.5" r="3.4" fill="#5B6472" stroke="#1B1E23" stroke-width="1.4"/></symbol>
+<symbol id="h-stylus" viewBox="0 0 24 24"><path d="M14.5 4.5l5 5L9 20H4v-5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12.5 6.5l5 5" stroke="currentColor" stroke-width="2"/></symbol>
+<symbol id="h-more" viewBox="0 0 24 24"><circle cx="12" cy="5.5" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="18.5" r="2" fill="currentColor"/></symbol>
+
+<!-- режимы -->
+<symbol id="m-plan" viewBox="0 0 32 32"><path d="M5 6h22v20H5z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M5 17h10v9M15 6v6" fill="none" stroke="currentColor" stroke-width="2.2"/></symbol>
+<symbol id="m-wall" viewBox="0 0 32 32"><path d="M4 27l6-4V9L4 5zM10 9h12v14H10zM22 9l6-4v22l-6-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></symbol>
+
+<!-- инструменты (полноцветные) -->
+<symbol id="t-select" viewBox="0 0 32 32"><path d="M8 5l15 11-6 1.5 4 7-3 1.6-4-7-4.5 4.5z" fill="#fff" stroke="#1A2027" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+<symbol id="t-frame" viewBox="0 0 32 32"><rect x="4" y="5" width="18" height="16" rx="2" fill="rgba(31,111,209,.2)" stroke="#1F6FD1" stroke-width="2" stroke-dasharray="3 2.5"/><path d="M17 16l9 6.5-3.6.9 2.4 4-2 1-2.4-4-2.6 2.6z" fill="#fff" stroke="#1A2027" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+<symbol id="t-dim" viewBox="0 0 32 32"><path d="M4 9v14M28 9v14" stroke="#1F6FD1" stroke-width="2"/><path d="M5 16h22" stroke="#1F6FD1" stroke-width="2.4"/><path d="M10 11l-5 5 5 5M22 11l5 5-5 5" fill="none" stroke="#1F6FD1" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+<symbol id="t-arrow" viewBox="0 0 32 32"><path d="M7 25L24 8" stroke="#E07A00" stroke-width="3" stroke-linecap="round"/><path d="M14 7h11v11" fill="none" stroke="#E07A00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="t-pen" viewBox="0 0 32 32"><path d="M5 22c5-12 9 10 14 0s5-8 8-6" fill="none" stroke="#E0442B" stroke-width="3" stroke-linecap="round"/></symbol>
+<symbol id="t-plus" viewBox="0 0 32 32"><path d="M16 6v20M6 16h20" stroke="#4DA3FF" stroke-width="3" stroke-linecap="round"/></symbol>
+<symbol id="t-wallseg" viewBox="0 0 32 32"><path d="M7 21L25 11" stroke="#B5179E" stroke-width="3.5" stroke-linecap="round"/><circle cx="7" cy="21" r="4.2" fill="#F28C00"/><circle cx="25" cy="11" r="4.2" fill="#1F9EA8"/></symbol>
+<symbol id="t-column" viewBox="0 0 32 32"><rect x="9" y="7" width="14" height="18" fill="#3E4954"/><path d="M9 12l14-4M9 18l14-4M9 24l14-4" stroke="#fff" stroke-width="1.3" opacity=".7"/></symbol>
+<symbol id="t-ledge" viewBox="0 0 32 32"><path d="M4 24h7v-9h10v9h7" fill="rgba(62,73,84,.3)" stroke="#3E4954" stroke-width="2.5" stroke-linejoin="round"/></symbol>
+<symbol id="t-image" viewBox="0 0 32 32"><rect x="4" y="6" width="24" height="20" rx="3" fill="#E9F3FF" stroke="#1F6FD1" stroke-width="2"/><circle cx="11" cy="12" r="2.6" fill="#F2C200"/><path d="M6 24l7-8 5 5 4-4 6 7z" fill="#2E9E4F"/></symbol>
+<symbol id="t-recog" viewBox="0 0 32 32"><path d="M6 26L18 14" stroke="#7B3FC4" stroke-width="3" stroke-linecap="round"/><path d="M22 5v6M19 8h6M26 14v4M24 16h4M12 5v3M10.5 6.5h3" stroke="#F2C200" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="t-camera" viewBox="0 0 32 32"><rect x="3" y="9" width="26" height="18" rx="4" fill="#3E4954"/><path d="M11 9l2-3h6l2 3z" fill="#3E4954"/><circle cx="16" cy="18" r="6" fill="#1A2027" stroke="#8BB7F0" stroke-width="2"/><circle cx="16" cy="18" r="2.5" fill="#4DA3FF"/></symbol>
+<symbol id="t-eye" viewBox="0 0 32 32"><path d="M3 16s5-8 13-8 13 8 13 8-5 8-13 8S3 16 3 16z" fill="none" stroke="#E8EBEF" stroke-width="2.2"/><circle cx="16" cy="16" r="4.2" fill="#4DA3FF"/></symbol>
+<symbol id="t-eyehalf" viewBox="0 0 32 32"><path d="M3 16s5-8 13-8 13 8 13 8-5 8-13 8S3 16 3 16z" fill="none" stroke="#E8EBEF" stroke-width="2.2"/><path d="M16 8c8 0 13 8 13 8s-5 8-13 8z" fill="rgba(232,235,239,.35)"/><circle cx="16" cy="16" r="4.2" fill="#4DA3FF"/></symbol>
+<symbol id="t-eyeoff" viewBox="0 0 32 32"><path d="M3 16s5-8 13-8 13 8 13 8-5 8-13 8S3 16 3 16z" fill="none" stroke="#8B93A1" stroke-width="2.2"/><path d="M6 27L26 5" stroke="#E0442B" stroke-width="2.6" stroke-linecap="round"/></symbol>
+<symbol id="t-corners" viewBox="0 0 32 32"><path d="M8 8l16 2v14l-16 2z" fill="rgba(242,140,0,.16)" stroke="#F28C00" stroke-width="2" stroke-linejoin="round"/><circle cx="8" cy="8" r="3.3" fill="#F28C00"/><circle cx="24" cy="10" r="3.3" fill="#F28C00"/><circle cx="24" cy="24" r="3.3" fill="#F28C00"/><circle cx="8" cy="26" r="3.3" fill="#F28C00"/></symbol>
+<symbol id="t-xyz" viewBox="0 0 32 32"><path d="M16 17h12" stroke="#E0442B" stroke-width="3" stroke-linecap="round"/><path d="M16 17V5" stroke="#2BB673" stroke-width="3" stroke-linecap="round"/><path d="M16 17L6 27" stroke="#1F6FD1" stroke-width="3" stroke-linecap="round"/><circle cx="16" cy="17" r="2.6" fill="#fff"/></symbol>
+<symbol id="t-laser2" viewBox="0 0 32 32"><path d="M4 16h15" stroke="#2BB673" stroke-width="2.6" stroke-linecap="round"/><path d="M14 11l5 5-5 5" fill="none" stroke="#2BB673" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><rect x="22" y="9" width="7" height="14" rx="2" fill="none" stroke="#E8EBEF" stroke-width="2"/></symbol>
+<symbol id="t-num" viewBox="0 0 32 32"><rect x="4" y="7" width="24" height="18" rx="4" fill="#1F6FD1"/><text x="16" y="21" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">С№</text></symbol>
+<symbol id="t-split" viewBox="0 0 32 32"><path d="M4 16h24" stroke="#8B93A1" stroke-width="2.2" stroke-dasharray="3 2.5"/><path d="M16 6v20" stroke="#E0442B" stroke-width="2.8" stroke-linecap="round"/></symbol>
+<symbol id="t-move" viewBox="0 0 32 32"><path d="M16 4v24M4 16h24" stroke="#1F6FD1" stroke-width="2.6" stroke-linecap="round"/><path d="M12 8l4-4 4 4M12 24l4 4 4-4M8 12l-4 4 4 4M24 12l4 4-4 4" fill="none" stroke="#1F6FD1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="t-copy" viewBox="0 0 32 32"><rect x="5" y="10" width="16" height="16" rx="2" fill="none" stroke="#1F6FD1" stroke-width="2.2"/><rect x="11" y="5" width="16" height="16" rx="2" fill="#1A2027" stroke="#1F6FD1" stroke-width="2.2"/></symbol>
+<symbol id="t-group" viewBox="0 0 32 32"><rect x="5" y="5" width="22" height="22" rx="2" fill="none" stroke="#1F6FD1" stroke-width="2" stroke-dasharray="3 2.5"/><rect x="9" y="9" width="6" height="6" fill="#1F6FD1"/><rect x="17" y="9" width="6" height="6" fill="#1F6FD1"/><rect x="9" y="17" width="6" height="6" fill="#1F6FD1"/><rect x="17" y="17" width="6" height="6" fill="#1F6FD1"/></symbol>
+<symbol id="t-del" viewBox="0 0 32 32"><path d="M8 8l16 16M24 8L8 24" stroke="#E0442B" stroke-width="3.2" stroke-linecap="round"/></symbol>
+<symbol id="t-socket" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12.5" fill="#F28C00"/><circle cx="16" cy="16" r="8.5" fill="#FFF3E0"/><circle cx="12.5" cy="16" r="1.9" fill="#1A2027"/><circle cx="19.5" cy="16" r="1.9" fill="#1A2027"/></symbol>
+<symbol id="t-switch" viewBox="0 0 32 32"><rect x="5" y="5" width="22" height="22" rx="4" fill="#F28C00"/><rect x="10" y="9" width="12" height="14" rx="2" fill="#FFF3E0"/><rect x="10" y="9" width="12" height="7" rx="2" fill="#E07A00" opacity=".55"/><path d="M13 19h6" stroke="#1A2027" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="t-light" viewBox="0 0 32 32"><path d="M16 2v3M5 7l2 2M27 7l-2 2M3 15h3M26 15h3" stroke="#F2C200" stroke-width="2.2" stroke-linecap="round"/><circle cx="16" cy="14" r="8" fill="#F2C200"/><path d="M12 24h8M13 27.5h6" stroke="#8B93A1" stroke-width="2.4" stroke-linecap="round"/></symbol>
+<symbol id="t-tv" viewBox="0 0 32 32"><rect x="3" y="6" width="26" height="17" rx="2" fill="#3E4954"/><rect x="6" y="9" width="20" height="11" fill="#4DD0E1"/><path d="M11 27h10" stroke="#3E4954" stroke-width="2.6" stroke-linecap="round"/></symbol>
+<symbol id="t-hvs" viewBox="0 0 32 32"><path d="M16 3c5 7 9 12 9 17a9 9 0 01-18 0c0-5 4-10 9-17z" fill="#1F6FD1"/><path d="M11.5 20a4.5 4.5 0 004.5 4.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"/></symbol>
+<symbol id="t-gvs" viewBox="0 0 32 32"><path d="M16 3c5 7 9 12 9 17a9 9 0 01-18 0c0-5 4-10 9-17z" fill="#E0442B"/><path d="M11.5 20a4.5 4.5 0 004.5 4.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"/></symbol>
+<symbol id="t-sewer" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#8D6E63"/><circle cx="16" cy="16" r="6.5" fill="#4E342E"/><circle cx="16" cy="16" r="2.6" fill="#D7CCC8"/></symbol>
+<symbol id="t-gas" viewBox="0 0 32 32"><path d="M16 3l12 13-12 13L4 16z" fill="#C9A400"/><path d="M16 10c3 3 4.5 5.5 4.5 7.5a4.5 4.5 0 01-9 0C11.5 15.5 13 13 16 10z" fill="#FFF8D6"/></symbol>
+<symbol id="t-vent" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12.5" fill="#2BB673"/><path d="M16 16c-6-2-8-6-6-9 2 2 5 5 6 9zM16 16c2 6-2 9-6 8 2-2 5-5 6-8zM16 16c6 2 8 6 6 9-2-2-5-5-6-9zM16 16c-2-6 2-9 6-8-2 2-5 5-6 8z" fill="#fff"/><circle cx="16" cy="16" r="2.2" fill="#1A2027"/></symbol>
+<symbol id="t-panel" viewBox="0 0 32 32"><rect x="6" y="4" width="20" height="24" rx="3" fill="#7B3FC4"/><path d="M17.5 8l-5.5 9h4l-1 7 6-10h-4z" fill="#F2C200"/></symbol>
+<symbol id="t-window" viewBox="0 0 32 32"><rect x="4" y="5" width="24" height="22" rx="2" fill="#E3F6EA" stroke="#2E9E4F" stroke-width="2.5"/><path d="M16 5v22M4 16h24" stroke="#2E9E4F" stroke-width="2"/></symbol>
+<symbol id="t-door" viewBox="0 0 32 32"><path d="M4 27h26" stroke="#3E4954" stroke-width="2.6"/><path d="M8 27V5" stroke="#8D6E63" stroke-width="3.2" stroke-linecap="round"/><path d="M8 5a22 22 0 0122 22" fill="none" stroke="#8D6E63" stroke-width="2" stroke-dasharray="3 2.5"/></symbol>
+<symbol id="t-niche" viewBox="0 0 32 32"><path d="M6 5h20v22H6" fill="none" stroke="#6B7785" stroke-width="2.6"/><rect x="10" y="9" width="16" height="14" fill="#6B7785" opacity=".4"/></symbol>
+<symbol id="t-beam" viewBox="0 0 32 32"><rect x="3" y="11" width="26" height="10" rx="1" fill="#3E4954"/><path d="M3 16h26" stroke="#fff" stroke-width="1" opacity=".5"/></symbol>
+<symbol id="t-box" viewBox="0 0 32 32"><rect x="5" y="5" width="22" height="22" rx="2" fill="none" stroke="#3E4954" stroke-width="2.6"/><rect x="10" y="10" width="12" height="12" fill="#3E4954" opacity=".5"/></symbol>
+<symbol id="t-nodrill" viewBox="0 0 32 32"><rect x="4" y="4" width="24" height="24" rx="3" fill="#FDE2E0" stroke="#D93025" stroke-width="2"/><path d="M4 12l8-8M4 20l16-16M4 28l24-24M12 28l16-16M20 28l8-8" stroke="#D93025" stroke-width="1.6"/></symbol>
+<symbol id="t-tech" viewBox="0 0 32 32"><rect x="4" y="4" width="24" height="24" rx="3" fill="#E3EEFB" stroke="#1F6FD1" stroke-width="2"/><path d="M12 4v24M20 4v24M4 12h24M4 20h24" stroke="#1F6FD1" stroke-width="1.3" opacity=".75"/></symbol>
+<symbol id="t-apron" viewBox="0 0 32 32"><rect x="3" y="10" width="26" height="12" rx="2" fill="#2BB673"/><path d="M3 16h26M9 10v12M16 10v12M23 10v12" stroke="#fff" stroke-width="1.2" opacity=".75"/></symbol>
+<symbol id="t-route" viewBox="0 0 32 32"><path d="M4 24c6 0 6-16 12-16s6 16 12 16" fill="none" stroke="#F28C00" stroke-width="3" stroke-dasharray="4 3" stroke-linecap="round"/></symbol>
+<symbol id="t-fason" viewBox="0 0 32 32"><path d="M5 26V9c8 0 12 6 22-2v19z" fill="rgba(123,63,196,.22)" stroke="#7B3FC4" stroke-width="2.5" stroke-linejoin="round"/></symbol>
+<symbol id="t-line" viewBox="0 0 32 32"><path d="M5 27L27 5" stroke="#E8EBEF" stroke-width="2.6" stroke-linecap="round"/></symbol>
+<symbol id="t-rect" viewBox="0 0 32 32"><rect x="5" y="7" width="22" height="18" rx="1" fill="none" stroke="#E8EBEF" stroke-width="2.6"/></symbol>
+<symbol id="t-circle" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="none" stroke="#E8EBEF" stroke-width="2.6"/></symbol>
+<symbol id="t-arc" viewBox="0 0 32 32"><path d="M5 25A14 14 0 0127 25" fill="none" stroke="#7B3FC4" stroke-width="2.6" stroke-linecap="round"/><circle cx="5" cy="25" r="3" fill="#7B3FC4"/><circle cx="27" cy="25" r="3" fill="#7B3FC4"/><circle cx="16" cy="11" r="3" fill="#7B3FC4"/></symbol>
+<symbol id="t-text" viewBox="0 0 32 32"><text x="16" y="25" text-anchor="middle" font-size="24" font-weight="700" fill="#E8EBEF">T</text></symbol>
+<symbol id="t-pin" viewBox="0 0 32 32"><path d="M16 29c-6-8-9-12-9-17a9 9 0 0118 0c0 5-3 9-9 17z" fill="#E07A00"/><circle cx="16" cy="12" r="5" fill="#fff"/><text x="16" y="15.5" text-anchor="middle" font-size="9" font-weight="700" fill="#E07A00">1</text></symbol>
+<symbol id="t-callout" viewBox="0 0 32 32"><rect x="12" y="4" width="17" height="11" rx="2" fill="#E07A00"/><path d="M12 10L5 25" stroke="#E07A00" stroke-width="2.6" stroke-linecap="round"/><circle cx="5" cy="25" r="2.8" fill="#E07A00"/></symbol>
+<symbol id="t-cup" viewBox="0 0 32 32"><path d="M12 15V6l3 1.5V15M18 15V5l3.5 1-1 9" fill="#E0442B" stroke="#1A2027" stroke-width=".8"/><path d="M7 14h18l-2 14H9z" fill="#F2A33A"/><rect x="9.5" y="18" width="13" height="5" fill="#1F6FD1"/></symbol>
+<symbol id="t-palette" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#E0442B"/><path d="M16 4a12 12 0 0112 12H16z" fill="#F2C200"/><path d="M28 16a12 12 0 01-12 12V16z" fill="#2BB673"/><path d="M16 28A12 12 0 014 16h12z" fill="#1F6FD1"/></symbol>
+<symbol id="t-chain" viewBox="0 0 32 32"><path d="M3 10v12M15 10v12M29 10v12" stroke="#1F6FD1" stroke-width="2"/><path d="M4 16h10M16 16h12" stroke="#1F6FD1" stroke-width="2.4"/><path d="M8 12l-4 4 4 4M11 12l4 4-4 4M20 12l-4 4 4 4M24 12l4 4-4 4" fill="none" stroke="#1F6FD1" stroke-width="2" stroke-linejoin="round"/></symbol>
+<symbol id="t-dimcorner" viewBox="0 0 32 32"><path d="M5 5v22" stroke="#1F6FD1" stroke-width="2.6"/><path d="M6 16h20" stroke="#1F6FD1" stroke-width="2.4"/><path d="M21 11l5 5-5 5" fill="none" stroke="#1F6FD1" stroke-width="2.4" stroke-linejoin="round"/></symbol>
+
+<!-- ============ холсты (общие для трёх вариантов) ============ -->
+<!-- A. План сверху -->
+<symbol id="cv-plan" viewBox="0 0 348 716">
+  <rect width="348" height="716" fill="#EDEFF2"/><rect width="348" height="716" fill="url(#grid)"/>
+  <!-- подложка: загруженный план (распознано) -->
+  <g opacity=".9" fill="none" stroke="#D3D8DF" stroke-width="6" stroke-linejoin="miter">
+    <path d="M12 72H336V600H12z"/>
+    <path d="M34 150H314V360H72.5V276H34z"/>
+    <path d="M12 420H336M200 420V600M314 150V72"/>
+  </g>
+  <g fill="none" stroke="#AEB5C0" stroke-width="1.2">
+    <path d="M34 232V190" stroke="#EDEFF2" stroke-width="9"/>
+    <path d="M34 232A42 42 0 0176 190"/><path d="M34 232V190"/>
+    <path d="M230 420V380" stroke="#EDEFF2" stroke-width="9"/><path d="M230 420A40 40 0 00270 380" /><path d="M230 420V380"/>
+    <rect x="80" y="340" width="178" height="18"/><rect x="126" y="341" width="28" height="14"/>
+    <circle cx="133" cy="345" r="2.3"/><circle cx="147" cy="345" r="2.3"/><circle cx="133" cy="351" r="2.3"/><circle cx="147" cy="351" r="2.3"/>
+    <circle cx="262" cy="349" r="7"/><circle cx="262" cy="349" r="2"/>
+    <rect x="290" y="158" width="22" height="26"/>
+    <circle cx="214" cy="256" r="24"/>
+    <rect x="222" y="470" width="90" height="46" rx="4"/><circle cx="252" cy="560" r="14"/>
+    <rect x="40" y="440" width="120" height="30" rx="3"/>
+  </g>
+  <path d="M120 150H200" stroke="#9CC3E8" stroke-width="3"/>
+  <g font-size="11" fill="#9AA3B0" text-anchor="middle"><text x="174" y="218">Кухня</text><text x="110" y="500">Коридор</text><text x="268" y="455">Санузел</text></g>
+  <!-- колонны и выступ -->
+  <rect x="180" y="150" width="28" height="28" fill="url(#hatch)" stroke="#3E4954" stroke-width="1.5"/>
+  <text x="194" y="189" font-size="8.5" fill="#3E4954" text-anchor="middle" font-weight="500">400×400</text>
+  <rect x="150" y="232" width="28" height="28" fill="url(#hatch)" stroke="#3E4954" stroke-width="1.5"/>
+  <text x="164" y="271" font-size="8.5" fill="#3E4954" text-anchor="middle" font-weight="500">400×400</text>
+  <rect x="300" y="220" width="14" height="56" fill="#D3D8DF" stroke="#3E4954" stroke-width="1.5"/>
+  <text x="296" y="250" font-size="8" fill="#3E4954" text-anchor="end" transform="rotate(-90 296 250)">выступ 200×800</text>
+  <!-- распознанные стены -->
+  <g stroke="#B5179E" stroke-width="4" stroke-linecap="round" fill="none">
+    <path d="M34 150H314"/><path d="M314 150V360"/><path d="M72.5 360V276"/><path d="M72.5 276H34"/><path d="M34 276V150"/>
+  </g>
+  <g fill="#B5179E"><circle cx="34" cy="150" r="3.5"/><circle cx="314" cy="150" r="3.5"/><circle cx="72.5" cy="276" r="3.5"/><circle cx="34" cy="276" r="3.5"/></g>
+  <g font-size="8.5" font-weight="700" fill="#B5179E" text-anchor="middle">
+    <g transform="translate(174 136)"><rect x="-26.4" y="-7" width="52.8" height="14" rx="3" fill="#fff" stroke="#E2E5EA"/><text y="4">С1 · 4 000</text></g>
+    <g transform="translate(328 255) rotate(-90)"><rect x="-26.4" y="-7" width="52.8" height="14" rx="3" fill="#fff" stroke="#E2E5EA"/><text y="4">С2 · 3 000</text></g>
+    <g transform="translate(86 318) rotate(-90)"><rect x="-26.4" y="-7" width="52.8" height="14" rx="3" fill="#fff" stroke="#E2E5EA"/><text y="4">С4 · 1 200</text></g>
+    <g transform="translate(53 292)"><rect x="-21.6" y="-7" width="43.2" height="14" rx="3" fill="#fff" stroke="#E2E5EA"/><text y="4">С5 · 550</text></g>
+    <g transform="translate(21 213) rotate(-90)"><rect x="-26.4" y="-7" width="52.8" height="14" rx="3" fill="#fff" stroke="#E2E5EA"/><text y="4">С6 · 1 800</text></g>
+  </g>
+  <!-- выделенный отрезок С3 -->
+  <path d="M314 360H72.5" stroke="#1F6FD1" stroke-width="14" stroke-linecap="round" opacity=".18"/>
+  <path d="M314 360H72.5" stroke="#1F6FD1" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="314" cy="360" r="8" fill="#fff" stroke="#1F6FD1" stroke-width="3"/>
+  <circle cx="72.5" cy="360" r="8" fill="#fff" stroke="#1F6FD1" stroke-width="3"/>
+  <g transform="translate(106 360)"><rect x="-20" y="-11" width="42" height="22" rx="7" fill="#1F6FD1"/><text x="-4" y="4" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle">С3</text><path d="M10 -2l3 4 3-4" fill="none" stroke="#fff" stroke-width="1.6"/></g>
+  <g transform="translate(200 360)">
+    <rect x="-27" y="-9" width="54" height="18" rx="4" fill="#fff" stroke="#1F6FD1" stroke-width="1.8"/>
+    <text x="-20" y="4" font-size="11" font-weight="700" fill="#1A2027">3 450</text>
+    <path class="caret" d="M17 -6V6" stroke="#1F6FD1" stroke-width="1.4"/>
+    <circle cx="24" cy="-7" r="2.6" fill="#2BB673"/>
+  </g>
+  <!-- шапка холста -->
+  <g transform="translate(10 12)"><rect width="236" height="26" rx="13" fill="rgba(27,30,35,.92)"/><text x="12" y="17" font-size="11.5" fill="#fff" font-weight="500">Кухня · 4 000 × 3 000 · H 2 700 · стен 6</text></g>
+</symbol>
+
+<!-- B. Стена в плоскости (вид под рядом стен) -->
+<symbol id="cv-wall" viewBox="0 0 348 672">
+  <rect width="348" height="672" fill="#EDEFF2"/><rect width="348" height="672" fill="url(#grid)"/>
+  <!-- боковые части (глубина ~1 м) -->
+  <polygon points="70.5,170 28.5,212 28.5,374 70.5,332" fill="#DCD8D0" stroke="#A7A39B"/>
+  <polygon points="277.5,170 319.5,212 319.5,374 277.5,332" fill="#DCD8D0" stroke="#A7A39B"/>
+  <!-- боковые плоскости: своя рамка из 4 точек, изометрия 45° -->
+  <g fill="none" stroke="#F28C00" stroke-width="1.6" stroke-dasharray="4 3"><polygon points="70.5,170 28.5,212 28.5,374 70.5,332"/><polygon points="277.5,170 319.5,212 319.5,374 277.5,332"/></g>
+  <g fill="#F28C00" stroke="#fff" stroke-width="1.5"><circle cx="28.5" cy="212" r="4.5"/><circle cx="28.5" cy="374" r="4.5"/><circle cx="319.5" cy="212" r="4.5"/><circle cx="319.5" cy="374" r="4.5"/></g>
+  <text transform="translate(49 272) rotate(-90)" font-size="8.5" fill="#6B7785" text-anchor="middle" font-weight="500">С4 · 4 точки</text>
+  <text transform="translate(299 272) rotate(-90)" font-size="8.5" fill="#6B7785" text-anchor="middle" font-weight="500">С2 · 4 точки</text>
+  <!-- свои грани боковых плоскостей: верх, низ (глубина), наружная высота; стык с основной — одно поле высоты (2 700 / 2 712) -->
+  <g font-size="8" font-weight="700" fill="#3E4954" text-anchor="middle">
+    <g transform="translate(49.5 191) rotate(-45)"><rect x="-14.4" y="-6" width="28.9" height="12" rx="3" fill="#fff" stroke="#CBD0D8"/><text y="3.5">1 000</text></g>
+    <g transform="translate(40 363) rotate(-45)"><rect x="-14.4" y="-6" width="28.9" height="12" rx="3" fill="#fff" stroke="#CBD0D8"/><text y="3.5">995</text></g>
+    <g transform="translate(28.5 293) rotate(-90)"><rect x="-16.1" y="-6" width="32.3" height="12" rx="3" fill="#fff" stroke="#CBD0D8"/><text y="3.5">2 690</text></g>
+    <g transform="translate(298.5 191) rotate(45)"><rect x="-14.4" y="-6" width="28.9" height="12" rx="3" fill="#fff" stroke="#CBD0D8"/><text y="3.5">980</text></g>
+    <g transform="translate(309 363) rotate(45)"><rect x="-14.4" y="-6" width="28.9" height="12" rx="3" fill="#fff" stroke="#CBD0D8"/><text y="3.5">985</text></g>
+    <g transform="translate(319.5 293) rotate(-90)"><rect x="-16.1" y="-6" width="32.3" height="12" rx="3" fill="#fff" stroke="#CBD0D8"/><text y="3.5">2 705</text></g>
+  </g>
+  <use href="#t-socket" x="300" y="300" width="14" height="14"/>
+  <!-- разворот угла на расстоянии от стыка -->
+  <path d="M294 344l-4 5" stroke="#7B3FC4" stroke-width="2.4"/><path d="M286 332a9 9 0 0 1-2 7" fill="none" stroke="#7B3FC4" stroke-width="1.5"/>
+  <text x="344" y="392" font-size="8.5" fill="#7B3FC4" text-anchor="end" font-weight="700">∠ 92° · 600 от стыка</text>
+  <rect x="70.5" y="170" width="207" height="162" fill="#F5F3EF"/>
+  <!-- фото, прозрачность 65 % -->
+  <g opacity=".38">
+    <polygon points="62,158 292,166 288,352 66,344" fill="url(#photo)"/>
+    <polygon points="66,334 288,342 288,352 66,344" fill="#6B6358"/>
+    <rect x="100" y="192" width="56" height="66" fill="#C9DBE8" stroke="#8FA7BA" stroke-width="2"/><path d="M128 192v66M100 225h56" stroke="#8FA7BA" stroke-width="1.5"/>
+    <circle cx="118" cy="308" r="4.5" fill="#4E4A44"/><circle cx="236" cy="314" r="4" fill="#5A6B80"/>
+    <polygon points="250,166 292,166 288,352 260,352" fill="#000" opacity=".15"/>
+  </g>
+  <!-- рёбра плоскости -->
+  <path d="M70.5 170H277.5V332H70.5z" fill="none" stroke="#5B6472" stroke-width="2"/>
+  <path d="M277.5 170L283 332" stroke="#7B3FC4" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text transform="translate(270 262) rotate(-90)" font-size="9" fill="#7B3FC4" text-anchor="middle">завал 4</text>
+  <text x="76" y="186" font-size="9" fill="#7B3FC4">∠ 89,7°</text>
+  <!-- распознанные коммуникации -->
+  <use href="#t-socket" x="109" y="299" width="18" height="18"/><text x="118" y="296" font-size="8.5" fill="#1A2027" text-anchor="middle" font-weight="500">розетка · h 300</text>
+  <use href="#t-hvs" x="228" y="305" width="16" height="16"/><text x="236" y="302" font-size="8.5" fill="#1F6FD1" text-anchor="middle" font-weight="500">ХВС</text>
+  <!-- размеры 3 невыделенных отрезков -->
+  <g font-size="8" font-weight="700" fill="#3E4954" text-anchor="middle">
+    <g transform="translate(174 170)"><rect x="-20.0" y="-7" width="40.0" height="14" rx="3" fill="#fff" stroke="#CBD0D8"/><text y="4">3 446</text></g>
+    <g transform="translate(70.5 251) rotate(-90)"><rect x="-20.0" y="-7" width="40.0" height="14" rx="3" fill="#fff" stroke="#CBD0D8"/><text y="4">2 700</text></g>
+    <g transform="translate(277.5 251) rotate(-90)"><rect x="-20.0" y="-7" width="40.0" height="14" rx="3" fill="#fff" stroke="#CBD0D8"/><text y="4">2 712</text></g>
+  </g>
+  <!-- выделенный нижний отрезок -->
+  <path d="M70.5 332H277.5" stroke="#1F6FD1" stroke-width="14" stroke-linecap="round" opacity=".18"/>
+  <path d="M70.5 332H277.5" stroke="#1F6FD1" stroke-width="5" stroke-linecap="round"/>
+  <g transform="translate(174 332)">
+    <rect x="-27" y="-9" width="54" height="18" rx="4" fill="#fff" stroke="#1F6FD1" stroke-width="1.8"/>
+    <text x="-20" y="4" font-size="11" font-weight="700" fill="#1A2027">3 450</text>
+    <path class="caret" d="M17 -6V6" stroke="#1F6FD1" stroke-width="1.4"/>
+  </g>
+  
+  <path d="M104 342l4-8 4 8z" fill="#E0442B"/><text x="114" y="352" font-size="9" fill="#E0442B" font-weight="500">пол +6</text>
+  <!-- 4 точки углов -->
+  <g stroke="#1F6FD1" stroke-width="2.5" fill="none"><circle cx="70.5" cy="332" r="11.5"/><circle cx="277.5" cy="332" r="11.5"/></g>
+  <g fill="#F28C00" stroke="#fff" stroke-width="2"><circle cx="70.5" cy="332" r="7"/><circle cx="277.5" cy="332" r="7"/><circle cx="70.5" cy="170" r="7"/></g>
+  <circle cx="277.5" cy="170" r="9" fill="#F28C00" stroke="#E0442B" stroke-width="3"/>
+  <circle cx="277.5" cy="170" r="15" fill="none" stroke="#E0442B" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <g font-size="9.5" font-weight="700" fill="#E07A00"><text x="78" y="350">1</text><text x="262" y="350">2</text><text x="291" y="162">3</text><text x="56" y="162">4</text></g>
+  <!-- бейдж X / Y / Z -->
+  <path d="M277.5 170L240 110" stroke="#E0442B" stroke-width="1.5"/>
+  <g transform="translate(112 40)">
+    <rect width="140" height="70" rx="10" fill="rgba(27,30,35,.96)"/>
+    <text x="10" y="16" font-size="9.5" fill="#8B93A1">Точка 3 · верх-право</text>
+    <text x="10" y="38" font-size="12.5" font-weight="700"><tspan fill="#E0442B">X</tspan><tspan fill="#fff" dx="5">3 450</tspan><tspan fill="#2BB673" dx="12">Y</tspan><tspan fill="#fff" dx="5">2 712</tspan></text>
+    <text x="10" y="58" font-size="12.5" font-weight="700"><tspan fill="#1F6FD1">Z</tspan><tspan fill="#fff" dx="5">8</tspan><tspan fill="#8B93A1" dx="10" font-size="9.5" font-weight="400">откл. от вертикали</tspan></text>
+  </g>
+  <g transform="translate(10 8)"><rect width="150" height="24" rx="12" fill="rgba(27,30,35,.92)"/><text x="10" y="16" font-size="11.5" fill="#fff" font-weight="500">С3 · 3 450 × 2 700</text></g>
+  <text x="14" y="404" font-size="9" font-weight="700"><tspan fill="#E0442B">X→</tspan><tspan fill="#2BB673" dx="5">Y↑</tspan><tspan fill="#1F6FD1" dx="5">Z⊙</tspan></text>
+</symbol>
+
+<!-- C. Разметка на стене -->
+<symbol id="cv-mark" viewBox="0 0 348 672">
+  <rect width="348" height="672" fill="#EDEFF2"/><rect width="348" height="672" fill="url(#grid)"/>
+  <polygon points="70.5,170 28.5,212 28.5,374 70.5,332" fill="#DCD8D0" stroke="#A7A39B"/>
+  <polygon points="277.5,170 319.5,212 319.5,374 277.5,332" fill="#DCD8D0" stroke="#A7A39B"/>
+  <text transform="translate(47 236) rotate(-90)" font-size="9" fill="#6B7785" text-anchor="middle" font-weight="500">С4 · 1 000</text>
+  <text transform="translate(301 236) rotate(-90)" font-size="9" fill="#6B7785" text-anchor="middle" font-weight="500">С2 · 980</text>
+  <use href="#t-socket" x="300" y="300" width="14" height="14"/>
+  <rect x="70.5" y="170" width="207" height="162" fill="#F5F3EF"/>
+  <g opacity=".38">
+    <polygon points="62,158 292,166 288,352 66,344" fill="url(#photo)"/>
+    <polygon points="66,334 288,342 288,352 66,344" fill="#6B6358"/>
+    <rect x="100" y="192" width="56" height="66" fill="#C9DBE8" stroke="#8FA7BA" stroke-width="2"/>
+    <circle cx="118" cy="308" r="4.5" fill="#4E4A44"/>
+    <polygon points="250,166 292,166 288,352 260,352" fill="#000" opacity=".15"/>
+  </g>
+  <path d="M70.5 170H277.5V332H70.5z" fill="none" stroke="#5B6472" stroke-width="2"/>
+  <g font-size="8" font-weight="700" fill="#3E4954" text-anchor="middle">
+    <g transform="translate(174 170)"><rect x="-20.0" y="-7" width="40.0" height="14" rx="3" fill="#fff" stroke="#CBD0D8"/><text y="4">3 446</text></g>
+    <g transform="translate(174 332)"><rect x="-20.0" y="-7" width="40.0" height="14" rx="3" fill="#fff" stroke="#CBD0D8"/><text y="4">3 450</text></g>
+    <g transform="translate(70.5 251) rotate(-90)"><rect x="-20.0" y="-7" width="40.0" height="14" rx="3" fill="#fff" stroke="#CBD0D8"/><text y="4">2 700</text></g>
+    <g transform="translate(277.5 251) rotate(-90)"><rect x="-20.0" y="-7" width="40.0" height="14" rx="3" fill="#fff" stroke="#CBD0D8"/><text y="4">2 712</text></g>
+  </g>
+  <!-- зоны -->
+  <rect x="70.5" y="246" width="207" height="36" fill="rgba(43,182,115,.16)" stroke="#2BB673" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="90" y="258" font-size="8.5" fill="#1E8A55" font-weight="500">фартук 850–1 450</text>
+  <rect x="214" y="178" width="54" height="42" fill="url(#nodrill)" stroke="#D93025" stroke-width="1.5"/>
+  <text x="241" y="230" font-size="8" fill="#D93025" text-anchor="middle" font-weight="500">не сверлить</text>
+  <!-- окно -->
+  <rect x="96" y="186" width="66" height="80" fill="rgba(46,158,79,.14)" stroke="#2E9E4F" stroke-width="2.5"/>
+  <path d="M129 186v80M96 226h66" stroke="#2E9E4F" stroke-width="1.5"/>
+  <text x="129" y="181" font-size="8.5" fill="#2E9E4F" text-anchor="middle" font-weight="500">окно 1 100 × 1 330</text>
+  <!-- коммуникации -->
+  <use href="#t-socket" x="141" y="305" width="18" height="18"/><use href="#t-socket" x="177" y="305" width="18" height="18"/>
+  <use href="#t-switch" x="238" y="240" width="18" height="18"/>
+  <use href="#t-pin" x="80" y="288" width="16" height="16"/>
+  <!-- размеры невыделенные -->
+  <g stroke="#1F6FD1" stroke-width="1.2" fill="none"><path d="M204 332V314M200 332h8M200 314h8"/><path d="M70.5 306H150M70.5 302v8M150 302v8"/></g>
+  <text x="208" y="326" font-size="8.5" fill="#1F6FD1" font-weight="700">300</text>
+  <g transform="translate(110 306)"><rect x="-16" y="-7" width="32" height="14" rx="4" fill="#EDEFF2"/><text y="3.5" font-size="8.5" fill="#1F6FD1" font-weight="700" text-anchor="middle">1 325</text></g>
+  <!-- выделенный размер ↔ 600 -->
+  <path d="M150 292H186" stroke="#1F6FD1" stroke-width="12" stroke-linecap="round" opacity=".18"/>
+  <path d="M150 284v16M186 284v16" stroke="#1F6FD1" stroke-width="2"/>
+  <path d="M150 292H186" stroke="#1F6FD1" stroke-width="2.4"/>
+  <g transform="translate(168 292)"><rect x="-14" y="-7" width="28" height="14" rx="3" fill="#fff" stroke="#1F6FD1" stroke-width="1.6"/><text x="-9" y="3.5" font-size="9.5" font-weight="700" fill="#1A2027">600</text></g>
+  <circle cx="150" cy="292" r="5.5" fill="#fff" stroke="#1F6FD1" stroke-width="2.5"/><circle cx="186" cy="292" r="5.5" fill="#fff" stroke="#1F6FD1" stroke-width="2.5"/>
+  <!-- перо и стрелка -->
+  <path d="M232 300c10-12 22-6 26-20" fill="none" stroke="#E0442B" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M300 248L270 218" stroke="#E07A00" stroke-width="2.4" stroke-linecap="round"/><path d="M270 230v-12h12" fill="none" stroke="#E07A00" stroke-width="2.4" stroke-linejoin="round"/>
+  <text x="296" y="262" font-size="9" fill="#E07A00" font-weight="700">щит</text>
+  <g transform="translate(10 96)"><rect width="226" height="24" rx="12" fill="rgba(27,30,35,.92)"/><text x="10" y="16" font-size="11.5" fill="#fff" font-weight="500">С3 · разметка · слои 7/7 · фото 65 %</text></g>
+</symbol>
+<symbol id="cv-wall-col" viewBox="0 0 348 672">
+  <rect width="348" height="672" fill="#EDEFF2"/><rect width="348" height="672" fill="url(#grid)"/>
+  <!-- мини-план: С1 с колонной, слева С4, справа — открыто -->
+  <g transform="translate(10 40)"><rect width="170" height="92" rx="10" fill="rgba(27,30,35,.92)"/>
+    <text x="10" y="15" font-size="9" fill="#8B93A1">план · С1 сверху</text>
+    <path d="M20 30H150" stroke="#B5179E" stroke-width="3.5" stroke-linecap="round"/><path d="M20 30V80" stroke="#B5179E" stroke-width="3.5" stroke-linecap="round" opacity=".55"/>
+    <rect x="114" y="32" width="13" height="13" fill="url(#hatch)" stroke="#E8EBEF" stroke-width="1"/>
+    <path d="M150 30v40" stroke="#8B93A1" stroke-width="1.5" stroke-dasharray="3 3"/><text x="146" y="82" font-size="8.5" fill="#F2A33A" text-anchor="end">открыто</text>
+    <text x="26" y="62" font-size="8.5" fill="#CFD4DC">С4</text><text x="85" y="26" font-size="8.5" fill="#CFD4DC" text-anchor="middle">С1 · 4 000</text><text x="121" y="56" font-size="8" fill="#CFD4DC" text-anchor="middle">400×400</text>
+  </g>
+  <!-- С4 — примыкание, 30° вниз, глубина с плана -->
+  <polygon points="110,210 60.6,238.5 60.6,366.5 110,338" fill="#DCD8D0" stroke="#A7A39B"/>
+  <polygon points="110,210 60.6,238.5 60.6,366.5 110,338" fill="none" stroke="#F28C00" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <g fill="#F28C00" stroke="#fff" stroke-width="1.5"><circle cx="60.6" cy="238.5" r="4.5"/><circle cx="60.6" cy="366.5" r="4.5"/></g>
+  <!-- основная стена -->
+  <rect x="110" y="210" width="190" height="128" fill="#F5F3EF" stroke="#5B6472" stroke-width="2"/>
+  <!-- открытый угол справа: боковой нет -->
+  <rect x="300" y="210" width="40" height="128" fill="url(#openz)"/>
+  <path d="M300 210V338" stroke="#F2A33A" stroke-width="2" stroke-dasharray="5 4"/>
+  <text transform="translate(322 274.0) rotate(-90)" font-size="9" fill="#B9770E" text-anchor="middle" font-weight="700">открыто · нет примыкания</text>
+  <!-- колонна у стены: размеры с плана -->
+  <polygon points="247.75,210 231.3,219.5 231.3,347.5 247.75,338" fill="#C9CED6" stroke="#3E4954" stroke-width="1.2"/>
+  <polygon points="266.75,210 283.2,219.5 283.2,347.5 266.75,338" fill="#C9CED6" stroke="#3E4954" stroke-width="1.2"/>
+  <rect x="247.75" y="210" width="19.0" height="128" fill="url(#hatch)" stroke="#1F6FD1" stroke-width="2.5"/>
+  <!-- размеры: свои грани -->
+  <g font-size="8" font-weight="700" fill="#3E4954" text-anchor="middle">
+    <g transform="translate(205.0 210) rotate(0)"><rect x="-20.0" y="-7" width="40" height="14" rx="7" fill="#fff" stroke="#CBD0D8"/><text y="3.5">4 000</text></g><g transform="translate(110 274.0) rotate(-90)"><rect x="-19.0" y="-7" width="38" height="14" rx="7" fill="#fff" stroke="#CBD0D8"/><text y="3.5">2 700</text></g><g transform="translate(59.6 302.5) rotate(-90)"><rect x="-19.0" y="-7" width="38" height="14" rx="7" fill="#fff" stroke="#CBD0D8"/><text y="3.5">2 690</text></g>
+    <g transform="translate(85.3 224.2) rotate(-30)"><rect x="-19.0" y="-7" width="38" height="14" rx="7" fill="#fff" stroke="#CBD0D8"/><text y="3.5">1 200</text></g><g transform="translate(79.3 360.2) rotate(-30)"><rect x="-19.0" y="-7" width="38" height="14" rx="7" fill="#fff" stroke="#CBD0D8"/><text y="3.5">1 200</text></g>
+    <g transform="translate(300 298.0) rotate(-90)"><rect x="-19.0" y="-7" width="38" height="14" rx="7" fill="#fff" stroke="#CBD0D8"/><text y="3.5">2 705</text></g>
+    <g transform="translate(237.5 198) rotate(0)"><rect x="-13.0" y="-7" width="26" height="14" rx="7" fill="#fff" stroke="#CBD0D8"/><text y="3.5">400</text></g><g transform="translate(257.25 352) rotate(0)"><rect x="-13.0" y="-7" width="26" height="14" rx="7" fill="#fff" stroke="#CBD0D8"/><text y="3.5">400</text></g>
+  </g>
+  <g transform="translate(257.25 180)"><rect x="-128" y="-11" width="136" height="20" rx="10" fill="#1F6FD1"/><text x="-60" y="3.5" font-size="9.5" fill="#fff" text-anchor="middle" font-weight="700">колонна 400 × 400 · с плана</text></g>
+  <use href="#t-socket" x="140" y="312" width="16" height="16"/>
+  <g transform="translate(10 8)"><rect width="196" height="24" rx="12" fill="rgba(27,30,35,.92)"/><text x="10" y="16" font-size="11.5" fill="#fff" font-weight="500">С1 · 4 000 × 2 700 · 30°</text></g>
+  <text x="14" y="430" font-size="9.5" fill="#6B7785">боковые и колонна — размеры с плана;</text><text x="14" y="444" font-size="9.5" fill="#6B7785">1 000 — только справочно, если плана нет</text>
+</symbol>
+<symbol id="cv-angle" viewBox="0 0 348 716">
+  <rect width="348" height="716" fill="#EDEFF2"/><rect width="348" height="716" fill="url(#grid)"/>
+  <!-- стены: С1 сверху, С2 справа (не 90°) -->
+  <path d="M40 170H262" stroke="#B5179E" stroke-width="5" stroke-linecap="round"/>
+  <path d="M262 170L282 520" stroke="#B5179E" stroke-width="5" stroke-linecap="round"/>
+  <g font-size="8.5" font-weight="700" fill="#B5179E" text-anchor="middle"><g transform="translate(150 152)"><rect x="-27.2" y="-7" width="54.4" height="14" rx="3" fill="#fff" stroke="#E2E5EA"/><text y="4">С1 · 4 000</text></g><g transform="translate(314 470) rotate(-87)"><rect x="-27.2" y="-7" width="54.4" height="14" rx="3" fill="#fff" stroke="#E2E5EA"/><text y="4">С2 · 3 000</text></g></g>
+  <!-- угольник 90° от стыка -->
+  <path d="M262 170V470M262 170H170" stroke="#1F6FD1" stroke-width="3" stroke-dasharray="8 5"/>
+  <rect x="262" y="170" width="16" height="16" fill="none" stroke="#1F6FD1" stroke-width="2" transform="translate(-16 0)"/>
+  <text x="250" y="200" font-size="9" fill="#1F6FD1" text-anchor="end" font-weight="700">угольник 90°</text>
+  <!-- отметка на расстоянии от стыка -->
+  <path d="M252 290h20" stroke="#1F6FD1" stroke-width="2"/>
+  <g transform="translate(222 230)"><rect x="-26" y="-13" width="52" height="26" rx="7" fill="#fff" stroke="#1F6FD1" stroke-width="2"/><text x="-18" y="5" font-size="13" font-weight="700" fill="#1A2027">600</text><path class="caret" d="M14 -8V8" stroke="#1F6FD1" stroke-width="1.5"/></g>
+  <path d="M244 172V288" stroke="#1F6FD1" stroke-width="1.2"/><path d="M240 176l4-5 4 5M240 284l4 5 4-5" fill="none" stroke="#1F6FD1" stroke-width="1.2"/>
+  <text x="196" y="252" font-size="9" fill="#1F6FD1">от стыка, мм</text>
+  <!-- зазор от угольника до стены -->
+  <path d="M262 290H268.9" stroke="#E0442B" stroke-width="3"/>
+  <g transform="translate(305 290)"><rect x="-24" y="-13" width="48" height="26" rx="7" fill="#fff" stroke="#E0442B" stroke-width="2"/><text x="-17" y="5" font-size="13" font-weight="700" fill="#1A2027">+12</text></g>
+  <text x="305" y="314" font-size="9" fill="#E0442B" text-anchor="middle">зазор, мм</text>
+  <!-- результат -->
+  <g transform="translate(40 330)"><rect width="190" height="74" rx="10" fill="rgba(27,30,35,.96)"/>
+    <text x="12" y="20" font-size="9.5" fill="#8B93A1">угол С1 / С2 · по угольнику</text>
+    <text x="12" y="42" font-size="13" font-weight="700" fill="#fff">низ 100: 91,1°</text>
+    <text x="12" y="62" font-size="13" font-weight="700" fill="#fff">верх 1 800: 90,6° <tspan font-size="9.5" fill="#F2A33A" font-weight="500">завал 6</tspan></text>
+  </g>
+  <text x="40" y="426" font-size="9.5" fill="#6B7785">угол — в построение стен</text><text x="40" y="440" font-size="9.5" fill="#6B7785">и на развёртку: ∠ 91,1° · 600 от стыка</text>
+  <g transform="translate(10 12)"><rect width="230" height="26" rx="13" fill="rgba(27,30,35,.92)"/><text x="12" y="17" font-size="11.5" fill="#fff" font-weight="500">Кухня · угол С1 / С2 · ∟ угольник</text></g>
+</symbol>
+<symbol id="t-square" viewBox="0 0 32 32"><path d="M6 5v21h21" fill="none" stroke="#1F6FD1" stroke-width="3.2" stroke-linejoin="round"/><path d="M6 12h6M6 18h4M13 26v-6M19 26v-4" stroke="#1F6FD1" stroke-width="1.8"/><path d="M10 22l14-14" stroke="#E0442B" stroke-width="2" stroke-dasharray="3 2"/></symbol>
+<symbol id="cv-iso60" viewBox="0 0 348 672">
+  <rect width="348" height="672" fill="#EDEFF2"/><rect width="348" height="672" fill="url(#grid)"/>
+  <rect x="300" y="236" width="34" height="136" fill="url(#openz)"/><path d="M300 236V372" stroke="#F2A33A" stroke-width="2" stroke-dasharray="5 4"/>
+  <text transform="translate(318 304.0) rotate(-90)" font-size="9" fill="#B9770E" text-anchor="middle" font-weight="700">открыто · нет примыкания</text>
+  <rect x="70" y="236" width="230" height="136" fill="#F5F3EF" stroke="#5B6472" stroke-width="2"/>
+  <polygon points="70,236 129.8,270.5 129.8,406.5 70,372" fill="none" stroke="#6B7785" stroke-width="1.4" stroke-dasharray="4 3"/><text x="132" y="396" font-size="8.5" fill="#6B7785">С4 — скрыта (пунктир)</text>
+  <polygon points="196.5,236 216.4,247.5 216.4,383.5 196.5,372" fill="none" stroke="#3E4954" stroke-width="1.2" stroke-dasharray="3 3"/>
+  <polygon points="173.5,236 193.4,247.5 193.4,383.5 173.5,372" fill="#BFC5CD" stroke="#3E4954" stroke-width="1.3"/>
+  <rect x="193.4" y="247.5" width="23.0" height="136.0" fill="#BFC5CD" stroke="#1F6FD1" stroke-width="2.2"/>
+  <g font-size="8" font-weight="700" text-anchor="middle">
+  <g transform="translate(121.8 236) rotate(0)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">1 800</text></g>
+  <g transform="translate(248.2 236) rotate(0)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">1 800</text></g>
+  <g transform="translate(70 304.0) rotate(-90)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">2 700</text></g>
+  <g transform="translate(204.9 383.5) rotate(0)"><rect x="-9.9" y="-6" width="19.8" height="12" rx="3" fill="#fff" stroke="#1F6FD1" stroke-width="1"/><text y="3" fill="#1F6FD1">400</text></g>
+  <g transform="translate(183.4 377.8) rotate(30)"><rect x="-9.9" y="-6" width="19.8" height="12" rx="3" fill="#fff" stroke="#1F6FD1" stroke-width="1"/><text y="3" fill="#1F6FD1">400</text></g>
+  
+  <text x="167.5" y="256" font-size="8.5" fill="#7B3FC4" text-anchor="end">∠ 90,5°</text>
+  </g>
+  <path d="M70 196H300" stroke="#E07A00" stroke-width="2"/><path d="M78 192l-8 4 8 4M292 192l8 4-8 4" fill="none" stroke="#E07A00" stroke-width="2" stroke-linejoin="round"/>
+  <g transform="translate(185.0 196)"><rect x="-24" y="-8" width="48" height="16" rx="4" fill="#fff" stroke="#E07A00" stroke-width="1.6"/><text x="-17" y="3.5" font-size="10" font-weight="700" fill="#1A2027">4 000</text><path class="caret" d="M17 -5V5" stroke="#E07A00" stroke-width="1.3"/></g>
+  <text x="70" y="180" font-size="8.5" fill="#E07A00" font-weight="700">общий размер — стрелкой, поле на ней</text>
+  <use href="#t-socket" x="100" y="346" width="16" height="16"/>
+  <g transform="translate(10 66)"><rect width="168" height="24" rx="12" fill="rgba(43,47,53,.94)"/><text x="10" y="16" font-size="11.5" fill="#fff" font-weight="500">С1 · вид 60° · слева</text></g>
+</symbol>
+<symbol id="cv-iso120" viewBox="0 0 348 672">
+  <rect width="348" height="672" fill="#EDEFF2"/><rect width="348" height="672" fill="url(#grid)"/>
+  <rect x="300" y="236" width="34" height="136" fill="url(#openz)"/><path d="M300 236V372" stroke="#F2A33A" stroke-width="2" stroke-dasharray="5 4"/>
+  <text transform="translate(318 304.0) rotate(-90)" font-size="9" fill="#B9770E" text-anchor="middle" font-weight="700">открыто · нет примыкания</text>
+  <polygon points="70,236 10.2,270.5 10.2,406.5 70,372" fill="#DCD8D0" stroke="#A7A39B"/><polygon points="70,236 10.2,270.5 10.2,406.5 70,372" fill="none" stroke="#F28C00" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <g fill="#F28C00" stroke="#fff" stroke-width="1.5"><circle cx="10.2" cy="270.5" r="4"/><circle cx="10.2" cy="406.5" r="4"/></g>
+  <rect x="70" y="236" width="230" height="136" fill="#F5F3EF" stroke="#5B6472" stroke-width="2"/>
+  <polygon points="173.5,236 153.6,247.5 153.6,383.5 173.5,372" fill="none" stroke="#3E4954" stroke-width="1.2" stroke-dasharray="3 3"/>
+  <polygon points="196.5,236 176.6,247.5 176.6,383.5 196.5,372" fill="#BFC5CD" stroke="#3E4954" stroke-width="1.3"/>
+  <rect x="153.6" y="247.5" width="23.0" height="136.0" fill="#BFC5CD" stroke="#1F6FD1" stroke-width="2.2"/>
+  <g font-size="8" font-weight="700" text-anchor="middle">
+  <g transform="translate(121.8 236) rotate(0)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">1 800</text></g>
+  <g transform="translate(248.2 236) rotate(0)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">1 800</text></g>
+  <g transform="translate(70 304.0) rotate(-90)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">2 700</text></g>
+  <g transform="translate(165.1 383.5) rotate(0)"><rect x="-9.9" y="-6" width="19.8" height="12" rx="3" fill="#fff" stroke="#1F6FD1" stroke-width="1"/><text y="3" fill="#1F6FD1">400</text></g>
+  <g transform="translate(186.6 377.8) rotate(-30)"><rect x="-9.9" y="-6" width="19.8" height="12" rx="3" fill="#fff" stroke="#1F6FD1" stroke-width="1"/><text y="3" fill="#1F6FD1">400</text></g>
+  
+  <text x="202.5" y="256" font-size="8.5" fill="#7B3FC4" text-anchor="start">∠ 90,5°</text>
+  <g transform="translate(40.1 253.2) rotate(-30)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">1 200</text></g>
+  <g transform="translate(10.2 338.5) rotate(-90)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">2 690</text></g>
+  <g transform="translate(40.1 389.2) rotate(-30)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">1 195</text></g>
+  </g>
+  <path d="M70 196H300" stroke="#E07A00" stroke-width="2"/><path d="M78 192l-8 4 8 4M292 192l8 4-8 4" fill="none" stroke="#E07A00" stroke-width="2" stroke-linejoin="round"/>
+  <g transform="translate(185.0 196)"><rect x="-24" y="-8" width="48" height="16" rx="4" fill="#fff" stroke="#E07A00" stroke-width="1.6"/><text x="-17" y="3.5" font-size="10" font-weight="700" fill="#1A2027">4 000</text><path class="caret" d="M17 -5V5" stroke="#E07A00" stroke-width="1.3"/></g>
+  <text x="70" y="180" font-size="8.5" fill="#E07A00" font-weight="700">общий размер — стрелкой, поле на ней</text>
+  <use href="#t-socket" x="100" y="346" width="16" height="16"/>
+  <g transform="translate(10 66)"><rect width="168" height="24" rx="12" fill="rgba(43,47,53,.94)"/><text x="10" y="16" font-size="11.5" fill="#fff" font-weight="500">С1 · вид 120° · справа</text></g>
+</symbol>
+<symbol id="cv-iso120big" viewBox="0 0 348 672">
+  <rect width="348" height="672" fill="#EDEFF2"/><rect width="348" height="672" fill="url(#grid)"/>
+  <rect x="300" y="236" width="34" height="136" fill="url(#openz)"/><path d="M300 236V372" stroke="#F2A33A" stroke-width="2" stroke-dasharray="5 4"/>
+  <text transform="translate(318 304.0) rotate(-90)" font-size="9" fill="#B9770E" text-anchor="middle" font-weight="700">открыто · нет примыкания</text>
+  <polygon points="70,236 10.2,270.5 10.2,406.5 70,372" fill="#DCD8D0" stroke="#A7A39B"/><polygon points="70,236 10.2,270.5 10.2,406.5 70,372" fill="none" stroke="#F28C00" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <g fill="#F28C00" stroke="#fff" stroke-width="1.5"><circle cx="10.2" cy="270.5" r="4"/><circle cx="10.2" cy="406.5" r="4"/></g>
+  <rect x="70" y="236" width="230" height="136" fill="#F5F3EF" stroke="#5B6472" stroke-width="2"/>
+  <polygon points="173.5,236 153.6,247.5 153.6,383.5 173.5,372" fill="none" stroke="#3E4954" stroke-width="1.2" stroke-dasharray="3 3"/>
+  <polygon points="196.5,236 176.6,247.5 176.6,383.5 196.5,372" fill="#BFC5CD" stroke="#3E4954" stroke-width="1.3"/>
+  <rect x="153.6" y="247.5" width="23.0" height="136.0" fill="#BFC5CD" stroke="#1F6FD1" stroke-width="2.2"/>
+  <g font-size="8" font-weight="700" text-anchor="middle">
+  <g transform="translate(121.8 236) rotate(0) scale(1.4)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">1 800</text></g>
+  <g transform="translate(248.2 236) rotate(0) scale(1.4)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">1 800</text></g>
+  <g transform="translate(70 304.0) rotate(-90) scale(1.4)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">2 700</text></g>
+  <g transform="translate(165.1 383.5) rotate(0) scale(1.4)"><rect x="-9.9" y="-6" width="19.8" height="12" rx="3" fill="#fff" stroke="#1F6FD1" stroke-width="1"/><text y="3" fill="#1F6FD1">400</text></g>
+  <g transform="translate(186.6 377.8) rotate(-30) scale(1.4)"><rect x="-9.9" y="-6" width="19.8" height="12" rx="3" fill="#fff" stroke="#1F6FD1" stroke-width="1"/><text y="3" fill="#1F6FD1">400</text></g>
+  
+  <text x="202.5" y="256" font-size="8.5" fill="#7B3FC4" text-anchor="start">∠ 90,5°</text>
+  <g transform="translate(40.1 253.2) rotate(-30) scale(1.4)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">1 200</text></g>
+  <g transform="translate(10.2 338.5) rotate(-90) scale(1.4)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">2 690</text></g>
+  <g transform="translate(40.1 389.2) rotate(-30) scale(1.4)"><rect x="-14.5" y="-6" width="29.0" height="12" rx="3" fill="#fff" stroke="#9AA3AD" stroke-width="1"/><text y="3" fill="#2B2F35">1 195</text></g>
+  </g>
+  <path d="M70 196H300" stroke="#E07A00" stroke-width="2"/><path d="M78 192l-8 4 8 4M292 192l8 4-8 4" fill="none" stroke="#E07A00" stroke-width="2" stroke-linejoin="round"/>
+  <g transform="translate(185.0 196) scale(1.4)"><rect x="-24" y="-8" width="48" height="16" rx="4" fill="#fff" stroke="#E07A00" stroke-width="1.6"/><text x="-17" y="3.5" font-size="10" font-weight="700" fill="#1A2027">4 000</text><path class="caret" d="M17 -5V5" stroke="#E07A00" stroke-width="1.3"/></g>
+  <text x="70" y="180" font-size="8.5" fill="#E07A00" font-weight="700">общий размер — стрелкой, поле на ней</text>
+  <use href="#t-socket" x="100" y="346" width="16" height="16"/>
+  <g transform="translate(10 66)"><rect width="168" height="24" rx="12" fill="rgba(43,47,53,.94)"/><text x="10" y="16" font-size="11.5" fill="#fff" font-weight="500">С1 · поля 140 %</text></g>
+</symbol>
+<symbol id="h-check-w" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#C99A1E"/><path d="M7 12.5l3.3 3.3L17.2 8.8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="fab-beam" viewBox="0 0 48 48"><path d="M9 39L37 11" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/><circle cx="38.5" cy="9.5" r="4.6" fill="currentColor"/><circle cx="38.5" cy="9.5" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".5"/><circle cx="9" cy="39" r="2.6" fill="currentColor" opacity=".7"/></symbol>
+<symbol id="kb-beam" viewBox="0 0 80 44" preserveAspectRatio="none"><path d="M9 37L69 8" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><circle cx="70" cy="7.5" r="5" fill="currentColor"/><circle cx="70" cy="7.5" r="9" fill="none" stroke="currentColor" stroke-width="1.8" opacity=".5"/></symbol>
+<linearGradient id="gConc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5A6067"/><stop offset="1" stop-color="#2E3237"/></linearGradient>
+<pattern id="concN" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="3" r=".9" fill="#1C1F23"/><circle cx="8" cy="7" r=".7" fill="#7A8089"/><circle cx="5" cy="10" r=".6" fill="#1C1F23"/><circle cx="10" cy="1.5" r=".5" fill="#7A8089"/></pattern>
+<linearGradient id="gL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A4047"/><stop offset="1" stop-color="#16191D"/></linearGradient>
+<linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9AA0A7"/><stop offset="1" stop-color="#4E545C"/></linearGradient>
+<linearGradient id="gYL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E9B949"/><stop offset="1" stop-color="#A9761F"/></linearGradient>
+<linearGradient id="gYR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6D27A"/><stop offset="1" stop-color="#C8913E"/></linearGradient>
+<symbol id="logo1" viewBox="0 0 256 256"><rect width="256" height="256" rx="56" fill="#C8913E"/><path d="M125 44L44 212H80L125 116Z" fill="url(#gL)"/><path d="M131 44L212 212H176L131 116Z" fill="url(#gR)"/>
+<rect x="86" y="146" width="96" height="20" rx="2" fill="#F7D33C" stroke="#1A2027" stroke-width="2"/><path d="M90.0 146v9.0" stroke="#1A2027" stroke-width="1.6"/><path d="M96.0 146v5.0" stroke="#1A2027" stroke-width="1.6"/><path d="M102.0 146v5.0" stroke="#1A2027" stroke-width="1.6"/><path d="M108.0 146v5.0" stroke="#1A2027" stroke-width="1.6"/><path d="M114.0 146v5.0" stroke="#1A2027" stroke-width="1.6"/><path d="M120.0 146v9.0" stroke="#1A2027" stroke-width="1.6"/><path d="M126.0 146v5.0" stroke="#1A2027" stroke-width="1.6"/><path d="M132.0 146v5.0" stroke="#1A2027" stroke-width="1.6"/><path d="M138.0 146v5.0" stroke="#1A2027" stroke-width="1.6"/><path d="M144.0 146v5.0" stroke="#1A2027" stroke-width="1.6"/><path d="M150.0 146v9.0" stroke="#1A2027" stroke-width="1.6"/><path d="M156.0 146v5.0" stroke="#1A2027" stroke-width="1.6"/><path d="M162.0 146v5.0" stroke="#1A2027" stroke-width="1.6"/><path d="M168.0 146v5.0" stroke="#1A2027" stroke-width="1.6"/><path d="M174.0 146v5.0" stroke="#1A2027" stroke-width="1.6"/>
+<text x="100" y="163" font-size="8" font-weight="700" fill="#1A2027" font-family="Golos Text,Arial">10</text><text x="130" y="163" font-size="8" font-weight="700" fill="#1A2027" font-family="Golos Text,Arial">20</text><text x="160" y="163" font-size="8" font-weight="700" fill="#E0442B" font-family="Golos Text,Arial">30</text>
+<path d="M182 143v26h7v-26z" fill="#1A2027"/><path d="M44 212L126.5 41" stroke="#FF2D20" stroke-width="9" stroke-linecap="round" opacity=".28"/><path d="M44 212L126.5 41" stroke="#FF2D20" stroke-width="4" stroke-linecap="round"/>
+<circle cx="128" cy="36" r="12" fill="#FF2D20" opacity=".22"/><g stroke-linecap="round"><path d="M128 25V47M118.5 30.5L137.5 41.5M118.5 41.5L137.5 30.5" stroke="#FF2D20" stroke-width="6"/><path d="M128 25V47M118.5 30.5L137.5 41.5M118.5 41.5L137.5 30.5" stroke="#FFFFFF" stroke-width="2.4"/></g></symbol>
+<symbol id="logo2" viewBox="0 0 256 256"><rect width="256" height="256" rx="56" fill="#C99A1E"/><path d="M125 44L44 212H80L125 116Z" fill="url(#gL)"/><path d="M131 44L212 212H176L131 116Z" fill="url(#gR)"/>
+<rect x="74" y="148" width="86" height="16" fill="#FFE27A" stroke="#1A2027" stroke-width="1.6"/><path d="M78.0 148v7.0" stroke="#1A2027" stroke-width="1.6"/><path d="M83.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M88.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M93.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M98.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M103.0 148v7.0" stroke="#1A2027" stroke-width="1.6"/><path d="M108.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M113.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M118.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M123.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M128.0 148v7.0" stroke="#1A2027" stroke-width="1.6"/><path d="M133.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M138.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M68 145v22h6v-22z" fill="#1A2027"/><rect x="144" y="130" width="50" height="50" rx="12" fill="#1F2328" stroke="#F6D27A" stroke-width="3"/><circle cx="169" cy="155" r="13" fill="#C99A1E"/><circle cx="169" cy="155" r="5" fill="#1F2328"/><rect x="142" y="170" width="10" height="7" rx="2" fill="#E0442B"/><path d="M44 212L126.5 41" stroke="#FF2D20" stroke-width="9" stroke-linecap="round" opacity=".28"/><path d="M44 212L126.5 41" stroke="#FF2D20" stroke-width="4" stroke-linecap="round"/>
+<circle cx="128" cy="36" r="12" fill="#FF2D20" opacity=".22"/><g stroke-linecap="round"><path d="M128 25V47M118.5 30.5L137.5 41.5M118.5 41.5L137.5 30.5" stroke="#FF2D20" stroke-width="6"/><path d="M128 25V47M118.5 30.5L137.5 41.5M118.5 41.5L137.5 30.5" stroke="#FFFFFF" stroke-width="2.4"/></g></symbol>
+<symbol id="logo2i" viewBox="0 0 256 256"><rect width="256" height="256" rx="56" fill="url(#gConc)"/><rect width="256" height="256" rx="56" fill="url(#concN)" opacity=".35"/><path d="M125 44L44 212H80L125 116Z" fill="url(#gYL)"/><path d="M131 44L212 212H176L131 116Z" fill="url(#gYR)"/>
+<rect x="74" y="148" width="86" height="16" fill="#FFE27A" stroke="#1A2027" stroke-width="1.6"/><path d="M78.0 148v7.0" stroke="#1A2027" stroke-width="1.6"/><path d="M83.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M88.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M93.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M98.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M103.0 148v7.0" stroke="#1A2027" stroke-width="1.6"/><path d="M108.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M113.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M118.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M123.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M128.0 148v7.0" stroke="#1A2027" stroke-width="1.6"/><path d="M133.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M138.0 148v3.9" stroke="#1A2027" stroke-width="1.6"/><path d="M68 145v22h6v-22z" fill="#1A2027"/><rect x="144" y="130" width="50" height="50" rx="12" fill="#3A3F46" stroke="#E2B93B" stroke-width="3.5"/><circle cx="169" cy="155" r="13" fill="#2B2F35" stroke="#E2B93B" stroke-width="2"/><circle cx="169" cy="155" r="5" fill="#E2B93B"/><rect x="142" y="170" width="10" height="7" rx="2" fill="#E0442B"/><path d="M44 212L126.5 41" stroke="#FF2D20" stroke-width="9" stroke-linecap="round" opacity=".28"/><path d="M44 212L126.5 41" stroke="#FF2D20" stroke-width="4" stroke-linecap="round"/>
+<circle cx="128" cy="36" r="12" fill="#FF2D20" opacity=".22"/><g stroke-linecap="round"><path d="M128 25V47M118.5 30.5L137.5 41.5M118.5 41.5L137.5 30.5" stroke="#FF2D20" stroke-width="6"/><path d="M128 25V47M118.5 30.5L137.5 41.5M118.5 41.5L137.5 30.5" stroke="#FFFFFF" stroke-width="2.4"/></g></symbol>
+<symbol id="logo3" viewBox="0 0 256 256"><rect width="256" height="256" rx="56" fill="#24282E"/><path d="M125 44L44 212H80L125 116Z" fill="url(#gYL)"/><path d="M131 44L212 212H176L131 116Z" fill="url(#gYR)"/>
+<rect x="88" y="147" width="92" height="18" rx="2" fill="#FFFFFF"/><path d="M92.0 147v8.0" stroke="#24282E" stroke-width="1.6"/><path d="M98.0 147v4.4" stroke="#24282E" stroke-width="1.6"/><path d="M104.0 147v4.4" stroke="#24282E" stroke-width="1.6"/><path d="M110.0 147v4.4" stroke="#24282E" stroke-width="1.6"/><path d="M116.0 147v4.4" stroke="#24282E" stroke-width="1.6"/><path d="M122.0 147v8.0" stroke="#24282E" stroke-width="1.6"/><path d="M128.0 147v4.4" stroke="#24282E" stroke-width="1.6"/><path d="M134.0 147v4.4" stroke="#24282E" stroke-width="1.6"/><path d="M140.0 147v4.4" stroke="#24282E" stroke-width="1.6"/><path d="M146.0 147v4.4" stroke="#24282E" stroke-width="1.6"/><path d="M152.0 147v8.0" stroke="#24282E" stroke-width="1.6"/><path d="M158.0 147v4.4" stroke="#24282E" stroke-width="1.6"/><path d="M164.0 147v4.4" stroke="#24282E" stroke-width="1.6"/><path d="M170.0 147v4.4" stroke="#24282E" stroke-width="1.6"/><path d="M176.0 147v4.4" stroke="#24282E" stroke-width="1.6"/>
+<path d="M180 156H222" stroke="#FF2D20" stroke-width="3" stroke-linecap="round"/><circle cx="224" cy="156" r="5" fill="#FF2D20"/><circle cx="224" cy="156" r="10" fill="none" stroke="#FF2D20" stroke-width="1.5" opacity=".5"/><path d="M44 212L126.5 41" stroke="#FF2D20" stroke-width="9" stroke-linecap="round" opacity=".28"/><path d="M44 212L126.5 41" stroke="#FF2D20" stroke-width="4" stroke-linecap="round"/>
+<circle cx="128" cy="36" r="12" fill="#FF2D20" opacity=".22"/><g stroke-linecap="round"><path d="M128 25V47M118.5 30.5L137.5 41.5M118.5 41.5L137.5 30.5" stroke="#FF2D20" stroke-width="6"/><path d="M128 25V47M118.5 30.5L137.5 41.5M118.5 41.5L137.5 30.5" stroke="#FFFFFF" stroke-width="2.4"/></g></symbol>
+</defs>
+</svg>
+
+<h1>Замер — итоговая раскладка (вариант 1 + действия выделенного)</h1>
+<p class="lead">Экраны A / B / C во всех вариантах одинаковые по содержанию (кухня 4 000 × 3 000, H 2 700, стены С1…С6). Отличается только то, где живут инструменты и как они открываются. Кольцо = цвет инструмента, подписей на кнопках нет (подсказка — по удержанию).</p>
+<ul class="common">
+  <li>Шапка в цвете: ✓ готово (тёмно-жёлтая со счётчиком незакрытых размеров, всё закрыто — зелёная) · 📁 замеры · ↶ ↷ · 🗑 удалить · лазерная рулетка (точка — связь) · ⋮ меню (выгрузка, настройки: стилус, слои). Очереди замеров нет — порядок свой</li>
+  <li>Поле размера маленькое и строго на грани: грань проходит через центр поля; лазер пишет туда же; размер полей — бегунок «Aa»</li>
+  <li>Касание точки — X / Y / Z на месте</li>
+  <li>Ряд кнопок стен С1…С6 под шапкой</li>
+  <li>Боковые плоскости — наклон 45° вниз, у каждой свои грани с размерами; стык с основной — одно поле высоты</li>
+  <li>Фото: видно · прозрачность 65 % · скрыто</li>
+  <li>S Pen над инструментом — подсказка. Бегунки ∠° и Aa — плавные</li>
+  <li>Справа: сверху — модификаторы инструмента, снизу — окно текущего цвета, 3 быстрых цвета и прокрутка › к остальным; порядок цветов — в футляре</li>
+  <li>Никаких полей внизу и прокрутки вбок</li>
+</ul>
+
+
+<section class="var" id="logo">
+  <div class="var-h"><span class="num">★</span><h2>Логотип Measure — три варианта</h2></div>
+  <p class="lead">Стиль Akrix: буква A из двух граней с разрезом у вершины. Перемычка A — рулетка; левая внешняя грань — красный луч лазера снизу вверх, на вершине (пересечение граней) — знак * в точке касания луча: упор линии замера. Ниже каждого — значок на рабочем столе и мелкие размеры.</p>
+  <div class="logos">
+<div class="lg"><div class="row1"><svg class="big" viewBox="0 0 256 256"><use href="#logo1"/></svg><div class="wm"><b style="color:#C8913E">Measure</b></div></div>
+  <div class="sizes"><div class="home"><svg width="56" height="56" viewBox="0 0 256 256"><use href="#logo1"/></svg>Measure</div><svg width="36" height="36" viewBox="0 0 256 256"><use href="#logo1"/></svg><svg width="22" height="22" viewBox="0 0 256 256"><use href="#logo1"/></svg></div>
+  <p><b style="color:var(--fg)">1. Akrix-золото, лента.</b> Фон как у Akrix; перемычка — жёлтая лента рулетки с делениями 10 / 20 / 30 и крючком на правой грани.</p></div>
+<div class="lg"><div class="row1"><svg class="big" viewBox="0 0 256 256"><use href="#logo2"/></svg><div class="wm"><b style="color:#C99A1E">Measure</b></div></div>
+  <div class="sizes"><div class="home"><svg width="56" height="56" viewBox="0 0 256 256"><use href="#logo2"/></svg>Measure</div><svg width="36" height="36" viewBox="0 0 256 256"><use href="#logo2"/></svg><svg width="22" height="22" viewBox="0 0 256 256"><use href="#logo2"/></svg></div>
+  <p><b style="color:var(--fg)">2. Тёмно-жёлтый, корпус рулетки.</b> Корпус рулетки на правой грани, лента тянется влево к лучу; читается как «рулетка» даже в 22 px.</p></div>
+<div class="lg" style="outline:2px solid #C99A1E"><div class="row1"><svg class="big" viewBox="0 0 256 256"><use href="#logo2i"/></svg><div class="wm"><b style="color:#E2B93B">Measure</b></div></div>
+  <div class="sizes"><div class="home"><svg width="56" height="56" viewBox="0 0 256 256"><use href="#logo2i"/></svg>Measure</div><svg width="36" height="36" viewBox="0 0 256 256"><use href="#logo2i"/></svg><svg width="22" height="22" viewBox="0 0 256 256"><use href="#logo2i"/></svg></div>
+  <p><b style="color:var(--fg)">2 · инверсия (выбор).</b> Фон — тёмно-серый бетон, грани A — тёмно-жёлтые, корпус рулетки на правой грани — графитовый с жёлтым кантом, луч лазера по левой грани, на вершине — *.</p></div>
+<div class="lg"><div class="row1"><svg class="big" viewBox="0 0 256 256"><use href="#logo3"/></svg><div class="wm"><b style="color:#E9B949">Measure</b></div></div>
+  <div class="sizes"><div class="home"><svg width="56" height="56" viewBox="0 0 256 256"><use href="#logo3"/></svg>Measure</div><svg width="36" height="36" viewBox="0 0 256 256"><use href="#logo3"/></svg><svg width="22" height="22" viewBox="0 0 256 256"><use href="#logo3"/></svg></div>
+  <p><b style="color:var(--fg)">3. Графит, жёлтая A, лазер.</b> Тёмный фон, грани A — тёмно-жёлтые; перемычка — белая лента, справа красный луч лазера.</p></div>
+  </div>
+</section>
+
+<!-- ======================================================= ВАРИАНТ 1 -->
+<section class="var v1">
+  <div class="var-h"><span class="num">1</span><h2>«Как DrawNote» + действия выделенного объекта</h2></div>
+  <p class="lead">Верхняя полоса — 5 пресетов: квадраты со скруглением, размером как нижняя полоса (28, иконка 20), вплотную к нижней. Нижняя полоса — футляр, фигуры, цвета; когда объект выделен — его действия: стена (номер С3 ▾, колонна, выступ, разбить, лазер в длину, удалить), точка (X / Y / Z, лазер). Веера нет. Переключатель «план / стена» — справа сверху.</p>
+  <div class="row">
+
+    <!-- 1A -->
+    <div class="shot"><div class="ph"><div class="sc">
+      <div class="st"><span>13:32</span><span>GLM 50 ✓ · 68 %</span></div>
+      <div class="hd">
+        <div class="hi chk"><svg><use href="#h-check-w"/></svg><i class="cnt">4</i></div><div class="hi"><svg><use href="#h-menu"/></svg></div><div class="sp"></div>
+        <div class="hi"><svg><use href="#h-undo"/></svg></div><div class="hi dim"><svg><use href="#h-redo"/></svg></div><div class="hi"><svg><use href="#h-trash"/></svg></div>
+        <div class="hi"><svg><use href="#h-laser"/></svg></div><div class="hi"><svg><use href="#h-more"/></svg></div>
+      </div>
+      <svg class="cv" viewBox="0 0 348 716"><use href="#cv-plan"/></svg>
+      <div class="mode" style="top:120px;right:8px"><div class="sm on"><svg><use href="#m-plan"/></svg></div><div class="sm"><svg><use href="#m-wall"/></svg></div></div>
+      <div class="tip" style="left:30px;bottom:96px">✎ S Pen наведён · Отрезок стены</div>
+      <div class="bar" style="left:8px;bottom:72px">
+        <div class="ring" style="--c:#1F6FD1"><svg><use href="#t-select"/></svg></div>
+        <div class="ring on" style="--c:#B5179E"><svg><use href="#t-wallseg"/></svg></div>
+        <div class="ring" style="--c:#6B7785"><svg><use href="#t-column"/></svg></div>
+        <div class="ring" style="--c:#6B7785"><svg><use href="#t-ledge"/></svg></div>
+        <div class="ring" style="--c:#2E9E4F"><svg><use href="#t-image"/></svg></div>
+        <div class="plus"><svg><use href="#t-plus"/></svg></div>
+      </div>
+      <div class="bar mods" style="right:8px;bottom:58px"><span class="mod on">L</span><span class="mod">🧲</span></div>
+      <div class="bar ctxbar" style="left:8px;bottom:14px">
+        <div class="tag">С3 <svg style="width:10px;height:10px" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" fill="none" stroke="#fff" stroke-width="1.6"/></svg></div><div class="sep"></div>
+        <div class="sm"><svg><use href="#t-column"/></svg></div><div class="sm"><svg><use href="#t-ledge"/></svg></div><div class="sm"><svg><use href="#t-split"/></svg></div><div class="sm"><svg><use href="#t-laser2"/></svg></div><div class="sep"></div><div class="sm"><svg><use href="#t-del"/></svg></div><div class="sep"></div><div class="cur" style="background:#E0442B" title="текущий цвет"></div><div class="dot" style="background:#1A2027"></div><div class="dot on" style="background:#E0442B"></div><div class="dot" style="background:#E07A00"></div><div class="more" title="ещё цвета — прокрутка">›</div>
+      </div>
+    </div></div><p class="cap"><b>A · Стены сверху.</b> План распознан, С3 выделен: длина — в поле на отрезке, внизу — действия С3 (номер, колонна, выступ, разбить, лазер, удалить).</p></div>
+
+    <!-- 1B -->
+    <div class="shot"><div class="ph"><div class="sc">
+      <div class="st"><span>13:34</span><span>GLM 50 ✓ · 67 %</span></div>
+      <div class="hd">
+        <div class="hi chk"><svg><use href="#h-check-w"/></svg><i class="cnt">4</i></div><div class="hi"><svg><use href="#h-menu"/></svg></div><div class="sp"></div>
+        <div class="hi"><svg><use href="#h-undo"/></svg></div><div class="hi"><svg><use href="#h-redo"/></svg></div><div class="hi"><svg><use href="#h-trash"/></svg></div>
+        <div class="hi"><svg><use href="#h-laser"/></svg></div><div class="hi"><svg><use href="#h-more"/></svg></div>
+      </div>
+      <div class="walls"><div class="wch">С1</div><div class="wch">С2</div><div class="wch on">С3</div><div class="wch">С4</div><div class="wch">С5</div><div class="wch">С6</div><div class="wch add">+</div></div>
+      <svg class="cv cv2" viewBox="0 0 348 672"><use href="#cv-wall"/></svg>
+      <div class="mode" style="top:164px;right:8px"><div class="sm"><svg><use href="#m-plan"/></svg></div><div class="sm on"><svg><use href="#m-wall"/></svg></div></div>
+      <div class="bar" style="left:8px;bottom:72px">
+        <div class="ring" style="--c:#1F6FD1"><svg><use href="#t-select"/></svg></div>
+        <div class="ring" style="--c:#4DA3FF"><svg><use href="#t-camera"/></svg></div>
+        <div class="ring on" style="--c:#F28C00"><svg><use href="#t-corners"/></svg></div>
+        <div class="ring" style="--c:#7B3FC4"><svg><use href="#t-xyz"/></svg></div>
+        <div class="ring" style="--c:#2BB673"><svg><use href="#t-laser2"/></svg></div>
+        <div class="plus"><svg><use href="#t-plus"/></svg></div>
+      </div>
+      <div class="bar mods" style="right:8px;bottom:58px"><span class="mod">↺</span></div>
+      <div class="bar" style="left:8px;right:8px;bottom:14px">
+        <div class="sm"><svg><use href="#t-cup"/></svg></div><div class="sep"></div>
+        <div class="sm"><svg><use href="#t-eye"/></svg></div><div class="sm on"><svg><use href="#t-eyehalf"/></svg></div><div class="sm"><svg><use href="#t-eyeoff"/></svg></div><div class="sep"></div>
+        <div class="sm"><svg><use href="#t-recog"/></svg></div><div class="sep"></div>
+        <div class="tag">т. 3 · XYZ</div><div class="sm"><svg><use href="#t-laser2"/></svg></div>
+      </div>
+    </div></div><p class="cap"><b>B · Стена в плоскости.</b> Основная С3 и прилегающие С4, С2 — наклон 45° вниз: у каждой своя рамка из 4 точек и свои грани (верх, низ, наружная высота) с размерами; общий стык — одно поле высоты (2 700 / 2 712); на С2 — розетка, разворот угла «∠ 92° · 600 от стыка». Фото 65 %, нижний отрезок — поле «3 450», точка 3 — X / Y / Z.</p></div>
+    <div class="shot"><div class="ph"><div class="sc">
+      <div class="st"><span>13:34</span><span>GLM 50 ✓ · 67 %</span></div>
+      <div class="hd">
+        <div class="hi chk"><svg><use href="#h-check-w"/></svg><i class="cnt">4</i></div><div class="hi"><svg><use href="#h-menu"/></svg></div><div class="sp"></div>
+        <div class="hi"><svg><use href="#h-undo"/></svg></div><div class="hi"><svg><use href="#h-redo"/></svg></div><div class="hi"><svg><use href="#h-trash"/></svg></div>
+        <div class="hi"><svg><use href="#h-laser"/></svg></div><div class="hi"><svg><use href="#h-more"/></svg></div>
+      </div>
+      <div class="walls"><div class="wch">С1</div><div class="wch">С2</div><div class="wch on">С3</div><div class="wch">С4</div><div class="wch">С5</div><div class="wch">С6</div><div class="wch add">+</div></div>
+      <svg class="cv cv2" viewBox="0 0 348 672"><use href="#cv-wall" y="110"/></svg>
+      
+      <div class="kb"><div>1</div><div>2</div><div>3</div><div>⌫</div><div>4</div><div>5</div><div>6</div><div class="ok">Готово</div><div>7</div><div>8</div><div>9</div><div>,</div><div>0</div><div>±</div><div class="kl fl pulse"><svg viewBox="0 0 80 44" preserveAspectRatio="none"><use href="#kb-beam"/></svg></div></div>
+    </div></div><p class="cap"><b>F · Ввод размера.</b> Касание поля на грани (3 450) — поле активно, поднимается клавиатура, своя цифровая клавиатура приложения (в системную кнопку не встроить); кнопка лазера — в клавиатуре под «Готово», в правом нижнем углу. Ввод тремя способами: кнопкой на самой рулетке; кнопкой лазера в клавиатуре — рулетка мерит сама; цифрами. Кнопка — луч лазера от левого нижнего угла к правому верхнему, без самой рулетки:</p><div class="fstates"><div><div class="btn fl kst"><svg viewBox="0 0 80 44" preserveAspectRatio="none"><use href="#kb-beam"/></svg></div>не подключена</div><div><div class="btn fl on kst"><svg viewBox="0 0 80 44" preserveAspectRatio="none"><use href="#kb-beam"/></svg></div>подключена</div><div><div class="btn fl pulse kst"><svg viewBox="0 0 80 44" preserveAspectRatio="none"><use href="#kb-beam"/></svg></div>идёт замер (луч моргает)</div></div><p class="cap"> Галка в шапке — тёмно-жёлтая со счётчиком незакрытых размеров (4); всё закрыто — зелёная.</p></div>
+
+    <!-- 1C -->
+    <div class="shot"><div class="ph"><div class="sc">
+      <div class="st"><span>13:41</span><span>GLM 50 ✓ · 66 %</span></div>
+      <div class="hd">
+        <div class="hi chk"><svg><use href="#h-check-w"/></svg><i class="cnt">4</i></div><div class="hi"><svg><use href="#h-menu"/></svg></div><div class="sp"></div>
+        <div class="hi"><svg><use href="#h-undo"/></svg></div><div class="hi"><svg><use href="#h-redo"/></svg></div><div class="hi"><svg><use href="#h-trash"/></svg></div>
+        <div class="hi"><svg><use href="#h-laser"/></svg></div><div class="hi"><svg><use href="#h-more"/></svg></div>
+      </div>
+      <div class="walls"><div class="wch">С1</div><div class="wch">С2</div><div class="wch on">С3</div><div class="wch">С4</div><div class="wch">С5</div><div class="wch">С6</div><div class="wch add">+</div></div>
+      <svg class="cv cv2" viewBox="0 0 348 672"><use href="#cv-mark" y="-84"/></svg>
+      <!-- открытый футляр -->
+      <div class="tb" style="top:366px;bottom:136px">
+        <div class="tb-h">Футляр <span>★ — в пресеты · касание — взять</span><div class="x">✕</div></div>
+        <div class="g8">
+          <div class="cell"><svg><use href="#t-select"/></svg><i class="star">★</i></div><div class="cell"><svg><use href="#t-frame"/></svg><i class="star">★</i></div><div class="cell"><svg><use href="#t-move"/></svg></div><div class="cell"><svg><use href="#t-copy"/></svg></div><div class="cell"><svg><use href="#t-group"/></svg></div><div class="cell"><svg><use href="#t-del"/></svg></div><div class="cell"><svg><use href="#t-pen"/></svg><i class="star">★</i></div><div class="cell"><svg><use href="#t-line"/></svg></div>
+          <div class="cell"><svg><use href="#t-arrow"/></svg><i class="star">★</i></div><div class="cell on"><svg><use href="#t-dim"/></svg><i class="star">★</i></div><div class="cell"><svg><use href="#t-chain"/></svg></div><div class="cell"><svg><use href="#t-rect"/></svg></div><div class="cell"><svg><use href="#t-circle"/></svg></div><div class="cell"><svg><use href="#t-arc"/></svg></div><div class="cell"><svg><use href="#t-text"/></svg></div><div class="cell"><svg><use href="#t-pin"/></svg></div>
+          <div class="cell"><svg><use href="#t-callout"/></svg></div><div class="cell"><svg><use href="#t-socket"/></svg><i class="star">★</i></div><div class="cell"><svg><use href="#t-switch"/></svg></div><div class="cell"><svg><use href="#t-light"/></svg></div><div class="cell"><svg><use href="#t-tv"/></svg></div><div class="cell"><svg><use href="#t-hvs"/></svg></div><div class="cell"><svg><use href="#t-gvs"/></svg></div><div class="cell"><svg><use href="#t-sewer"/></svg></div>
+          <div class="cell"><svg><use href="#t-gas"/></svg></div><div class="cell"><svg><use href="#t-vent"/></svg></div><div class="cell"><svg><use href="#t-panel"/></svg></div><div class="cell"><svg><use href="#t-window"/></svg></div><div class="cell"><svg><use href="#t-door"/></svg></div><div class="cell"><svg><use href="#t-niche"/></svg></div><div class="cell"><svg><use href="#t-column"/></svg></div><div class="cell"><svg><use href="#t-beam"/></svg></div>
+          <div class="cell"><svg><use href="#t-box"/></svg></div><div class="cell"><svg><use href="#t-nodrill"/></svg><i class="star">★</i></div><div class="cell"><svg><use href="#t-tech"/></svg></div><div class="cell"><svg><use href="#t-apron"/></svg></div><div class="cell"><svg><use href="#t-route"/></svg></div><div class="cell"><svg><use href="#t-fason"/></svg></div><div class="cell"><svg><use href="#t-xyz"/></svg></div><div class="cell"><svg><use href="#t-corners"/></svg></div>
+        </div>
+        <div class="hr"></div>
+        <div class="colors"><span class="sect" style="margin:0">цвета · тянуть — порядок</span><div class="addc">+</div><div class="dot" style="background:#1A2027"></div><div class="dot on" style="background:#E0442B"></div><div class="dot" style="background:#E07A00"></div><div class="dot" style="background:#F2C200"></div><div class="dot" style="background:#2BB673"></div><div class="dot" style="background:#1F6FD1"></div><div class="dot" style="background:#7B3FC4"></div><div class="dot" style="background:#8D6E63"></div><div class="dot" style="background:#fff"></div></div>
+      </div>
+      <div class="bar" style="left:8px;bottom:72px">
+        <div class="ring" style="--c:#1F6FD1"><svg><use href="#t-select"/></svg></div>
+        <div class="ring" style="--c:#1F6FD1"><svg><use href="#t-frame"/></svg></div>
+        <div class="ring on" style="--c:#1F6FD1"><svg><use href="#t-dim"/></svg></div>
+        <div class="ring" style="--c:#E07A00"><svg><use href="#t-arrow"/></svg></div>
+        <div class="ring" style="--c:#E0442B"><svg><use href="#t-pen"/></svg></div>
+        <div class="plus"><svg><use href="#t-plus"/></svg></div>
+      </div>
+      <div class="bar mods" style="right:8px;bottom:58px"><span class="mod on">L</span><span class="mod">∥</span><span class="mod">↔</span></div>
+      <div class="bar" style="left:8px;right:8px;bottom:14px">
+        <div class="sm on"><svg><use href="#t-cup"/></svg></div><div class="sep"></div>
+        <div class="sm"><svg><use href="#t-line"/></svg></div><div class="sm"><svg><use href="#t-rect"/></svg></div><div class="sm"><svg><use href="#t-circle"/></svg></div><div class="sm"><svg><use href="#t-arc"/></svg></div><div class="sm"><svg><use href="#t-text"/></svg></div><div class="sep"></div>
+        <div class="cur" style="background:#E0442B" title="текущий цвет"></div><div class="dot" style="background:#1A2027"></div><div class="dot on" style="background:#E0442B"></div><div class="dot" style="background:#E07A00"></div><div class="more" title="ещё цвета — прокрутка">›</div>
+      </div>
+    </div></div><p class="cap"><b>C · Разметка.</b> Пресеты в кольцах, открыт футляр со всеми инструментами и цветами; на стене окно, розетки, выключатель, зоны, размер ↔ «600» на линии.</p></div>
+  </div>
+  <ul class="theses">
+    <li class="p">Привычно: те же два ряда, что в DrawNote, переучиваться не надо; пресеты и цвет видны всегда, смена инструмента — одно касание.</li>
+    <li class="p">Футляр открывается как в DrawNote — панель над полосами, все инструменты сразу, звёздочкой выносятся в пресеты.</li>
+    <li class="m">Две полосы закрывают ~90 px низа холста: при работе у пола стену сдвигают вверх.</li>
+    <li class="m">Большим пальцем правой руки удобно дотягиваться только до правых колец, левые — стилусом или второй рукой.</li>
+  </ul>
+</section>
+
+<section class="var v1">
+  <div class="var-h"><span class="num">?</span><h2>Обсуждение: стена с колонной и открытым углом · инструмент «разворот угла»</h2></div>
+  <p class="lead">Размеры боковых частей, колонн, выступов, ниш и переходов на примыкающие стены — с плана; 1 000 — только справочно, если плана нет. Нет примыкания — открытая зона, боковая не строится. Изометрия 30°, угол вида — бегунок 0…90…180° (кнопка ∠° вверху): выпуклое с невидимой стороны — пунктиром, без размеров. Подклад инструментов — графитовый.</p>
+  <div class="row">
+    <div class="shot"><div class="ph"><div class="sc">
+      <div class="st"><span>13:52</span><span>GLM 50 ✓ · 64 %</span></div>
+      <div class="hd">
+        <div class="hi chk"><svg><use href="#h-check-w"/></svg><i class="cnt">4</i></div><div class="hi"><svg><use href="#h-menu"/></svg></div><div class="sp"></div>
+        <div class="hi"><svg><use href="#h-undo"/></svg></div><div class="hi"><svg><use href="#h-redo"/></svg></div><div class="hi"><svg><use href="#h-trash"/></svg></div>
+        <div class="hi"><svg><use href="#h-laser"/></svg></div><div class="hi"><svg><use href="#h-more"/></svg></div>
+      </div>
+      <div class="walls"><div class="wch on">С1</div><div class="wch">С2</div><div class="wch">С3</div><div class="wch">С4</div><div class="wch add">+</div><div class="wch isob on" style="background:#1F6FD1;color:#fff">∠°</div><div class="wch" style="background:#3A3F47;color:#4DA3FF">Aa</div></div>
+      <svg class="cv cv2" viewBox="0 0 348 672"><use href="#cv-iso60"/></svg>
+      <div class="iso"><div class="trk"><div class="th" style="left:33.3%"></div><div class="val" style="left:33.3%">60°</div></div><div class="tk"><span>0° · слева</span><span>90° · прямо</span><span>180° · справа</span></div></div>
+      <div class="bar" style="left:8px;bottom:72px">
+        <div class="ring" style="--c:#1F6FD1"><svg><use href="#t-select"/></svg></div><div class="ring" style="--c:#1F6FD1"><svg><use href="#t-frame"/></svg></div><div class="ring" style="--c:#1F6FD1"><svg><use href="#t-dim"/></svg></div><div class="ring on" style="--c:#E07A00"><svg><use href="#t-arrow"/></svg></div><div class="ring" style="--c:#E0442B"><svg><use href="#t-pen"/></svg></div><div class="plus"><svg><use href="#t-plus"/></svg></div>
+      </div>
+      <div class="bar mods" style="right:8px;bottom:58px"><span class="mod on">↔</span><span class="mod">L</span><span class="mod">┄</span></div>
+      <div class="bar" style="left:8px;bottom:14px">
+        <div class="tag">колонна</div><div class="sep"></div><div class="sm"><svg><use href="#t-dim"/></svg></div><div class="sm"><svg><use href="#t-square"/></svg></div><div class="sm"><svg><use href="#t-laser2"/></svg></div><div class="sep"></div><div class="sm"><svg><use href="#t-del"/></svg></div><div class="sep"></div><div class="cur" style="background:#E0442B" title="текущий цвет"></div><div class="dot" style="background:#1A2027"></div><div class="dot on" style="background:#E0442B"></div><div class="dot" style="background:#E07A00"></div><div class="more" title="ещё цвета — прокрутка">›</div>
+      </div>
+    </div></div><p class="cap"><b>D1 · Вид 60° (слева).</b> Кнопка ∠° открыла бегунок угла вида. Колонна: внутренние грани у стены, лицевая — наружу (30°); видна левая грань, правая — пунктиром. С4 скрыта (пунктир), справа открыто. Размер стены упирается в колонну (1 800 · 1 800), поля — на гранях; общий 4 000 — стрелкой с полем. У каждой грани колонны — свой размер (400), разворот ∠ 90,5°.</p></div>
+    <div class="shot"><div class="ph"><div class="sc">
+      <div class="st"><span>13:52</span><span>GLM 50 ✓ · 64 %</span></div>
+      <div class="hd">
+        <div class="hi chk"><svg><use href="#h-check-w"/></svg><i class="cnt">4</i></div><div class="hi"><svg><use href="#h-menu"/></svg></div><div class="sp"></div>
+        <div class="hi"><svg><use href="#h-undo"/></svg></div><div class="hi"><svg><use href="#h-redo"/></svg></div><div class="hi"><svg><use href="#h-trash"/></svg></div>
+        <div class="hi"><svg><use href="#h-laser"/></svg></div><div class="hi"><svg><use href="#h-more"/></svg></div>
+      </div>
+      <div class="walls"><div class="wch on">С1</div><div class="wch">С2</div><div class="wch">С3</div><div class="wch">С4</div><div class="wch add">+</div><div class="wch isob on" style="background:#1F6FD1;color:#fff">∠°</div><div class="wch" style="background:#3A3F47;color:#4DA3FF">Aa</div></div>
+      <svg class="cv cv2" viewBox="0 0 348 672"><use href="#cv-iso120"/></svg>
+      <div class="iso"><div class="trk"><div class="th" style="left:66.7%"></div><div class="val" style="left:66.7%">120°</div></div><div class="tk"><span>0° · слева</span><span>90° · прямо</span><span>180° · справа</span></div></div>
+      <div class="bar" style="left:8px;bottom:72px">
+        <div class="ring" style="--c:#1F6FD1"><svg><use href="#t-select"/></svg></div><div class="ring" style="--c:#1F6FD1"><svg><use href="#t-frame"/></svg></div><div class="ring" style="--c:#1F6FD1"><svg><use href="#t-dim"/></svg></div><div class="ring on" style="--c:#E07A00"><svg><use href="#t-arrow"/></svg></div><div class="ring" style="--c:#E0442B"><svg><use href="#t-pen"/></svg></div><div class="plus"><svg><use href="#t-plus"/></svg></div>
+      </div>
+      <div class="bar mods" style="right:8px;bottom:58px"><span class="mod on">↔</span><span class="mod">L</span><span class="mod">┄</span></div>
+      <div class="bar" style="left:8px;bottom:14px">
+        <div class="tag">колонна</div><div class="sep"></div><div class="sm"><svg><use href="#t-dim"/></svg></div><div class="sm"><svg><use href="#t-square"/></svg></div><div class="sm"><svg><use href="#t-laser2"/></svg></div><div class="sep"></div><div class="sm"><svg><use href="#t-del"/></svg></div><div class="sep"></div><div class="cur" style="background:#E0442B" title="текущий цвет"></div><div class="dot" style="background:#1A2027"></div><div class="dot on" style="background:#E0442B"></div><div class="dot" style="background:#E07A00"></div><div class="more" title="ещё цвета — прокрутка">›</div>
+      </div>
+    </div></div><p class="cap"><b>D2 · Вид 120° (справа).</b> Бегунок за 90° — вид развернулся: видна правая грань колонны и С4 (глубина 1 200, высота 2 690), левая грань колонны — пунктиром. Размеры скрытых граней не показываются — нужны: развернуть вид бегунком.</p></div>
+    <div class="shot"><div class="ph"><div class="sc">
+      <div class="st"><span>13:52</span><span>GLM 50 ✓ · 64 %</span></div>
+      <div class="hd">
+        <div class="hi chk"><svg><use href="#h-check-w"/></svg><i class="cnt">4</i></div><div class="hi"><svg><use href="#h-menu"/></svg></div><div class="sp"></div>
+        <div class="hi"><svg><use href="#h-undo"/></svg></div><div class="hi"><svg><use href="#h-redo"/></svg></div><div class="hi"><svg><use href="#h-trash"/></svg></div>
+        <div class="hi"><svg><use href="#h-laser"/></svg></div><div class="hi"><svg><use href="#h-more"/></svg></div>
+      </div>
+      <div class="walls"><div class="wch on">С1</div><div class="wch">С2</div><div class="wch">С3</div><div class="wch">С4</div><div class="wch add">+</div><div class="wch isob" style="background:#3A3F47;color:#4DA3FF">∠°</div><div class="wch on" style="background:#1F6FD1;color:#fff">Aa</div></div>
+      <svg class="cv cv2" viewBox="0 0 348 672"><use href="#cv-iso120big"/></svg>
+      <div class="iso"><div class="trk"><div class="th" style="left:77.8%"></div><div class="val" style="left:77.8%">140 %</div></div><div class="tk"><span>70 %</span><span>100 %</span><span>160 %</span></div></div>
+      <div class="bar" style="left:8px;bottom:72px">
+        <div class="ring" style="--c:#1F6FD1"><svg><use href="#t-select"/></svg></div><div class="ring" style="--c:#1F6FD1"><svg><use href="#t-frame"/></svg></div><div class="ring" style="--c:#1F6FD1"><svg><use href="#t-dim"/></svg></div><div class="ring on" style="--c:#E07A00"><svg><use href="#t-arrow"/></svg></div><div class="ring" style="--c:#E0442B"><svg><use href="#t-pen"/></svg></div><div class="plus"><svg><use href="#t-plus"/></svg></div>
+      </div>
+      <div class="bar mods" style="right:8px;bottom:58px"><span class="mod on">↔</span><span class="mod">L</span><span class="mod">┄</span></div>
+      <div class="bar" style="left:8px;bottom:14px">
+        <div class="tag">колонна</div><div class="sep"></div><div class="sm"><svg><use href="#t-dim"/></svg></div><div class="sm"><svg><use href="#t-square"/></svg></div><div class="sm"><svg><use href="#t-laser2"/></svg></div><div class="sep"></div><div class="sm"><svg><use href="#t-del"/></svg></div><div class="sep"></div><div class="cur" style="background:#E0442B" title="текущий цвет"></div><div class="dot" style="background:#1A2027"></div><div class="dot on" style="background:#E0442B"></div><div class="dot" style="background:#E07A00"></div><div class="more" title="ещё цвета — прокрутка">›</div>
+      </div>
+    </div></div><p class="cap"><b>D3 · Размер полей.</b> Кнопка «Aa» открывает бегунок размера полей и текста в них (70…160 %, по умолчанию 100 %). Здесь 140 % — поля крупнее, но так же строго на гранях. Настройка запоминается.</p></div>
+    <div class="shot"><div class="ph"><div class="sc">
+      <div class="st"><span>13:52</span><span>GLM 50 ✓ · 64 %</span></div>
+      <div class="hd">
+        <div class="hi chk"><svg><use href="#h-check-w"/></svg><i class="cnt">4</i></div><div class="hi"><svg><use href="#h-menu"/></svg></div><div class="sp"></div>
+        <div class="hi"><svg><use href="#h-undo"/></svg></div><div class="hi"><svg><use href="#h-redo"/></svg></div><div class="hi"><svg><use href="#h-trash"/></svg></div>
+        <div class="hi"><svg><use href="#h-laser"/></svg></div><div class="hi"><svg><use href="#h-more"/></svg></div>
+      </div>
+      <svg class="cv" viewBox="0 0 348 716"><use href="#cv-angle"/></svg>
+      <div class="mode" style="top:120px;right:8px"><div class="sm on"><svg><use href="#m-plan"/></svg></div><div class="sm"><svg><use href="#m-wall"/></svg></div></div>
+      <div class="bar" style="left:8px;bottom:72px">
+        <div class="ring" style="--c:#1F6FD1"><svg><use href="#t-select"/></svg></div><div class="ring" style="--c:#B5179E"><svg><use href="#t-wallseg"/></svg></div><div class="ring" style="--c:#6B7785"><svg><use href="#t-column"/></svg></div><div class="ring on" style="--c:#1F6FD1"><svg><use href="#t-square"/></svg></div><div class="ring" style="--c:#2E9E4F"><svg><use href="#t-image"/></svg></div><div class="plus"><svg><use href="#t-plus"/></svg></div>
+      </div>
+      <div class="bar mods" style="right:8px;bottom:58px"><span class="mod on">низ</span></div>
+      <div class="bar" style="left:8px;bottom:14px">
+        <div class="tag">∟ С1 / С2</div><div class="sep"></div><div class="tag" style="background:#2E3A4D">низ 100</div><div class="tag" style="background:transparent;border:1.5px solid #3A4150">верх</div><div class="sm"><svg><use href="#t-laser2"/></svg></div><div class="sm"><svg><use href="#t-del"/></svg></div>
+      </div>
+    </div></div><p class="cap"><b>E · Разворот угла (угольник).</b> Касание угла на плане → угольник 90° от стыка. На стене — поле «от стыка» (600) и поле «зазор» (+12, лазер / рулетка). Уровни низ 100 / верх 1 800 переключаются внизу; угол считается сам (91,1° / 90,6°, завал 6) и уходит в построение и на развёртку.</p></div>
+  </div>
+  <ul class="theses">
+    <li class="p">Размеры боковых, колонн, ниш, выступов — с плана, вручную только уточнение лазером на гранях.</li>
+    <li class="p">Нет примыкания — открытая зона, лишняя боковая не строится и не путает.</li>
+    <li class="m">Нужен план с масштабом; без плана — справочные 1 000 и ввод на гранях.</li>
+  </ul>
+</section>
