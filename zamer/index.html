@@ -20,9 +20,8 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:14px/1.
 #top .sp{flex:1}
 #top input[type=file]{display:none}
 #top a{flex:0 0 auto;width:42px;height:38px;border:1px solid var(--ln);border-radius:8px;background:var(--bt);color:var(--tx);font-size:19px;display:flex;align-items:center;justify-content:center;text-decoration:none}
-#cv{position:fixed;left:0;top:48px;width:100vw;height:calc(100vh - 166px);touch-action:none;display:block}
-#bot{position:fixed;left:0;right:0;bottom:0;height:118px;background:var(--pn);border-top:1px solid var(--ln);z-index:5}
-#st{height:40px;padding:3px 8px;font-size:12.5px;color:var(--mu);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#cv{position:fixed;left:0;top:70px;width:100vw;height:calc(100vh - 114px);touch-action:none;display:block}   /* v22: холст — от строки статуса до режимов, полосы — поверх */
+#st{color:var(--mu)}   /* v22: в строке шапки */
 #st b{color:var(--tx);font-weight:600}
 #st .er{color:var(--er)} #st .ok{color:var(--ok)}
 #fr{height:76px;display:flex;gap:6px;overflow-x:auto;padding:2px 6px 6px}
@@ -33,21 +32,21 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:14px/1.
 .th i{position:absolute;right:1px;top:1px;width:22px;height:22px;border-radius:5px;background:rgba(0,0,0,.6);font-style:normal;text-align:center;line-height:22px;font-size:13px}
 .th i.arm{background:var(--er)}
 .th[data-pk] span{color:#fff} .th.pw{opacity:.75} .th.na span{background:rgba(217,48,37,.8)}   /* v13: пул — кадр замера стены / без стены */
-#set{position:fixed;right:6px;top:54px;width:270px;background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:10px;z-index:6;display:none}
+#set{position:fixed;right:6px;top:76px;width:270px;background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:10px;z-index:6;display:none}
 #set.on{display:block}
 #set div{display:flex;align-items:center;justify-content:space-between;margin:6px 0;gap:8px}
 #set input{width:90px;height:32px;background:var(--in);border:1px solid var(--ln);border-radius:6px;color:var(--tx);padding:0 6px;font-size:15px;text-align:right}
 #set small{color:var(--mu);display:block;margin-top:6px;font-size:11.5px}
-#rl{position:fixed;left:6px;top:54px;max-width:62%;background:var(--ov);border:1px solid var(--ln);border-radius:8px;padding:4px 6px;font-size:12.5px;z-index:4;display:none}
+#rl{position:fixed;left:6px;top:76px;max-width:62%;background:var(--ov);border:1px solid var(--ln);border-radius:8px;padding:4px 6px;font-size:12.5px;z-index:4;display:none}
 #rl.on{display:block}
 #rl div{display:flex;gap:6px;align-items:center;padding:2px 0}
 #rl i{font-style:normal;cursor:pointer;padding:0 6px;border-radius:4px}
 #rl i.arm{background:var(--er)}
-#busy{position:fixed;inset:48px 0 118px 0;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.7);z-index:7;font-size:16px}
+#busy{position:fixed;inset:70px 0 44px 0;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.7);z-index:7;font-size:16px}
 #busy.on{display:flex}
 /* v6: план помещения, тост */
-body.plan #bView,body.plan #bRul,body.plan #bMk{display:none}
-#toast{position:fixed;left:50%;bottom:130px;transform:translateX(-50%);background:var(--pn);box-shadow:0 4px 16px rgba(0,0,0,.18);color:var(--tx);border:1px solid var(--ln);border-radius:10px;padding:8px 14px;font-size:14px;z-index:9;opacity:0;pointer-events:none;transition:opacity .2s}
+body.plan #bView,body.plan #bRul{display:none}   /* v22: #bMk — режим «Разметка» */
+#toast{position:fixed;left:50%;top:78px;transform:translateX(-50%);background:var(--pn);box-shadow:0 4px 16px rgba(0,0,0,.18);color:var(--tx);border:1px solid var(--ln);border-radius:10px;padding:8px 14px;font-size:14px;z-index:9;opacity:0;pointer-events:none;transition:opacity .2s}
 #toast.on{opacity:1}
 /* v2: разметка, панель свойств, экран замеров */
 #ch{position:fixed;left:0;right:0;top:48px;height:42px;display:none;gap:5px;overflow-x:auto;padding:5px 6px;background:var(--ov);border-bottom:1px solid var(--ln);z-index:4}
@@ -56,7 +55,7 @@ body.plan #bView,body.plan #bRul,body.plan #bMk{display:none}
 .chip.on{background:var(--ac);color:#111;border-color:var(--ac)}
 .chip b{width:9px;height:9px;border-radius:2px;display:inline-block}
 .chip.sep{border:none;background:none;padding:0 2px;color:var(--mu)}
-body.mk #rl{top:96px}
+body.mk #rl{top:76px}
 #pp{position:fixed;left:0;right:0;bottom:118px;background:var(--pn);border-top:1px solid var(--ln);padding:4px 8px;z-index:5;display:none;font-size:13px}
 #pp .ulb{height:28px;border:1px solid var(--ln);border-radius:6px;padding:0 8px;background:var(--bt);color:var(--tx);font-size:13px;cursor:pointer}   /* v21 */
 #pp.on{display:block}
@@ -94,7 +93,7 @@ body.mk #rl{top:96px}
 #ch .cl{width:32px;height:32px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #c3ceda;cursor:pointer;padding:0}
 #ch .cl.on{box-shadow:0 0 0 3px #1f6fd1}
 #ch .tip{flex-basis:100%;font-size:12px;color:#1f6fd1}
-#lay{position:fixed;right:6px;top:54px;width:230px;background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:8px 10px;z-index:7;display:none;font-size:14px}   /* v10: слои */
+#lay{position:fixed;right:6px;top:76px;width:230px;background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:8px 10px;z-index:7;display:none;font-size:14px}   /* v10: слои */
 #lay.on{display:block}
 #lay label{display:flex;align-items:center;gap:8px;height:34px;color:var(--tx)}
 #lay input{width:20px;height:20px}
@@ -114,42 +113,102 @@ body.mk #rl{top:96px}
 #tb .tl.st b{color:#e07a00}
 #tb .hd{display:flex;align-items:center;gap:8px}
 #tb .hd button{height:40px;min-width:40px;border:1px solid var(--ln);border-radius:9px;background:var(--pn);font-size:17px}
+/* ═══ [BLOCK] СТИЛИ КАРКАСА (v22, R1 по DrawNote): шапка + строка, режимы внизу, плавающие полосы, футляр ═══ */
+#top{gap:2px;overflow:visible}
+#top button{width:40px;height:40px;font-size:19px;border-color:transparent;background:transparent}
+#top button.on{background:var(--ac);border-color:var(--ac)}
+#top button.dis{opacity:.35}
+#hl{position:fixed;left:0;right:0;top:48px;height:22px;padding:2px 8px;font-size:12.5px;line-height:18px;color:var(--mu);background:var(--pn);border-bottom:1px solid var(--ln);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;z-index:5;cursor:pointer}
+#hl.ex{height:auto;white-space:normal;box-shadow:0 6px 14px rgba(26,32,39,.18)}
+#hl b{color:var(--tx);font-weight:600} #hl .er{color:var(--er)} #hl .ok{color:var(--ok)}
+#zIn{color:var(--tx);font-weight:600}
+#zMenu{position:fixed;right:6px;top:50px;background:var(--pn);border:1px solid var(--ln);border-radius:12px;box-shadow:0 6px 18px rgba(26,32,39,.2);padding:6px;z-index:9;display:none;min-width:200px}
+#zMenu.on{display:block}
+#zMenu button,#zMenu a{display:flex;align-items:center;gap:8px;width:100%;height:40px;border:none;background:none;color:var(--tx);font-size:15px;padding:0 10px;text-decoration:none;border-radius:8px;cursor:pointer}
+#zm{position:fixed;left:0;right:0;bottom:0;height:44px;display:flex;background:var(--pn);border-top:1px solid var(--ln);z-index:6}
+#zm button{flex:1 1 0;min-width:0;border:none;background:none;color:var(--mu);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:11px;padding:0;cursor:pointer}
+#zm button i{font-style:normal;font-size:17px;line-height:22px;width:40px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+#zm button.on{color:#1f6fd1;font-weight:600}
+#zm button.on i{background:#e3f0ff;box-shadow:0 0 0 2px #1f6fd1 inset}
+#zf{position:fixed;left:6px;right:6px;bottom:50px;display:flex;flex-direction:column;gap:6px;z-index:5;pointer-events:none}
+#zf>*{pointer-events:auto}
+#zf .zp,#zf>#pp,#zf>#fr,#zf>#zx,#zb>.zg,#zb>#ch{background:var(--pn);border:1px solid var(--ln);border-radius:14px;box-shadow:0 3px 12px rgba(26,32,39,.16)}
+#zf>#fr{height:80px;padding:5px 6px;display:none}
+#zf.m-wall>#fr,#zf.c-plan.m-dim>#fr{display:flex}
+#zf>#pp{position:relative;left:auto;right:auto;bottom:auto;border-top:1px solid var(--ln);padding:4px 6px}
+#zf.m-exp>#pp{display:none!important}
+#pp.cmp{display:flex!important;flex-wrap:nowrap;overflow-x:auto;align-items:center;gap:8px;scrollbar-width:none}
+#pp.cmp>.row{flex:0 0 auto;flex-wrap:nowrap;margin:0}
+#pp.cmp>.row+.row{border-left:1px solid var(--ln);padding-left:8px}
+#pp.cmp .zs,#pp.cmp>.row>span.mu{display:none!important}
+#pp #zSh{flex:0 0 auto;position:sticky;right:0;order:99;height:30px;min-width:34px;border-radius:8px;background:var(--pn);box-shadow:-6px 0 8px var(--pn);font-size:17px;font-weight:700}
+#pp.sheet{max-height:calc(40vh - 122px);overflow:auto;padding-right:44px}
+#pp.sheet #zSh{position:absolute;right:4px;top:4px}
+#zf.sh>#fr,#zf.sh>#zb{display:none!important}
+#zf>#zx{display:none;padding:8px 10px;font-size:13px}
+#zf.m-exp>#zx{display:block}
+#zx .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 0}
+#zx button{height:38px;border:1px solid var(--ac);border-radius:9px;background:var(--ac);color:#111;font-size:14px;padding:0 12px}
+#zx .mu{color:var(--mu);font-size:12.5px}
+#zb{display:flex;gap:6px;align-items:stretch}
+#zb>.zg{display:none;gap:4px;align-items:center;padding:4px 6px}
+#zb>.zg>button,#zb>.zg>label{flex:0 0 auto;width:38px;height:38px;border:1px solid transparent;border-radius:9px;background:none;color:var(--tx);font-size:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+#zb>.zg>button.on{background:var(--ac);border-color:var(--ac)} #zb>.zg>button.arm{background:var(--er)}
+#zb input[type=file]{display:none}
+#zf.m-wall #zgW,#zf.m-dim #zgD,#zb>#zmod{display:flex}
+#zf.m-wall #zgW{flex:1 1 auto}
+#zb>#ch{position:static;display:none!important;flex:1 1 auto;min-width:0;height:auto;min-height:0;flex-wrap:nowrap;overflow-x:auto;align-items:center;padding:5px 6px;scrollbar-width:none}
+#zf.m-plan #ch,#zf.m-mk #ch{display:flex!important}
+#zb>#ch.wr{flex-wrap:wrap}
+#tb{top:auto;bottom:44px;max-height:60vh;border-radius:16px 16px 0 0;box-shadow:0 -6px 18px rgba(26,32,39,.18);border-top:1px solid var(--ln)}   /* v22: полный набор — футляр ≤ 60 vh */
 </style>
 </head>
 <body>
 <!-- ═══ [BLOCK] РАЗМЕТКА ═══ -->
-<div id="top">
+<div id="top">   <!-- v22: шапка по DrawNote -->
+  <button id="bDone" title="Готово: сохранить и выйти уровнем выше (стена → план → список)">✓</button>
   <button id="bSes" title="Замеры: список, новый, открыть">☰</button>
-  <label title="Снять кадр камерой (на плане — в пул кадров объекта)">📷<input id="fCam" type="file" accept="image/*" capture="environment"></label>
-  <label title="Добавить кадры из галереи (несколько; на плане — в пул кадров объекта)">🖼<input id="fGal" type="file" accept="image/*" multiple></label>
-  <button id="bView" class="on" title="Просмотр: двигать и масштабировать">✋</button>
-  <button id="bRul" title="Линейка: два касания — отрезок, концы перетаскиваются">📏</button>
-  <button id="bMk" title="Разметка: пол, потолок, края, коммуникации, проёмы">⌖</button>
-  <button id="bFit" title="Показать всё">⤢</button>
-  <button id="bLay" title="Слои видимости">◫</button>
   <span class="sp"></span>
-  <button id="bBt" title="Подключить дальномер Bosch GLM по Bluetooth">📡</button>
+  <button id="bUnd" title="Отменить">↶</button>
+  <button id="bRed" title="Повторить">↷</button>
   <button id="bJson" title="Отправить / сохранить замер (.json для Akrix); на плане — помещение целиком, в объекте из нескольких помещений — объект целиком">⇪</button>
-  <button id="bSet" title="Настройки">⚙</button>
+  <button id="bPen" title="Стилус: рисует стилус, палец двигает и масштабирует (выкл — не разделять)">🖊</button>
+  <button id="bMore" title="Ещё: настройки, маркеры">⋮</button>
 </div>
+<div id="hl" title="Коснуться — строка целиком"><span id="zIn"></span> <span id="st">Добавьте кадры: 📷 или 🖼.</span></div>
+<div id="zMenu"><button id="bSet" title="Настройки">⚙ Настройки</button><a href="akrix_markers.pdf" target="_blank">🖨 Маркеры (PDF)</a></div>
 <canvas id="cv"></canvas>
 <div id="rl"></div>
 <div id="set">
   <div><span>Сторона маркера A4, мм</span><input id="sA4" inputmode="decimal" placeholder="180"></div>
   <div><span>Сторона маркера A5, мм</span><input id="sA5" inputmode="decimal" placeholder="120"></div>
   <div><span>Макс. сторона кадра, px</span><input id="sMax" inputmode="numeric" placeholder="4096"></div>
-  <div><span>Стилус и палец</span><select id="sPen" style="height:32px;background:var(--in);border:1px solid var(--ln);border-radius:6px;color:var(--tx)"><option value="auto">стилус рисует, палец двигает</option><option value="off">не разделять</option></select></div>
   <div><span>Дисторсия объектива</span><select id="sDist" style="height:32px;background:var(--in);border:1px solid var(--ln);border-radius:6px;color:var(--tx)"><option value="auto">авто</option><option value="off">не учитывать</option><option value="on">учитывать</option></select></div>
   <small id="zVer2" style="display:block;margin-bottom:4px"></small><small>Авто: учитывается, только если есть кадр с 3+ маркерами и невязка без неё заметно больше.<br>Сторона — фактическая, по рулетке на распечатке. № 1–99 — A4, № 101+ — A5. Пусто — значение по умолчанию. Ноль координат — центр маркера с меньшим номером, оси — по нему.</small>
 </div>
 <div id="lay"></div>
-<div id="ch"></div>
 <div id="tb"></div>
-<div id="pp"></div>
 <div id="ss"><div class="nw"><input id="nObj" placeholder="Объект (клиент, адрес)"><input id="nPl" placeholder="Помещение / плоскость (кухня, С1…)"><button id="bNew" title="Отдельная плоскость (без плана)">＋ Плоскость</button><button id="bNewR" title="Помещение: план, стены, фото, лазер">＋ Помещение</button></div><div id="sl"></div><div style="margin-top:14px;color:var(--mu);font-size:13px"><a href="akrix_markers.pdf" target="_blank" style="color:var(--ac)">Маркеры для печати (PDF)</a> · A4 № 1–30, A5 № 101–130 · печать 100 % · <b id="zVer">Замер</b></div></div>
 <div id="busy">обработка…</div>
 <div id="toast"></div>
-<div id="bot"><div id="st">Добавьте кадры: 📷 или 🖼. На каждой плоскости — маркеры; соседние кадры — с общим маркером.</div><div id="fr"></div></div>
+<div id="zf">   <!-- v22: плавающие полосы над режимами: кадры / свойства / выгрузка / пресеты + модификаторы -->
+  <div id="fr"></div>
+  <div id="pp"></div>
+  <div id="zx"></div>
+  <div id="zb">
+    <div id="zgW" class="zg"><label title="Снять кадр камерой (на плане — в пул кадров объекта)">📷<input id="fCam" type="file" accept="image/*" capture="environment"></label><label title="Добавить кадры из галереи (несколько; на плане — в пул кадров объекта)">🖼<input id="fGal" type="file" accept="image/*" multiple></label><button id="bView" class="on" title="Просмотр: двигать и масштабировать">✋</button><button id="bRul" title="Линейка: два касания — отрезок, концы перетаскиваются">📏</button></div>
+    <div id="zgD" class="zg"><button id="bBt" title="Подключить дальномер Bosch GLM по Bluetooth">📡</button></div>
+    <div id="ch"></div>
+    <div id="zmod" class="zg"><button id="bFit" title="Показать всё">⤢</button><button id="bLay" title="Слои видимости">◫</button></div>
+  </div>
+</div>
+<div id="zm">   <!-- v22: режимы -->
+  <button id="zmP" data-zm="plan" title="План помещения: контур, стены, углы"><i>⌂</i></button>
+  <button id="zmW" data-zm="wall" title="Стена: кадры, камера, просмотр"><i>📷</i></button>
+  <button id="bMk" data-zm="mk" title="Разметка: пол, потолок, края, коммуникации, проёмы"><i>⌖</i></button>
+  <button id="zmD" data-zm="dim" title="Размеры: L, H, лазер"><i>📏</i></button>
+  <button id="zmE" data-zm="exp" title="Выгрузка для Akrix"><i>⇪</i></button>
+</div>
 
 <script>
 'use strict';
@@ -162,7 +221,7 @@ const S = { frames: [], sol: null, mosaic: null, tool: 'view', rulers: [], pend:
   sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'sel', und: [], la: {},
   mode: 'wall', room: null, room0: null, psel: null, pund: [], planL: null, wsh: {}, adim: true, dimHits: [], dfoc: null, msel: [], rsr: null, colOpen: false, notes: [], nsel: null, gOpen: false, gsel: '2.0', objRooms: [], pf: null, poolW: [] };   /* v13: pf — выбранный кадр пула, poolW — кадры замеров стен объекта */   /* v11: objRooms — другие помещения объекта */   /* v10: notes — выноски, gsel — точка сетки 'ряд.столбец' */   /* v8: msel — группа (рамка выделения), rsr — рамка на экране */   /* v7: adim — авторазмеры всех объектов; dimHits — подписи размеров под пальцем; dfoc — поле размера в фокусе */   /* v6: mode 'plan' — план помещения */   /* v5: la — привязка концов линий к кадрам */   /* v4: mk 'sel' — выбор и правка */   /* v2: замер, разметка */
 const $ = id => document.getElementById(id);
-const ZVER = 'v21';
+const ZVER = 'v22';
 const PEN = { seen: false, mode: (() => { try { return localStorage.getItem('zamer.pen') || 'auto' } catch (e) { return 'auto' } })(), on() { return this.mode === 'auto' && this.seen } };   /* v21: стилус и палец */   /* v18: номер версии — подставляет build.py */
 function setNum(id) { const v = $(id).value.trim(); if (!v) return null; try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) && r > 0 ? r : null } catch (e) { return null } }
 function sizeOf(id) { return id >= 100 ? (setNum('sA5') || 120) : (setNum('sA4') || 180) }
@@ -525,7 +584,7 @@ function mosM() {                               /* матрица холста �
 function viewRot() { const L = S.lines.floor; if (!L || S.dispC) return 0; const d = sub(L[1], L[0]); let a = Math.atan2(d[1], d[0]); if (Math.abs(a) > Math.PI / 2) a += a > 0 ? -Math.PI : Math.PI; return a }
 function fit() {
   if (S.mode === 'plan') return plFit();   /* v6 */
-  const d = devicePixelRatio || 1, W = cv.width, H = cv.height;
+  const d = devicePixelRatio || 1, W = cv.width, H = zFreeH();   /* v22 */
   if (S.show >= 0) { const f = S.frames[S.show]; const s = Math.min(W / f.W, H / f.H) * 0.96; S.view = { s, ox: (W - f.W * s) / 2, oy: (H - f.H * s) / 2 }; return draw() }
   const M = S.mosaic; if (!M) return draw();
   const rot = viewRot(), c = Math.cos(rot), sn = Math.sin(rot), P = [[M.x0, M.y1], [M.x0 + M.W * M.r, M.y1], [M.x0, M.y1 - M.H * M.r], [M.x0 + M.W * M.r, M.y1 - M.H * M.r]].map(([X, Y]) => [c * X + sn * Y, -sn * X + c * Y]);
@@ -688,7 +747,7 @@ function status() {
   if (!S.frames.length) { st.innerHTML = 'Добавьте кадры: 📷 или 🖼.'; return }
   if (!sol) { st.innerHTML = '<span class="er">Маркеры не найдены ни в одном кадре.</span>'; return }
   const bad = S.frames.filter(f => !f.h).length, c = sol.ctrl.length ? sol.ctrl.reduce((a, b) => Math.abs(b.d) > Math.abs(a.d) ? b : a) : null;  /* контроль: сторона маркера по снимкам при свободном размере, против заданной */
-  st.innerHTML = `Маркеров <b>${sol.mks.length}</b> · кадров <b>${S.frames.length - bad}</b>${bad ? ` <span class="er">· не связаны ${bad}</span>` : ''} · невязка СКО <b>${f1(sol.rms)}</b>, макс <b>${f1(sol.max)}</b> мм<br>` +
+  st.innerHTML = `Маркеров <b>${sol.mks.length}</b> · кадров <b>${S.frames.length - bad}</b>${bad ? ` <span class="er">· не связаны ${bad}</span>` : ''} · невязка СКО <b>${f1(sol.rms)}</b>, макс <b>${f1(sol.max)}</b> мм · ` +   /* v22: одна строка */
     wallLine() + (c ? `контроль сторон: № ${c.id} — ${f1(c.side)} (${c.d >= 0 ? '+' : ''}${f1(c.d)} мм)` : 'контроль: нужно ≥ 2 маркеров') + ` · ноль — центр № ${sol.ref} · дисторсия k1 ${(sol.k1 || 0).toFixed(4)} (${sol.kwhy || ''})` + (S.mosaic ? ` · ${f1(S.mosaic.r)} мм/px` : '');
 }
 function strip() {
@@ -2172,7 +2231,7 @@ async function openWall(k) {
   await openSess(sid);
 }
 function plFit() {
-  const W = cv.width, H = cv.height, m = S.room.ms; let P = m.pts.concat(...(S.objRooms || []).map(o => o.ms.pts)); if (!P.length) P = ulCorners();   /* v11: показать весь объект; v14: контуров нет — подложку */
+  const W = cv.width, H = zFreeH(), m = S.room.ms; let P = m.pts.concat(...(S.objRooms || []).map(o => o.ms.pts)); if (!P.length) P = ulCorners();   /* v11: показать весь объект; v14: контуров нет — подложку */
   if (!P.length) { S.view = { s: W / 7000, rot: 0, ox: W / 2, oy: H / 2 }; return draw() }
   const xs = P.map(p => p[0]), ys = P.map(p => p[1]), ax = Math.min(...xs), bx = Math.max(...xs), ay = Math.min(...ys), by = Math.max(...ys), s = Math.min(W / Math.max(bx - ax, 1500), H / Math.max(by - ay, 1500)) * 0.7;
   S.view = { s, rot: 0, ox: W / 2 - (ax + bx) / 2 * s, oy: H / 2 + (ay + by) / 2 * s }; draw();
@@ -2266,7 +2325,7 @@ function plPanel() {
 }
 function plStatus() {
   const m = S.room.ms, n = plN(m), ok = [...Array(n).keys()].filter(k => { const L = plLen(m, k); return L && L.ok }).length, ph = Object.keys(S.room.segs || {}).filter(k => +k < n).length;
-  $('st').innerHTML = `${esc(S.room.name)} · стен <b>${n}</b>, L <b>${ok}</b>/${n} · фото <b>${ph}</b>${poolStat()}${geoStat()}${S.objRooms.length ? ` · помещений <b>${S.objRooms.length + 1}</b>, до С${gnMax()}` : ''}`;   /* v11; v21: одна строка */
+  $('st').innerHTML = `стен <b>${n}</b>, L <b>${ok}</b>/${n} · фото <b>${ph}</b>${poolStat()}${geoStat()}${S.objRooms.length ? ` · помещений <b>${S.objRooms.length + 1}</b>, до С${gnMax()}` : ''}`;   /* v11; v21: одна строка */
 }
 function plStrip() {
   const el = $('fr'), m = S.room.ms; el.innerHTML = '';
@@ -2355,13 +2414,111 @@ async function exportRoom() {
   try { const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = fn; document.body.appendChild(a); a.click(); a.remove() } catch (e) { toast('Сохранение отклонено') }
 }
 
+/* ═══ [BLOCK] КАРКАС (v22, R1 по DrawNote): режимы, плавающие полосы, футляр, шапка (↶ ↷ ✓ 🖊 ⋮), строка «объект · помещение · С№ · статус» ═══ */
+/* Режим: S.zm — 'plan' | 'wall' | 'mk' | 'dim' | 'exp'; фактический — zCur() по контексту (план / стена) и инструменту. Полосы перерисовывает zLay() (наблюдатель за #pp, #ch, #fr). */
+S.zm = 'plan'; S.zSheet = false; S.pred = []; S.red = [];
+const ZM = ['plan', 'wall', 'mk', 'dim', 'exp'];
+function zCur() {
+  if (S.zm === 'exp') return 'exp';
+  if (S.mode === 'plan') return S.zm === 'wall' || S.zm === 'dim' ? S.zm : 'plan';
+  return S.tool === 'mk' ? (S.zm === 'dim' ? 'dim' : 'mk') : 'wall';
+}
+async function zmSet(m) {
+  $('zMenu').classList.remove('on'); zSheet(false, true);
+  const pl = S.mode === 'plan', ws = S.psel && S.psel.t === 's' && pl;
+  if (m === 'plan') { if (pl) { S.zm = 'plan' } else if (S.sess && S.sess.room) { S.zm = 'plan'; await openRoom(S.sess.room) } else { toast('План — у помещения: ☰ → ＋ Помещение'); return zLay() } }
+  else if (m === 'wall') { S.zm = 'wall'; if (ws) { await openWall(S.psel.i); tool('view') } else if (!pl) tool('view') }
+  else if (m === 'mk') { if (pl) { if (!ws) { toast('Разметка — на стене: выберите стену на плане'); return zLay() } S.zm = 'mk'; await openWall(S.psel.i) } S.zm = 'mk'; tool('mk') }
+  else if (m === 'dim') { S.zm = 'dim'; if (pl) { PL.tool = 'sel'; mkChips() } else { S.mk = 'sel'; S.sel = null; S.nsel = null; S.msel = []; tool('mk') } }
+  else if (m === 'exp') S.zm = 'exp';
+  zLay(); mkPanel(); draw();
+}
+function zSheet(on, quiet) {   /* футляр: свойства целиком, лист снизу */
+  if (!on) { const g = S.gOpen || S.wsOpen; S.zSheet = false; if (g) { S.gOpen = false; S.wsOpen = false; if (!quiet) { mkPanel(); draw() } } }
+  else { S.zSheet = true; S.zAuto = false; S.zKey = zKey() }
+  zLay();
+}
+function zKey() { const r = $('pp').firstElementChild; return r ? r.textContent.slice(0, 24) : '' }
+function zFreeH() {   /* высота свободной части холста (px устройства) — над полосами */
+  zLay(); const d = devicePixelRatio || 1, c = cv.getBoundingClientRect(); let t = c.bottom;
+  for (const e of $('zf').children) { const r = e.getBoundingClientRect(); if (r.height > 0 && getComputedStyle(e).display !== 'none') t = Math.min(t, r.top) }
+  return Math.max(120 * d, (t - c.top - 6) * d);
+}
+let zBusy = false;
+function zLay() {
+  if (zBusy) return; zBusy = true;
+  try {
+    const m = zCur(), pl = S.mode === 'plan', zf = $('zf'), pp = $('pp');
+    /* свойства: одна строка; редкое (подсказки, угольник, скругление, дуга, лист Akrix, 3×3, фото кадра) — в футляр */
+    pp.querySelectorAll(':scope > .row').forEach(r => r.classList.toggle('zs', r.classList.contains('mu') || !!r.querySelector('.gg,[data-wsh],[data-pf^="d."],[data-pf^="u."],[data-pf="r"],img')));
+    pp.querySelectorAll('[data-pf="f"]').forEach(i => { const l = i.closest('label'); if (l) l.classList.add('zs') });
+    const auto = !!pp.querySelector('.gg,[data-wsh]');
+    if (auto) { S.zSheet = true; S.zAuto = true; S.zKey = zKey() } else if (S.zSheet && (S.zAuto || S.zKey !== zKey())) S.zSheet = S.zAuto = false;   /* 3×3 / лист свёрнуты или другое выбранное — футляр закрыт */
+    const on = pp.classList.contains('on') && pp.children.length, more = on && (S.zSheet || pp.querySelector('.zs'));
+    let b = $('zSh'); if (more && !b) { b = document.createElement('button'); b.id = 'zSh'; pp.appendChild(b) } else if (!more && b) b.remove();
+    if (b) { b.textContent = S.zSheet ? '▾' : '⋯'; b.title = S.zSheet ? 'Свернуть в строку' : 'Футляр: всё о выбранном'; b.onclick = () => zSheet(!S.zSheet) }
+    const sh = !!(S.zSheet && on); pp.classList.toggle('sheet', sh); pp.classList.toggle('cmp', !sh);
+    if (sh && auto) { const g = pp.querySelector('.gg,[data-wsh]').closest('.row'); if (g) pp.scrollTop = Math.max(0, g.offsetTop - 34) }   /* 3×3 / лист — сразу на виду */
+    const cls = 'm-' + m + (pl ? ' c-plan' : ' c-wall') + (sh ? ' sh' : ''); if (zf.className !== cls) zf.className = cls;
+    const ch = $('ch'); ch.classList.toggle('wr', !!ch.querySelector('.rowc'));
+    for (const x of document.querySelectorAll('#zm [data-zm]')) x.classList.toggle('on', x.dataset.zm === m);
+    $('bPen').classList.toggle('on', PEN.mode === 'auto');
+    $('bUnd').classList.toggle('dis', !(pl ? S.pund.length : S.und.length)); $('bRed').classList.toggle('dis', !(pl ? S.pred.length : S.red.length));   /* бледные — нечего; касание — тост */
+    /* строка шапки: объект · помещение · С№ */
+    const r0 = S.room0, ss = S.sess, inf = pl ? [S.room.obj, S.room.name] : ss ? (r0 ? [r0.obj, r0.name, 'С' + wN(r0, ss.seg)] : [ss.obj, ss.name]) : ['Akrix Замер'];
+    const t = inf.filter(Boolean).map(esc).join(' · ') + ' ·'; if ($('zIn').innerHTML !== t) $('zIn').innerHTML = t;
+    if (m === 'exp') zExp();
+  } finally { zBusy = false }
+}
+function zExp() {   /* выгрузка: строка статуса целиком + что выгружается */
+  const pl = S.mode === 'plan', n = pl ? S.objRooms.length + 1 : 0;
+  const h = `<div class="row"><b>Выгрузка для Akrix</b><span class="mu">${pl ? (n > 1 ? `объект: помещений ${n}` : 'помещение') : S.sess ? 'плоскость / стена' : ''}</span></div><div class="row mu">${$('zIn').innerHTML} ${$('st').innerHTML}</div>
+    <div class="row">${pl ? `<button data-zx="r">⇪ помещение</button>${n > 1 ? `<button data-zx="o">⇪ объект (${n})</button>` : ''}` : S.sess ? `<button data-zx="w">⇪ замер (.json)</button>${S.sess.room ? '<button data-zx="p">⌂ к плану — помещение</button>' : ''}` : '<span class="mu">нет замера: ☰ → новый</span>'}</div>`;
+  const x = $('zx'); if (x.innerHTML === h) return; x.innerHTML = h;
+  x.querySelectorAll('[data-zx]').forEach(b => b.onclick = () => { const k = b.dataset.zx; if (k === 'r') exportRoom(); else if (k === 'o') exportObj2(); else if (k === 'w') exportJson(); else zmSet('plan') });
+}
+/* ↶ ↷ в шапке: план — снимки помещения (S.pund / S.pred), стена — разметки (S.und / S.red) */
+const zState = () => JSON.stringify({ lines: S.lines, els: S.els, man: S.man, notes: S.notes });
+async function zUndo() {
+  if (S.mode === 'plan') { if (!S.pund.length) return toast('Отменять нечего'); S.pred.push(JSON.stringify(plState())); await plUndo() }
+  else { if (!S.und.length) return toast('Отменять нечего'); S.red.push(zState()); undo(); toast('↶ отменено') }
+  zLay();
+}
+async function zRedo() {
+  if (S.mode === 'plan') { const t = S.pred.pop(); if (!t) return toast('Повторять нечего'); const c = JSON.stringify(plState()); S.pund.push(t); await plUndo(); S.pund.push(c) }
+  else { const t = S.red.pop(); if (!t) return toast('Повторять нечего'); const c = zState(); S.und.push(t); undo(); S.und.push(c) }
+  toast('↷ повторено'); zLay();
+}
+const zSnap0 = snap, zPlSnap0 = plSnap;   /* новое действие — повтор сбрасывается */
+snap = function () { S.red = []; return zSnap0() };
+plSnap = function () { S.pred = []; return zPlSnap0() };
+const zTool0 = tool; tool = function (t) { zTool0(t); zLay() };
+async function zDone() {   /* ✓: футляр — свернуть; стена помещения → план; иначе — сохранить и к списку */
+  if (S.zSheet) return zSheet(false);
+  if (S.mode !== 'plan' && S.sess && S.sess.room) { await saveNow().catch(() => { }); S.zm = 'plan'; await openRoom(S.sess.room); return zLay() }
+  if (S.mode === 'plan' && S.room) { clearTimeout(roomT); S.room.upd = Date.now(); await dbPut('sess', JSON.parse(JSON.stringify(S.room))).catch(() => { }) } else if (S.sess) await saveNow().catch(() => { });
+  toast('Сохранено'); sessList(true);
+}
+function zInit() {
+  for (const x of document.querySelectorAll('#zm [data-zm]')) x.onclick = () => zmSet(x.dataset.zm);
+  $('bUnd').onclick = zUndo; $('bRed').onclick = zRedo; $('bDone').onclick = zDone;
+  $('bPen').onclick = () => { PEN.mode = PEN.mode === 'auto' ? 'off' : 'auto'; try { localStorage.setItem('zamer.pen', PEN.mode) } catch (e) { } toast(PEN.mode === 'auto' ? '🖊 стилус рисует, палец двигает' : '🖊 выкл: палец и стилус — одинаково'); zLay() };
+  $('bMore').onclick = () => $('zMenu').classList.toggle('on');
+  $('bSet').addEventListener('click', () => $('zMenu').classList.remove('on'));
+  $('hl').onclick = () => $('hl').classList.toggle('ex');
+  for (const id of ['fCam', 'fGal']) $(id).addEventListener('change', () => { if (S.mode === 'plan') { S.zm = 'wall'; zLay() } });   /* кадры в пул — показать полосу */
+  const mo = new MutationObserver(() => zLay());
+  mo.observe($('pp'), { childList: true, attributes: true, attributeFilter: ['class'] }); mo.observe($('ch'), { childList: true }); mo.observe($('fr'), { childList: true }); mo.observe($('st'), { childList: true, characterData: true, subtree: true });
+  zLay();
+}
+
 /* ═══ [BLOCK] КНОПКИ ═══ */
 $('fCam').onchange = e => { const f = [...e.target.files]; S.mode === 'plan' ? poolAdd(f) : addFiles(f); e.target.value = '' };   /* v13: на плане — в пул объекта */
 $('fGal').onchange = e => { const f = [...e.target.files]; S.mode === 'plan' ? poolAdd(f) : addFiles(f); e.target.value = '' };
 function tool(t) { S.tool = t; S.pend = null; $('bView').classList.toggle('on', t === 'view'); $('bRul').classList.toggle('on', t === 'rul'); $('bMk').classList.toggle('on', t === 'mk'); document.body.classList.toggle('mk', t === 'mk'); $('ch').classList.toggle('on', t === 'mk'); if (t !== 'mk') S.sel = null; mkPanel(); if (t === 'rul' && S.show >= 0) { S.show = -1; strip(); fit() } draw() }
-$('bView').onclick = () => tool('view'); $('bRul').onclick = () => tool('rul'); $('bMk').onclick = () => tool('mk'); $('bFit').onclick = fit;
+$('bView').onclick = () => tool('view'); $('bRul').onclick = () => tool('rul'); $('bFit').onclick = fit;   /* v22: #bMk — режим «Разметка» (КАРКАС) */
 $('bSet').onclick = () => $('set').classList.toggle('on');
-$('bLay').onclick = () => { layPanel(); const ch = $('ch'); $('lay').style.top = ((ch.classList.contains('on') ? ch.getBoundingClientRect().bottom : $('top').getBoundingClientRect().bottom) + 6) + 'px'; $('lay').classList.toggle('on') };   /* v17: под рядом инструментов */   /* v10 */
+$('bLay').onclick = () => { layPanel(); $('lay').style.top = ($('hl').getBoundingClientRect().bottom + 6) + 'px'; $('lay').classList.toggle('on') };   /* v17; v22: под строкой шапки */   /* v10 */
 for (const id of ['sA4', 'sA5', 'sMax', 'sDist']) $(id).addEventListener('change', () => saveSess());
 $('sDist').addEventListener('change', () => { if (S.frames.length) recompute() });
 for (const id of ['sA4', 'sA5']) $(id).addEventListener('change', () => { if (S.frames.length) recompute() });
@@ -2369,9 +2526,9 @@ $('sMax').addEventListener('change', async () => { const fs = S.frames.map(f => 
 $('bJson').onclick = () => S.mode === 'plan' ? (S.room && S.room.obj && S.objRooms.length ? exportObj2() : exportRoom()) : exportJson();   /* v6; v12: помещений объекта > 1 — файл объекта */
 $('bBt').onclick = btConnect;
 addEventListener('resize', resize); resize(); mkChips();
-$('sPen').value = PEN.mode; $('sPen').onchange = () => { PEN.mode = $('sPen').value; try { localStorage.setItem('zamer.pen', PEN.mode) } catch (e) { } };   /* v21 */
+zInit();   /* v22: каркас */
 $('zVer').textContent = 'Замер ' + ZVER; $('zVer2').textContent = 'Akrix Замер ' + ZVER;   /* v18 */
-window.PM = { PEN, status, ZVER, geoBuild, plUndo, ctOpen, ctAddNode, ctDelNode, ctClear, sessList, opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
+window.PM = { zmSet, zCur, zSheet, zLay, zUndo, zRedo, zDone, PEN, status, ZVER, geoBuild, plUndo, ctOpen, ctAddNode, ctDelNode, ctClear, sessList, opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
 dbOpen().then(() => { if (!/[?&]nolist/.test(location.search)) sessList(true) });
 </script>
