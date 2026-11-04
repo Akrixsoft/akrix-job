@@ -1,7 +1,7 @@
-name: Zamer APK
+name: Measure APK
 on:
   push:
-    paths: ['android-zamer/**', '.github/workflows/zamer-apk.yml']
+    paths: ['measure/android/**', '.github/workflows/measure-apk.yml']
   workflow_dispatch:
 permissions:
   contents: write
@@ -27,12 +27,12 @@ jobs:
         with: { gradle-version: '8.7' }
       - name: Build
         run: |
-          mkdir -p android-zamer/app/src/main/assets && cp zamer/index.html android-zamer/app/src/main/assets/zamer.html
+          mkdir -p measure/android/app/src/main/assets && cp measure/app/index.html measure/android/app/src/main/assets/zamer.html
           export AK_KS=$HOME/ks/release.jks AK_PW=$(cat ~/ks/pw)
-          gradle -p android-zamer assembleRelease --no-daemon
+          gradle -p measure/android assembleRelease --no-daemon
       - name: Publish APK to Pages
         run: |
-          mkdir -p apk && cp android-zamer/app/build/outputs/apk/release/app-release.apk apk/akrix-zamer.apk
-          echo "{\"version\":\"1.$GITHUB_RUN_NUMBER\",\"build\":$GITHUB_RUN_NUMBER}" > apk/zamer-version.json
+          mkdir -p measure/apk && cp measure/android/app/build/outputs/apk/release/app-release.apk measure/apk/measure.apk
+          echo "{\"version\":\"2.$GITHUB_RUN_NUMBER\",\"build\":$GITHUB_RUN_NUMBER}" > measure/apk/version.json
           git config user.name "akrix-build" && git config user.email "build@akrix.local"
-          git add apk/akrix-zamer.apk apk/zamer-version.json && git commit -m "Zamer APK 1.$GITHUB_RUN_NUMBER [skip ci]" && git pull --rebase && git push
+          git add measure/apk/measure.apk measure/apk/version.json && git commit -m "Measure APK 2.$GITHUB_RUN_NUMBER [skip ci]" && git pull --rebase && git push

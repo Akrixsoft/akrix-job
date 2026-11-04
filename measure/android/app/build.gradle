@@ -3,11 +3,11 @@ android {
     namespace 'ge.akrix.zamer'
     compileSdk 34
     defaultConfig {
-        applicationId 'ge.akrix.zamer'
+        applicationId 'ge.akrix.measure'   // Measure: своё приложение (Замер не установлен)
         minSdk 26
         targetSdk 34
-        versionCode Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')
-        versionName '1.' + (System.getenv('GITHUB_RUN_NUMBER') ?: '0')
+        versionCode 100 + Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')   // Measure: новый workflow — счёт заново, код выше старого Замера
+        versionName '2.' + (System.getenv('GITHUB_RUN_NUMBER') ?: '0')
     }
     signingConfigs {
         release { storeFile file(System.getenv('AK_KS') ?: 'none.jks'); storePassword System.getenv('AK_PW'); keyAlias 'akrix'; keyPassword System.getenv('AK_PW') }

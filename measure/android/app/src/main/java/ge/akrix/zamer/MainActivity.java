@@ -31,10 +31,10 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
-/* ===== BLOCK: MAIN — Замер с сайта (обновляется сам; без сети — кэш сайта, при первом запуске без сети — копия из APK) + мосты AkrixBT / AkrixApp ===== */
+/* ===== BLOCK: MAIN — Measure (бывш. Замер) с сайта (обновляется сам; без сети — кэш сайта, при первом запуске без сети — копия из APK) + мосты AkrixBT / AkrixApp ===== */
 @SuppressLint("MissingPermission")
 public class MainActivity extends Activity {
-    static final String URL = "https://akrixsoft.github.io/akrix-job/zamer/";
+    static final String URL = "https://akrixsoft.github.io/akrix-job/measure/app/";   /* Measure: новый адрес */
     WebView web; Ble ble; BluetoothAdapter ad;
     boolean pendingBt, offline;
 
@@ -77,7 +77,7 @@ public class MainActivity extends Activity {
             if (!r.isForMainFrame() || offline) return;
             offline = true;   /* нет сети и нет кэша сайта: копия Замера из APK под тем же адресом — данные те же */
             v.loadDataWithBaseURL(URL, asset("zamer.html"), "text/html", "utf-8", URL);
-            toast("Нет сети — Замер из приложения");
+            toast("Нет сети — Measure из приложения");
         }
     }
     String asset(String n) {

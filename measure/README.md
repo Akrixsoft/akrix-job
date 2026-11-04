@@ -1,18 +1,9 @@
-# Measure (Замер Akrix) — папка приложения
+# Measure (бывш. «Замер Akrix») — всё приложение в одной папке
 
-Приложение «Замер» переименовано в **Measure**. Здесь собираются все его данные в akrix-job.
+- `app/` — сайт приложения: https://akrixsoft.github.io/akrix-job/measure/app/ (index.html, sw.js, manifest, иконки, лист маркеров).
+- `android/` — исходники APK (WebView-оболочка + Bluetooth GLM): URL — `.../measure/app/`, имя Measure, applicationId `ge.akrix.measure`.
+- `apk/` — собранный APK `measure.apk` и `version.json` (собирает `.github/workflows/measure-apk.yml` при изменениях в `measure/android/`).
+- `logo/` — логотип (svg, иконки 192/512); `design/` — утверждённый макет интерфейса (артефакт https://claude.ai/artifact/JAxzAH9cPPVw79V4nj6JWo).
 
-## Сейчас (v43)
-- `logo/` — утверждённый логотип: `measure_logo.svg` (значок), `measure_wordmark.svg` (значок + Measure), `icon-192.png`, `icon-512.png`.
-- `design/measure_mockups.html` — утверждённый макет интерфейса (артефакт: https://claude.ai/artifact/JAxzAH9cPPVw79V4nj6JWo).
-
-## Пока на старых местах (переезд — в первом релизе Measure, вместе с пересборкой APK)
-- сайт: `zamer/` (index.html, sw.js, manifest, иконки) — APK открывает `https://akrixsoft.github.io/akrix-job/zamer/`;
-- исходники APK: `android-zamer/` (MainActivity.URL);
-- APK и версия: `apk/akrix-zamer.apk`, `apk/zamer-version.json`;
-- сборка: `.github/workflows/zamer-apk.yml`.
-
-## План переезда (утвердить)
-1. `zamer/` → `measure/app/`; в `zamer/index.html` — переход на `../measure/app/` (старые APK продолжают работать).
-2. `android-zamer/` → `measure/android/`, URL в MainActivity → `.../measure/app/`, иконка и имя — Measure.
-3. APK → `measure/apk/measure.apk`, версия → `measure/apk/version.json`; workflow — новые пути.
+Исходники страницы, тесты и история версий — akrix-soft/zamer-dev (сборка: eNN.py → build.py → pub_measure.py).
+Старые места (`zamer/`, `android-zamer/`, `apk/akrix-zamer.apk`) убраны: приложением ещё не пользовались.
