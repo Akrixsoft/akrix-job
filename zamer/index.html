@@ -137,6 +137,7 @@ body.mk #rl{top:76px}
 #zf.m-wall>#fr,#zf.c-plan.m-dim>#fr{display:flex}
 #zf>#pp{position:relative;left:auto;right:auto;bottom:auto;border-top:1px solid var(--ln);padding:4px 6px}
 #zf.m-exp>#pp{display:none!important}
+#pp.cmp:not(.on){display:none!important}   /* v23: панели нет — полосы нет */
 #pp.cmp{display:flex!important;flex-wrap:nowrap;overflow-x:auto;align-items:center;gap:8px;scrollbar-width:none}
 #pp.cmp>.row{flex:0 0 auto;flex-wrap:nowrap;margin:0}
 #pp.cmp>.row+.row{border-left:1px solid var(--ln);padding-left:8px}
@@ -221,7 +222,7 @@ const S = { frames: [], sol: null, mosaic: null, tool: 'view', rulers: [], pend:
   sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'sel', und: [], la: {},
   mode: 'wall', room: null, room0: null, psel: null, pund: [], planL: null, wsh: {}, adim: true, dimHits: [], dfoc: null, msel: [], rsr: null, colOpen: false, notes: [], nsel: null, gOpen: false, gsel: '2.0', objRooms: [], pf: null, poolW: [] };   /* v13: pf — выбранный кадр пула, poolW — кадры замеров стен объекта */   /* v11: objRooms — другие помещения объекта */   /* v10: notes — выноски, gsel — точка сетки 'ряд.столбец' */   /* v8: msel — группа (рамка выделения), rsr — рамка на экране */   /* v7: adim — авторазмеры всех объектов; dimHits — подписи размеров под пальцем; dfoc — поле размера в фокусе */   /* v6: mode 'plan' — план помещения */   /* v5: la — привязка концов линий к кадрам */   /* v4: mk 'sel' — выбор и правка */   /* v2: замер, разметка */
 const $ = id => document.getElementById(id);
-const ZVER = 'v22';
+const ZVER = 'v23';
 const PEN = { seen: false, mode: (() => { try { return localStorage.getItem('zamer.pen') || 'auto' } catch (e) { return 'auto' } })(), on() { return this.mode === 'auto' && this.seen } };   /* v21: стилус и палец */   /* v18: номер версии — подставляет build.py */
 function setNum(id) { const v = $(id).value.trim(); if (!v) return null; try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) && r > 0 ? r : null } catch (e) { return null } }
 function sizeOf(id) { return id >= 100 ? (setNum('sA5') || 120) : (setNum('sA4') || 180) }
@@ -708,9 +709,9 @@ function drawRulers() {
 }
 function updRul() {
   const el = $('rl'); el.classList.toggle('on', S.rulers.length > 0);
-  el.innerHTML = S.rulers.map((r, i) => `<div><b>${i + 1}</b> ${f1(rLen(r))} мм <span style="color:var(--mu)">ΔX ${f1(r.b[0] - r.a[0])} ΔY ${f1(r.b[1] - r.a[1])}</span><i data-rd="${i}" title="Удалить (нажать дважды)">✕</i></div>`).join('');
+  el.innerHTML = S.rulers.map((r, i) => `<div><b>${i + 1}</b> ${f1(rLen(r))} мм <span style="color:var(--mu)">ΔX ${f1(r.b[0] - r.a[0])} ΔY ${f1(r.b[1] - r.a[1])}</span><i data-rd="${i}" title="Удалить (↶ — вернуть)">✕</i></div>`).join('');
 }
-$('rl').addEventListener('click', e => { const t = e.target.closest('[data-rd]'); if (!t) return; if (!t.classList.contains('arm')) { t.classList.add('arm'); setTimeout(() => t.classList.remove('arm'), 2500); return } S.rulers.splice(+t.dataset.rd, 1); updRul(); draw(); saveSess() });
+$('rl').addEventListener('click', e => { const t = e.target.closest('[data-rd]'); if (!t) return; { const i = +t.dataset.rd, r = S.rulers[i]; S.rulers.splice(i, 1); zaAdd(() => { S.rulers.splice(Math.min(i, S.rulers.length), 0, r); updRul(); draw(); saveSess() }, () => { const j = S.rulers.indexOf(r); if (j >= 0) S.rulers.splice(j, 1); updRul(); draw(); saveSess() }); toast('Отрезок удалён · ↶ — вернуть') } updRul(); draw(); saveSess() });   /* v23: одно касание, ↶ */
 
 /* ═══ [BLOCK] ОБРАБОТКА И СТАТУС ═══ */
 const tick = () => new Promise(r => setTimeout(r, 0));
@@ -757,11 +758,12 @@ function strip() {
     const d = document.createElement('div'); d.className = 'th' + (f.h ? '' : ' bad') + (S.show === i ? ' sel' : '');
     d.title = f.name; d.appendChild(f.thumb);
     const s = document.createElement('span'); s.textContent = `${i + 1} · № ${f.det.map(m => m.id).join(',') || '—'}${f.rms != null ? ' · ' + f1(f.rms) : ''}`; d.appendChild(s);
-    const x = document.createElement('i'); x.textContent = '✕'; x.title = 'Убрать кадр (нажать дважды)'; d.appendChild(x);
-    x.onclick = ev => { ev.stopPropagation(); if (!x.classList.contains('arm')) { x.classList.add('arm'); setTimeout(() => x.classList.remove('arm'), 2500); return } const [rm] = S.frames.splice(i, 1); if (rm && rm.key && !rm.pool) dbDel('img', rm.key).catch(() => { }); if (rm && rm.pool) poolFree(rm.key);   /* v13 */ S.show = -1; recompute().then(saveSess) };
+    const x = document.createElement('i'); x.textContent = '✕'; x.title = 'Убрать кадр в корзину (↶ — вернуть)'; d.appendChild(x);
+    x.onclick = ev => { ev.stopPropagation(); zFrDel(f) };   /* v23: в корзину кадров, ↶ */
     d.onclick = () => { S.show = S.show === i ? -1 : i; strip(); fit() };
     el.appendChild(d);
   });
+  zFrBin(el);   /* v23: корзина кадров */
 }
 
 /* ═══ [BLOCK] ХРАНИЛИЩЕ (IndexedDB на телефоне: замеры и исходные кадры) ═══ */
@@ -797,7 +799,7 @@ async function saveNow() { clearTimeout(saveT); if (S.sess) await doSave() }   /
 async function doSave() {
   {
     if (S.recomp) return saveSess(); anchorAll();   /* v5 */
-    const o = S.sess; o.wsh = S.wsh; if (S.sol) try { o.out = exportObj() } catch (e) { }   /* v6: снимок для выгрузки помещения */ Object.assign(o, { upd: Date.now(), frames: S.frames.filter(f => f.key).map(f => f.pool ? { key: f.key, name: f.name, pool: 1 } : { key: f.key, name: f.name }),   /* v13: pool — кадр из пула */ lines: S.lines, la: S.la, man: S.man, els: S.els, notes: S.notes, rulers: S.rulers, set: { a4: $('sA4').value, a5: $('sA5').value, max: $('sMax').value, dist: $('sDist').value }, q: S.sol ? { rms: S.sol.rms, mk: S.sol.mks.length } : null });
+    const o = S.sess; o.wsh = S.wsh; if (S.sol) try { o.out = exportObj() } catch (e) { }   /* v6: снимок для выгрузки помещения */ Object.assign(o, { upd: Date.now(), frames: S.frames.filter(f => f.key).map(f => f.pool ? { key: f.key, name: f.name, pool: 1 } : { key: f.key, name: f.name }),   /* v13: pool — кадр из пула */ lines: S.lines, la: S.la, man: S.man, els: S.els, notes: S.notes, rulers: S.rulers, und: S.und.filter(t => !t.startsWith('ZA:')).slice(-40), set: { a4: $('sA4').value, a5: $('sA5').value, max: $('sMax').value, dist: $('sDist').value }, q: S.sol ? { rms: S.sol.rms, mk: S.sol.mks.length } : null });
     await dbPut('sess', JSON.parse(JSON.stringify(o))).catch(() => { });
   }
 }
@@ -813,9 +815,9 @@ async function sessList(on) {
     : `<b>${esc(o.obj || '—')}</b> · ${esc(o.name || '')}<small>${fdt(o.upd || o.created)} · кадров ${(o.frames || []).length} · элементов ${(o.els || []).length}${o.q ? ' · СКО ' + f1(o.q.rms) : ''}</small>`;
   for (const o of Lv) {
     const d = document.createElement('div'); d.className = 'it';
-    d.innerHTML = `<div>${line(o)}</div><i title="Удалить (нажать дважды) — в «Удалённые», можно вернуть">✕</i>`;
+    d.innerHTML = `<div>${line(o)}</div><i title="В «Удалённые» — можно вернуть ↺">✕</i>`;
     d.querySelector('div').onclick = () => o.kind === 'room' ? openRoom(o.id) : openSess(o.id);
-    arm(d.querySelector('i'), async () => { o.del = Date.now(); await dbPut('sess', o).catch(() => { }); if (S.room && S.room.id === o.id) { leavePlan(); clearAll() } if (S.sess && S.sess.id === o.id) clearAll(); toast('В «Удалённые» · ↺ — вернуть'); sessList(true) });
+    d.querySelector('i').onclick = async () => { o.del = Date.now(); await dbPut('sess', o).catch(() => { }); if (S.room && S.room.id === o.id) { leavePlan(); clearAll() } if (S.sess && S.sess.id === o.id) clearAll(); toast('В «Удалённые» · ↺ — вернуть'); sessList(true) };   /* v23: одно касание */
     el.appendChild(d);
   }
   if (!Ld.length) return;   /* v17: удалённые */
@@ -829,9 +831,9 @@ async function sessList(on) {
   }
 }
 async function sessPurge(o) {   /* навсегда: замер / помещение со стенами, кадрами пула, подложкой и удалёнными картинками */
-  if (o.kind === 'room') { for (const sid of Object.values(o.segs || {})) { const w = await dbGet('sess', sid); if (w) { for (const f of w.frames || []) await dbDel('img', f.key).catch(() => { }); await dbDel('sess', sid) } }
+  if (o.kind === 'room') { for (const sid of Object.values(o.segs || {})) { const w = await dbGet('sess', sid); if (w) { for (const f of [...(w.frames || []), ...(w.fbin || [])]) await dbDel('img', f.key).catch(() => { }); await dbDel('sess', sid) } }
     for (const k of [...(o.pool || []).map(e => e.key), ...(o.ul ? [o.ul.key] : []), ...(o.bin || [])]) await dbDel('img', k).catch(() => { }) }
-  else for (const f of o.frames || []) await dbDel('img', f.key).catch(() => { });
+  else for (const f of [...(o.frames || []), ...(o.fbin || [])]) await dbDel('img', f.key).catch(() => { });   /* v23: и корзина кадров */
   await dbDel('sess', o.id).catch(() => { });
 }
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -846,7 +848,7 @@ async function openSess(id) {
   if (S.mode === 'plan') leavePlan();
   clearAll(); S.sess = o; S.lines = o.lines || {}; S.la = o.la || {}; S.wsh = o.wsh || {};
   if (o.room) { const r = await dbGet('sess', o.room); if (r) { S.room0 = r; const L = plLen(r.ms, o.seg); S.planL = L && L.ok ? L.v : null } }   /* v6: длина стены из плана */
-  $('bSes').title = o.room ? 'К плану помещения' : 'Замеры: список, новый, открыть'; S.man = o.man || {}; S.els = o.els || []; S.notes = o.notes || []; S.rulers = o.rulers || [];
+  $('bSes').title = o.room ? 'К плану помещения' : 'Замеры: список, новый, открыть'; S.man = o.man || {}; S.els = o.els || []; S.notes = o.notes || []; S.und = (o.und || []).slice(); S.red = [];   /* v23: ↶ из базы */ S.rulers = o.rulers || [];
   const st = o.set || {}; $('sA4').value = st.a4 || ''; $('sA5').value = st.a5 || ''; $('sMax').value = st.max || ''; $('sDist').value = st.dist || 'auto';
   sessList(false); title();
   const files = [], keys = [];
@@ -1052,8 +1054,8 @@ function tbOpen() {
 }
 function snap() { S.und.push(JSON.stringify({ lines: S.lines, els: S.els, man: S.man, notes: S.notes })); if (S.und.length > 60) S.und.shift() }
 function unsnap() { const t = S.und[S.und.length - 1]; if (t && t === JSON.stringify({ lines: S.lines, els: S.els, man: S.man, notes: S.notes })) S.und.pop() }   /* правка без изменений — не шаг истории */
-function undo() { const t = S.und.pop(); if (!t) return; const o = JSON.parse(t); S.lines = o.lines; S.els = o.els; S.man = o.man; S.notes = o.notes || S.notes; if (S.nsel && !S.notes.some(n => n.id === S.nsel)) S.nsel = null; S.msel = S.msel.filter(id => S.els.some(e => e.id === id)); if (S.sel && !S.els.find(e => e.id === S.sel)) S.sel = null; mkChips(); mkPanel(); status(); if (Math.abs(viewRot() - (S.view.rot || 0)) > 1e-9) fit(); else draw(); saveSess(); refreshDisp() }
-addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !/INPUT|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); undo() } });
+function undo() { const t = S.und.pop(); if (!t) return; if (t.startsWith('ZA:')) { const a = ZA.get(t); if (a) a.u(); return }   /* v23 */ const o = JSON.parse(t); S.lines = o.lines; S.els = o.els; S.man = o.man; S.notes = o.notes || S.notes; if (S.nsel && !S.notes.some(n => n.id === S.nsel)) S.nsel = null; S.msel = S.msel.filter(id => S.els.some(e => e.id === id)); if (S.sel && !S.els.find(e => e.id === S.sel)) S.sel = null; mkChips(); mkPanel(); status(); if (Math.abs(viewRot() - (S.view.rot || 0)) > 1e-9) fit(); else draw(); saveSess(); refreshDisp() }
+addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !/INPUT|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); zUndo() } if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y' && !/INPUT|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); zRedo() } });   /* v23 */
 function elRect(e, W) {                        // углы элемента в плоскости (с поворотом стены)
   W = W || wf(); const w = (+e.W || +e.D || 60), h = (+e.H || +e.D || 60), N = Math.max(1, Math.round(+e.N || 1)), st = +e.st || w;
   const c = toW(e.c, W), tw = w + (N - 1) * st;
@@ -1410,11 +1412,11 @@ function mkPanel() {
   if (S.nsel && S.notes.some(n => n.id === S.nsel)) return nPanel(pp);   /* v10 */
   if (!e && S.msel.length) {   /* v8: группа */
     pp.innerHTML = `<div class="row"><span class="t">Выбрано ${S.msel.length}</span><span class="mu">тянуть любой — переносится группа</span><span style="flex:1"></span><button id="bUn" title="Отменить">↶</button></div>
-      <div class="row"><button id="gAcc">✓ подтвердить</button><button id="gDel" title="Удалить (нажать дважды)">✕ удалить</button><button id="gClr">снять выбор</button></div>`;
+      <div class="row"><button id="gAcc">✓ подтвердить</button><button id="gDel" title="Удалить (↶ — вернуть)">✕ удалить</button><button id="gClr">снять выбор</button></div>`;
     $('gAcc').onclick = () => { snap(); S.els.forEach(x => { if (S.msel.includes(x.id)) delete x.cand }); saveSess(); draw() };
-    const gd = $('gDel'); gd.onclick = () => { if (!gd.classList.contains('arm')) { gd.classList.add('arm'); setTimeout(() => gd.classList.remove('arm'), 2500); return } snap(); S.els = S.els.filter(x => !S.msel.includes(x.id)); S.msel = []; status(); mkPanel(); draw(); saveSess() };
+    const gd = $('gDel'); gd.onclick = () => { snap(); S.els = S.els.filter(x => !S.msel.includes(x.id)); S.msel = []; toast('Удалено · ↶ — вернуть'); status(); mkPanel(); draw(); saveSess() };
     $('gClr').onclick = () => { S.msel = []; mkPanel(); draw() };
-    $('bUn').onclick = undo; return;
+    $('bUn').onclick = zUndo; return;
   }
   if (!e) {
     const d = dims(), f = (k, t) => `<label>${t}<input data-man="${k}" inputmode="decimal" placeholder="${k === 'Lb' && S.planL != null ? 'план ' + S.planL : d[k] != null ? f1(d[k]) : '—'}" value="${esc(S.man[k] || '')}"></label>`;
@@ -1434,7 +1436,7 @@ function mkPanel() {
     const opts = KINDS.filter(k => !k.line && !!k.pt === !!K.pt).map(k => `<option value="${k.k}"${k.k === e.k ? ' selected' : ''}>${k.n}</option>`).join('');
     const fi = (k, t, v, ph) => `<label>${t}<input data-ef="${k}" inputmode="decimal" placeholder="${ph || ''}" value="${v === '' || v == null ? '' : esc(v)}"></label>`;
     pp.innerHTML = `<div class="row"><select data-ef="k">${opts}</select>${fi('X', K.rc ? 'X лев.' : 'X', f1(X).replace(',', '.'))}${fi('Y', K.rc ? 'Y низ' : 'Y', f1(Y).replace(',', '.'))}<span style="flex:1"></span><button id="bUn" title="Отменить (Ctrl+Z)">↶</button><button id="bOk" title="Готово">✓</button></div>
-      <div class="row">${fi('W', 'Ш', g.W, 'нет')}${fi('H', 'В', g.H, 'нет')}${K.pt ? fi('D', 'Ø', g.D, '') + fi('N', '×', e.N, '1') + fi('st', 'шаг', g.st, '') : ''}${K.pt ? '<button id="bFit" title="Подобрать рамку по фото">⊡</button>' : ''}<button id="bDel" title="Удалить (нажать дважды)">✕</button></div>
+      <div class="row">${fi('W', 'Ш', g.W, 'нет')}${fi('H', 'В', g.H, 'нет')}${K.pt ? fi('D', 'Ø', g.D, '') + fi('N', '×', e.N, '1') + fi('st', 'шаг', g.st, '') : ''}${K.pt ? '<button id="bFit" title="Подобрать рамку по фото">⊡</button>' : ''}<button id="bDel" title="Удалить (↶ — вернуть)">✕</button></div>
       ${elDimRow(e)}
       <div class="row"><input class="wide" data-ef="note" placeholder="примечание" value="${esc(e.note || '')}">${e.cand ? '<span class="mu">найден автоматически</span><button id="bAcc" title="Подтвердить">✓ да</button>' : ''}</div>`;
     pp.querySelectorAll('[data-ef]').forEach(i => i.onchange = () => {
@@ -1451,12 +1453,12 @@ function mkPanel() {
       unsnap(); mkPanel(); status(); draw(); saveSess();
     });
     const bf = $('bFit'); if (bf) bf.onclick = () => { const f = autofit(e.c); if (f) { snap(); e.c = f.c; e.W = f.W; e.H = f.H; mkPanel(); draw(); saveSess() } else { bf.textContent = '✗'; setTimeout(() => bf.textContent = '⊡', 1200) } };
-    const bd = $('bDel'); bd.onclick = () => { if (!bd.classList.contains('arm')) { bd.classList.add('arm'); setTimeout(() => bd.classList.remove('arm'), 2500); return } snap(); S.els = S.els.filter(x => x !== e); S.sel = null; mkPanel(); status(); draw(); saveSess() };
+    const bd = $('bDel'); bd.onclick = () => { snap(); S.els = S.els.filter(x => x !== e); S.sel = null; toast('Удалено · ↶ — вернуть'); mkPanel(); status(); draw(); saveSess() };
     $('bOk').onclick = () => { if (e.cand) { snap(); delete e.cand; saveSess() } S.sel = null; S.dfoc = null; mkPanel(); draw() };
     const ba = $('bAcc'); if (ba) ba.onclick = () => { snap(); delete e.cand; saveSess(); mkPanel(); draw() };
     elDimBind(pp, e);   /* v7 */
   }
-  const bu = $('bUn'); if (bu) bu.onclick = undo;
+  const bu = $('bUn'); if (bu) bu.onclick = zUndo;
 }
 
 /* ─── [SUB] панель авторазмеров (v7) ─── */
@@ -1576,11 +1578,11 @@ function nHit(p) {
 function nDrag(g, p) { const n = S.notes.find(x => x.id === g.vdrag.id); if (!n) return; if (!g.vdrag.sn) { snap(); g.vdrag.sn = true } n[g.vdrag.end] = add(g.vdrag.c0, sub(toPl(...p), g.vdrag.q0)); S.nsel = n.id; draw() }
 function nPanel(pp) {
   const n = S.notes.find(x => x.id === S.nsel);
-  pp.innerHTML = `<div class="row"><span class="t">Выноска</span><input class="wide" data-nt placeholder="комментарий" value="${esc(n.tx || '')}" style="flex:1;text-align:left"><button id="nDel" title="Удалить (нажать дважды)">✕</button><button id="bUn" title="Отменить">↶</button><button id="nOk" title="Готово">✓</button></div>
+  pp.innerHTML = `<div class="row"><span class="t">Выноска</span><input class="wide" data-nt placeholder="комментарий" value="${esc(n.tx || '')}" style="flex:1;text-align:left"><button id="nDel" title="Удалить (↶ — вернуть)">✕</button><button id="bUn" title="Отменить">↶</button><button id="nOk" title="Готово">✓</button></div>
     <div class="row mu">тянуть подпись или точку — перенос; слой «выноски» — ◫</div>`;
   const i = pp.querySelector('[data-nt]'); i.onchange = () => { if (i.value === (n.tx || '')) return; snap(); n.tx = i.value.trim(); saveSess(); draw() };
-  const bd = $('nDel'); bd.onclick = () => { if (!bd.classList.contains('arm')) { bd.classList.add('arm'); setTimeout(() => bd.classList.remove('arm'), 2500); return } snap(); S.notes = S.notes.filter(x => x !== n); S.nsel = null; saveSess(); mkPanel(); draw() };
-  $('nOk').onclick = () => { S.nsel = null; mkPanel(); draw() }; $('bUn').onclick = undo;
+  const bd = $('nDel'); bd.onclick = () => { snap(); S.notes = S.notes.filter(x => x !== n); toast('Выноска удалена · ↶ — вернуть'); S.nsel = null; saveSess(); mkPanel(); draw() };
+  $('nOk').onclick = () => { S.nsel = null; mkPanel(); draw() }; $('bUn').onclick = zUndo;
 }
 function nOut(W, C) { return S.notes.map(n => { const a = toWc(n.p, W, C), b = toWc(n.t, W, C); return { x: r1(a[0]), y: r1(a[1]), tx: r1(b[0]), ty: r1(b[1]), text: n.tx || '' } }) }
 /* ═══ [BLOCK] СЛОИ ВИДИМОСТИ (v10): размеры, геометрия, выноски, коммуникации, проёмы и элементы, зоны, фото; хранятся в localStorage 'zamer.lay' ═══ */
@@ -1730,14 +1732,14 @@ function poolPanel() {
   pp.innerHTML = `<div class="row"><span class="t">Кадр ${i + 1} / ${L.length}</span><span class="mu">→ ${wl}${e.ws ? ' · снят в замере стены' : ''}</span><span style="flex:1"></span><button id="bPfX" title="Снять выбор">✕</button></div>
     <div class="row" style="justify-content:center"><img id="pfImg" style="max-height:90px;max-width:100%;border-radius:6px" alt=""></div>
     ${e.ws ? '' : `<div class="row"><span class="mu">стена:</span>${ch || '<span class="mu">нет стен — сначала контур</span>'}<button data-pw="-1" title="Снять назначение">—</button></div>`}
-    <div class="row">${e.w && o ? `<button id="bPfW" style="flex:1;height:36px;background:var(--ac);color:#111;border-color:var(--ac)">📷 Фото-замер С${wN(o, e.w.k)}</button>` : ''}${e.ws ? '' : '<button id="bPfU" title="Это план квартиры — положить подложкой (⌂ по плану, ✎ штрих)">📐 это план</button><button id="bPfD" title="Удалить кадр из пула (нажать дважды)">🗑</button>'}</div>
+    <div class="row">${e.w && o ? `<button id="bPfW" style="flex:1;height:36px;background:var(--ac);color:#111;border-color:var(--ac)">📷 Фото-замер С${wN(o, e.w.k)}</button>` : ''}${e.ws ? '' : '<button id="bPfU" title="Это план квартиры — положить подложкой (⌂ по плану, ✎ штрих)">📐 это план</button><button id="bPfD" title="Удалить кадр из пула (↶ — вернуть)">🗑</button>'}</div>
     <div class="row mu">${e.ws ? 'кадр замера стены — правка в самой стене' : 'касание стены на плане или чип — назначить; дальше — следующий кадр без стены'}</div>`;
   dbGet('img', e.key).then(b => { const im = $('pfImg'); if (b && im) im.src = URL.createObjectURL(b) }).catch(() => { });
   $('bPfX').onclick = () => { S.pf = null; mkPanel(); strip(); draw() };
   pp.querySelectorAll('[data-pw]').forEach(b => b.onclick = () => { const k = +b.dataset.pw; poolSet(e.key, k < 0 ? null : S.room, k < 0 ? null : k, k >= 0) });
   const bw = $('bPfW'); if (bw) bw.onclick = async () => { if (o !== S.room) { await openRoom(o.id, null, true) } S.psel = { t: 's', i: e.w.k }; openWall(e.w.k) };
   const bu = $('bPfU'); if (bu) bu.onclick = async () => { const b = await dbGet('img', e.key).catch(() => null); if (!b) return; const own = poolOwner(e.key); plSnap(); if (own) { own.pool = own.pool.filter(x => x.key !== e.key); own.bin = [...(own.bin || []), e.key]; poolPut(own) } S.pf = null; await ulAdd(b instanceof File ? b : new File([b], e.name || 'план.jpg', { type: b.type || 'image/jpeg' })) };   /* v19: кадр пула → план-подложка */
-  const bd = $('bPfD'); if (bd) bd.onclick = () => { if (!bd.classList.contains('arm')) { bd.classList.add('arm'); setTimeout(() => bd.classList.remove('arm'), 2500); return } poolDel(e.key) };
+  const bd = $('bPfD'); if (bd) bd.onclick = () => { poolDel(e.key) };
 }
 
 /* ═══ [BLOCK] ПЛАН-ПОДЛОЖКА И РАСПОЗНАВАНИЕ (v14, по rec/r2.py): фото / скан плана под контурами; стены — тёмная заливка (размыкание) + штриховка перегородок; «⌂ по плану» — касание в помещении → контур по внутренним граням; масштаб — по одному размеру ═══ */
@@ -1771,13 +1773,13 @@ function ulDraw() {
 }
 function ulRow() {
   const o = ulGet(), u = o && o.ul;
-  return `<div class="row"><label class="ulb">📐 ${u ? 'другой план' : 'план'}<input data-ul type="file" accept="image/*" style="display:none"></label>${u ? `<span class="mu">${u.ok ? r1(u.s) + ' мм/px' : '<span style="color:var(--er)">масштаб ≈</span>'}</span>${(u.st || []).length ? `<button data-stx title="Удалить все штрихи (↶ — вернуть)">✕ штрихи ${u.st.length}</button>` : ''}<button data-ulh title="Показать / скрыть план">${UL.hide ? '◌' : '◉'}</button><button data-ulx title="Убрать план (нажать дважды)">✕</button>` : ''}</div>`;
+  return `<div class="row"><label class="ulb">📐 ${u ? 'другой план' : 'план'}<input data-ul type="file" accept="image/*" style="display:none"></label>${u ? `<span class="mu">${u.ok ? r1(u.s) + ' мм/px' : '<span style="color:var(--er)">масштаб ≈</span>'}</span>${(u.st || []).length ? `<button data-stx title="Удалить все штрихи (↶ — вернуть)">✕ штрихи ${u.st.length}</button>` : ''}<button data-ulh title="Показать / скрыть план">${UL.hide ? '◌' : '◉'}</button><button data-ulx title="Убрать план (↶ — вернуть)">✕</button>` : ''}</div>`;
 }
 function ulBind(pp) {
   const i = pp.querySelector('[data-ul]'); if (i) i.onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) ulAdd(f) };
   const sx = pp.querySelector('[data-stx]'); if (sx) sx.onclick = () => { const o = ulGet(); if (!o) return; plSnap(); o.ul.st = []; UL.stv++; S.ust = null; ulPut(o); mkPanel(); draw(); toast('Штрихи удалены · ↶ — вернуть') };   /* v21 */
   const h = pp.querySelector('[data-ulh]'); if (h) h.onclick = () => { UL.hide = !UL.hide; mkPanel(); draw() };
-  const x = pp.querySelector('[data-ulx]'); if (x) x.onclick = () => { if (!x.classList.contains('arm')) { x.classList.add('arm'); setTimeout(() => x.classList.remove('arm'), 2500); return } const o = ulGet(); if (!o) return; plSnap(); o.bin = [...(o.bin || []), o.ul.key]; delete o.ul; ulPut(o); toast('План убран · ↶ — вернуть');   /* v17: картинка остаётся до удаления помещения навсегда */ UL.key = null; UL.c = null; UL.M = null; if (PL.tool === 'rm') PL.tool = 'sel'; mkChips(); mkPanel(); status(); draw() };
+  const x = pp.querySelector('[data-ulx]'); if (x) x.onclick = () => { const o = ulGet(); if (!o) return; plSnap(); o.bin = [...(o.bin || []), o.ul.key]; delete o.ul; ulPut(o); toast('План убран · ↶ — вернуть');   /* v17: картинка остаётся до удаления помещения навсегда */ UL.key = null; UL.c = null; UL.M = null; if (PL.tool === 'rm') PL.tool = 'sel'; mkChips(); mkPanel(); status(); draw() };
 }
 function ulScale(k, L, auto) {   /* масштаб плана: стена k активного помещения = L мм; подложка и помещения «по плану» — от начала стены */
   const o = ulGet(), m = S.room.ms; if (!o) return; const [a, b] = plSeg(m, k), Ls = Math.hypot(b[0] - a[0], b[1] - a[1]); if (!(Ls > 0) || !(L > 0)) return;
@@ -1895,7 +1897,7 @@ async function ulTap(p) {
   const o = ulGet(); if (!o || !UL.c) { toast('Нет плана: 📐 в панели помещения'); return }
   const q = toPl(...p), r0 = [S.room, ...S.objRooms].find(r => r && r.ms.closed && r.ms.pts.length > 2 && inPoly(q, r.ms.pts));
   const re = r0 && r0.ms.ul && !(r0.ms.dims || []).length && !Object.keys(r0.segs || {}).length;   /* v15: не обмерено — обвести заново */
-  if (r0 && !re) { if (r0 !== S.room) await openRoom(r0.id, null, true); PL.tool = 'rm'; mkChips(); toast('Уже обведено: ' + r0.name); return }
+  if (r0 && !re) { if (r0 !== S.room) await openRoom(r0.id, null, true); S.psel = plHit(p); if (S.psel) PL.tool = 'sel'; mkChips(); mkPanel(); status(); strip(); draw(); return }   /* v23: обведено — выбор: помещение, стена / угол → ↖ */
   if (re && r0 !== S.room) await openRoom(r0.id, null, true);
   const u = o.ul; $('busy').classList.add('on'); $('busy').textContent = 'распознавание плана…'; await tick();
   let res; try { res = ulContour((q[0] - u.x0) / u.s, (u.y0 - q[1]) / u.s) } catch (e) { res = { err: String(e && e.message || e) } }
@@ -1904,8 +1906,17 @@ async function ulTap(p) {
   const pts = res.P.map(([x, y]) => [Math.round(u.x0 + x * u.s), Math.round(u.y0 - y * u.s)]);
   if (re) { S.room.gn = {}; S.room.ms.ops = [] }   /* v15: новые отрезки — новые номера */
   else if (S.room.ms.pts.length) { if (!S.room.obj) { toast('Сначала — объект (панель помещения)'); return } await newRoom(S.room.obj, 'Помещение ' + (S.objRooms.length + 2), true) }
-  plSnap(); const m = S.room.ms; m.pts = pts; m.closed = true; m.ul = 1; S.psel = null; PL.tool = 'rm'; gnFix(); saveRoom(); mkChips(); mkPanel(); status(); strip(); draw();
+  plSnap(); const m = S.room.ms; m.pts = pts; m.closed = true; m.ul = 1; m.useed = [Math.round(q[0]), Math.round(q[1])]; S.psel = null; PL.tool = 'rm';   /* v23: точка касания — для перестройки; ⌂ остаётся — следующее помещение, касание обведённого — выбор */ gnFix(); saveRoom(); mkChips(); mkPanel(); status(); strip(); draw();
   toast(`Контур: углов ${pts.length} · ${S.room.name}`);
+}
+
+/* ─── [SUB] перестройка помещения «по плану» после штриха (v23): активное, обведено ⌂, не обмерено, точка касания сохранена ─── */
+async function ulRetrace() {
+  const o = ulGet(), r = S.room, m = r && r.ms; if (!o || !UL.c || !m || !m.ul || !m.useed || (m.dims || []).length || Object.keys(r.segs || {}).length) return 0;
+  const u = o.ul; let res; try { res = ulContour((m.useed[0] - u.x0) / u.s, (u.y0 - m.useed[1]) / u.s) } catch (e) { return 0 }
+  if (res.err || !res.P || res.P.length < 3) return 0;
+  m.pts = res.P.map(([x, y]) => [Math.round(u.x0 + x * u.s), Math.round(u.y0 - y * u.s)]); m.closed = true; r.gn = {}; m.ops = []; m.angs = {}; m.arcs = {}; m.rnd = {}; S.psel = null;
+  gnFix(); saveRoom(); mkPanel(); status(); strip(); draw(); return m.pts.length;
 }
 
 /* ═══ [BLOCK] ПОМОЩЬ ПО ПЛАНУ (v15, по rec/r3.py): ✎ штрих → стена (ось, толщина, грань, 0 / 90°), штрихи — преграды для «⌂ по плану»; ⊓ проём двумя касаниями ═══ */
@@ -1958,7 +1969,8 @@ async function ulStroke(sp) {
   const o = ulGet(); if (!o || !UL.c || sp.length < 2) return; const P = sp.map(ulPx), u = o.ul, M = ulMasks();
   if (Math.hypot(P[P.length - 1][0] - P[0][0], P[P.length - 1][1] - P[0][1]) < 15 * M.D) { draw(); return }
   const t = ulSnapSt(P); plSnap(); u.st = u.st || []; u.st.push(t);   /* v17: ↶ */ UL.stv++; S.ust = u.st.length - 1; ulPut(o); mkPanel(); draw();
-  toast(t.f ? `Стена: толщина ≈ ${Math.round(t.th * u.s)} мм · ⌂ — обвести заново` : 'Новая перегородка · ⌂ — обвести заново');
+  const rb = await ulRetrace();   /* v23: помещение «по плану» — перестроить сразу (тот же шаг ↶) */
+  toast((t.f ? `Стена: толщина ≈ ${Math.round(t.th * u.s)} мм` : 'Новая перегородка') + (rb ? ` · контур перестроен: углов ${rb}` : ''));
 }
 function stHit(p) {
   const o = ulGet(); if (!o) return null; const d = devicePixelRatio || 1; let best = null, bd = 16 * d;
@@ -2054,7 +2066,7 @@ function ctClear() { const r = S.room, m = r.ms; if (!m.pts.length) return; plSn
 function ctBind(pp) {
   const s = S.psel, b1 = $('bOpn'), b2 = $('bCtX'), b3 = $('bNdA'), b4 = $('bOpnK'), b5 = $('bNdX');
   if (b1) b1.onclick = () => ctOpen();
-  if (b2) b2.onclick = () => { if (!b2.classList.contains('arm')) { b2.classList.add('arm'); setTimeout(() => b2.classList.remove('arm'), 2500); return } ctClear() };
+  if (b2) b2.onclick = () => { ctClear(); toast('Контур удалён · ↶ — вернуть') };   /* v23 */
   if (b3) b3.onclick = () => ctAddNode(s.i); if (b4) b4.onclick = () => ctOpen(s.i); if (b5) b5.onclick = () => ctDelNode(s.i);
 }
 
@@ -2190,7 +2202,7 @@ function plFlip(m, k) {                        /* true — левый край �
   return vl[0] * d[0] + vl[1] * d[1] > 0;
 }
 let roomT = 0;
-function saveRoom() { const r = S.room; if (!r) return; clearTimeout(roomT); roomT = setTimeout(() => { r.upd = Date.now(); dbPut('sess', JSON.parse(JSON.stringify(r))).catch(() => { }) }, 250) }
+function saveRoom() { const r = S.room; if (!r) return; clearTimeout(roomT); roomT = setTimeout(() => { r.upd = Date.now(); r.und = S.pund.slice(-30);   /* v23: ↶ в базе */ dbPut('sess', JSON.parse(JSON.stringify(r))).catch(() => { }) }, 250) }
 function plSnap() { S.pund.push(JSON.stringify(plState())); if (S.pund.length > 60) S.pund.shift() }   /* v17: и удаления (кадры пула, подложка, штрихи) */
 function plState() { const o = ulGet(); return { v17: 1, ms: S.room.ms, gn: S.room.gn || {}, segs: S.room.segs || {}, pools: Object.fromEntries(poolRooms().map(r => [r.id, r.pool || []])), ul: o ? { id: o.id, ul: o.ul } : null } }
 async function plUndo() {
@@ -2211,7 +2223,7 @@ async function openRoom(id, rec, keep) {
   if (S.room) { clearTimeout(roomT); S.room.upd = Date.now(); await dbPut('sess', JSON.parse(JSON.stringify(S.room))).catch(() => { }) }   /* v11: текущее помещение — записать до перехода (соседи читаются из базы) */
   const r = rec || await dbGet('sess', id); if (!r) return;
   if (S.sess) { clearTimeout(saveT); await saveNow() }
-  clearAll(); S.mode = 'plan'; S.room = r; S.pund = []; S.psel = null; PL.tool = r.ms.pts.length && r.ms.closed ? 'sel' : 'ct';
+  clearAll(); S.mode = 'plan'; S.room = r; S.pund = (r.und || []).slice(); S.pred = [];   /* v23: ↶ из базы */ S.psel = null; PL.tool = r.ms.pts.length && r.ms.closed ? 'sel' : 'ct';
   document.body.classList.add('plan'); sessList(false); document.title = 'Замер · ' + (r.obj ? r.obj + ' · ' : '') + r.name;
   await objLoad(r); await gnAll();   /* v11 */
   await poolLoad();   /* v13 */
@@ -2265,6 +2277,8 @@ function plHit(p) {
   return null;
 }
 function plTap(p) {
+  { const m0 = S.room.ms, h0 = plHit(p);   /* v23: касание стены / угла — выбор в любом инструменте (кроме ⊓ и рисования контура) */
+    if ((PL.tool === 'ct' && m0.closed) || (h0 && ((PL.tool === 'rm' && zNear(p) < 8 * (devicePixelRatio || 1)) || (PL.tool === 'st' && !(ulGet() && stHit(p) != null))))) { PL.tool = 'sel'; S.ust = null; mkChips() } }
   if (PL.tool === 'rm') return ulTap(p);   /* v14 */
   if (PL.tool === 'st') return ulStTap(p);   /* v15 */
   if (PL.tool === 'op') return opTap(p);   /* v15 */
@@ -2308,13 +2322,13 @@ function plPanel() {
     pp.innerHTML = `<div class="row"><span class="t">${esc(S.room.name)}</span>${fi('H', 'H', m.H, 'мм', 64)}${!uo && !m.pts.length ? `<label class="ulb">📐 план<input data-ul type="file" accept="image/*" style="display:none"></label>` : ''}${uo && !uo.ul.ok ? '<span class="er" style="font-size:12px" title="Масштаб плана не задан: введите длину L любой стены">масштаб ≈</span>' : ''}<span style="flex:1"></span><button id="bRmM" title="Ещё: объект, помещение, план, контур"${S.rmMore ? ' class="arm" style="background:var(--ac);border-color:var(--ac)"' : ''}>⋯</button><button id="bPu" title="Отменить">↶</button></div>
       ${S.rmMore ? `<div class="row"><label>объект<input data-ob class="wide" value="${esc(S.room.obj || '')}" placeholder="клиент, адрес" style="text-align:left"></label></div>
       <div class="row"><input data-nr class="wide" placeholder="новое помещение" style="text-align:left"><button id="bAddR" title="Добавить помещение в объект — на этот же холст" style="background:var(--ac);border-color:var(--ac);color:#111">＋ помещение</button></div>
-      ${m.pts.length ? `<div class="row">${m.closed && m.pts.length > 2 ? '<button id="bOpn" title="Разомкнуть контур (убрать замыкающую стену) — правка узлов, ⌗ продолжает">⌇ разомкнуть</button>' : ''}<button id="bCtX" title="Удалить контур (нажать дважды; ↶ — вернуть)">✕ контур</button></div>` : ''}
+      ${m.pts.length ? `<div class="row">${m.closed && m.pts.length > 2 ? '<button id="bOpn" title="Разомкнуть контур (убрать замыкающую стену) — правка узлов, ⌗ продолжает">⌇ разомкнуть</button>' : ''}<button id="bCtX" title="Удалить контур (↶ — вернуть)">✕ контур</button></div>` : ''}
       ${ulRow()}` : ''}`;
   }
-  $('bPu').onclick = plUndo; plObjBind(pp); ulBind(pp); ctBind(pp);   /* v11; v14; v17 */
+  $('bPu').onclick = zUndo; plObjBind(pp); ulBind(pp); ctBind(pp);   /* v11; v14; v17 */
   const bm = $('bRmM'); if (bm) bm.onclick = () => { S.rmMore = !S.rmMore; plPanel() };   /* v21 */
   pp.querySelectorAll('[data-pf]').forEach(i => i.onchange = () => {
-    const k = i.dataset.pf, v = i.value.trim(), n = v ? evalN(v) : null; if (v && n == null) return plPanel(); plSnap();
+    const k = i.dataset.pf, v = i.value.trim(), n = v ? evalN(v) : null; if (v && n == null) return plPanel(); if (v === (i.defaultValue || '').trim()) return; plSnap();   /* v23: без изменений — не шаг ↶ */
     if (k === 'H') m.H = n == null ? '' : r1(n);
     else if (k === 'f') { m.arcs = m.arcs || {}; if (n) m.arcs[s.i] = r1(n); else delete m.arcs[s.i] }   /* v10 */
     else if (k === 'r') { m.rnd = m.rnd || {}; if (n > 0) m.rnd[s.i] = r1(n); else delete m.rnd[s.i] }   /* v10 */
@@ -2481,17 +2495,44 @@ function zExp() {   /* выгрузка: строка статуса целик�
 const zState = () => JSON.stringify({ lines: S.lines, els: S.els, man: S.man, notes: S.notes });
 async function zUndo() {
   if (S.mode === 'plan') { if (!S.pund.length) return toast('Отменять нечего'); S.pred.push(JSON.stringify(plState())); await plUndo() }
-  else { if (!S.und.length) return toast('Отменять нечего'); S.red.push(zState()); undo(); toast('↶ отменено') }
+  else { const t = S.und[S.und.length - 1]; if (!t) return toast('Отменять нечего'); S.red.push(t.startsWith('ZA:') ? t : zState()); undo(); toast('↶ отменено') }
   zLay();
 }
 async function zRedo() {
   if (S.mode === 'plan') { const t = S.pred.pop(); if (!t) return toast('Повторять нечего'); const c = JSON.stringify(plState()); S.pund.push(t); await plUndo(); S.pund.push(c) }
-  else { const t = S.red.pop(); if (!t) return toast('Повторять нечего'); const c = zState(); S.und.push(t); undo(); S.und.push(c) }
+  else { const t = S.red.pop(); if (!t) return toast('Повторять нечего'); if (t.startsWith('ZA:')) { const a = ZA.get(t); if (a) a.r(); S.und.push(t) } else { const c = zState(); S.und.push(t); undo(); S.und.push(c) } }
   toast('↷ повторено'); zLay();
+}
+/* v23: действия вне снимка разметки (линейка, кадры) — в той же истории ↶ ↷: 'ZA:n' → {u — отменить, r — повторить} */
+const ZA = new Map(); let zaN = 0;
+function zaAdd(u, r) { const id = 'ZA:' + (++zaN); ZA.set(id, { u, r }); S.und.push(id); S.red = []; if (S.und.length > 60) S.und.shift(); zLay(); return id }
+/* корзина кадров стены: ✕ — кадр из замера, картинка остаётся в базе (sess.fbin); ↶ или 🗑 — вернуть; навсегда — с замером */
+async function zFrDel(f, re) {
+  const i = S.frames.indexOf(f); if (i < 0) return; S.frames.splice(i, 1); S.show = -1;
+  if (f.pool) poolFree(f.key); else if (f.key) S.sess.fbin = [...(S.sess.fbin || []).filter(b => b.key !== f.key), { key: f.key, name: f.name || '' }];
+  if (!re) { zaAdd(() => zFrBack(f), () => zFrDel(S.frames.find(x => x.key === f.key) || f, 1)); toast('Кадр — в корзину · ↶ — вернуть') }
+  await recompute(); saveSess();
+}
+async function zFrBack(f) {
+  if (!S.sess || !f.key || S.frames.some(x => x.key === f.key)) return; const b = await dbGet('img', f.key).catch(() => null); if (!b) { toast('Кадр не найден'); return }
+  S.sess.fbin = (S.sess.fbin || []).filter(x => x.key !== f.key);
+  if (f.pool && S.sess.room) { const r = await dbGet('sess', S.sess.room).catch(() => null), all = r ? (r.obj ? ((await dbAll('sess').catch(() => [])) || []).filter(o => o.kind === 'room' && o.obj === r.obj) : [r]) : []; for (const o of all) { const e = (o.pool || []).find(x => x.key === f.key); if (e) { e.w = { r: S.sess.room, k: S.sess.seg }; await dbPut('sess', o).catch(() => { }) } } }
+  await addFiles([b instanceof File ? b : new File([b], f.name || 'кадр.jpg', { type: b.type || 'image/jpeg' })], [f.key]); const g = S.frames.find(x => x.key === f.key); if (g && f.pool) g.pool = 1; saveSess();
+}
+function zFrBin(el) {   /* плитка корзины в полосе кадров */
+  const n = S.sess && (S.sess.fbin || []).length; if (!n) return;
+  const d = document.createElement('div'); d.className = 'th'; d.id = 'zFrBin'; d.title = 'Корзина кадров: касание — вернуть последний'; d.style.cssText = 'display:flex;align-items:center;justify-content:center;flex-direction:column;background:var(--bt);color:var(--tx)';
+  d.innerHTML = `<b style="font-size:20px">🗑</b><small>${n}</small>`; d.onclick = () => { const b = S.sess.fbin[S.sess.fbin.length - 1]; zFrBack(b) }; el.appendChild(d);
 }
 const zSnap0 = snap, zPlSnap0 = plSnap;   /* новое действие — повтор сбрасывается */
 snap = function () { S.red = []; return zSnap0() };
 plSnap = function () { S.pred = []; return zPlSnap0() };
+const zSR0 = saveRoom; saveRoom = function () { const t = S.pund[S.pund.length - 1]; if (t && S.room && t === JSON.stringify(plState())) S.pund.pop(); return zSR0() };   /* v23: правка без изменений — не шаг ↶ */
+function zNear(p) {   /* v23: до ближайшей стены / угла активного помещения, px устройства */
+  const m = S.room.ms; let b = 1e9; for (const q of m.pts) { const s2 = toScr(...q); b = Math.min(b, Math.hypot(s2[0] - p[0], s2[1] - p[1])) }
+  for (let k = 0; k < plN(m); k++) { const [a, c] = plSeg(m, k).map(q => toScr(...q)), v = [c[0] - a[0], c[1] - a[1]], l2 = v[0] * v[0] + v[1] * v[1] || 1, t = Math.max(0, Math.min(1, ((p[0] - a[0]) * v[0] + (p[1] - a[1]) * v[1]) / l2)); b = Math.min(b, Math.hypot(a[0] + v[0] * t - p[0], a[1] + v[1] * t - p[1])) }
+  return b;
+}
 const zTool0 = tool; tool = function (t) { zTool0(t); zLay() };
 async function zDone() {   /* ✓: футляр — свернуть; стена помещения → план; иначе — сохранить и к списку */
   if (S.zSheet) return zSheet(false);
@@ -2528,7 +2569,7 @@ $('bBt').onclick = btConnect;
 addEventListener('resize', resize); resize(); mkChips();
 zInit();   /* v22: каркас */
 $('zVer').textContent = 'Замер ' + ZVER; $('zVer2').textContent = 'Akrix Замер ' + ZVER;   /* v18 */
-window.PM = { zmSet, zCur, zSheet, zLay, zUndo, zRedo, zDone, PEN, status, ZVER, geoBuild, plUndo, ctOpen, ctAddNode, ctDelNode, ctClear, sessList, opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
+window.PM = { zFrDel, zFrBack, ZA, ulRetrace, zmSet, zCur, zSheet, zLay, zUndo, zRedo, zDone, PEN, status, ZVER, geoBuild, plUndo, ctOpen, ctAddNode, ctDelNode, ctClear, sessList, opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
 dbOpen().then(() => { if (!/[?&]nolist/.test(location.search)) sessList(true) });
 </script>
