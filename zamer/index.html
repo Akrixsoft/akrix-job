@@ -171,11 +171,12 @@ body.mk #rl{top:76px}
 #zf>*{pointer-events:auto}
 #zf .zp,#zf>#pp,#zf>#fr,#zf>#zx,#zb>.zg,#zb>#ch{background:var(--pn);border:1px solid var(--ln);border-radius:14px;box-shadow:0 3px 12px rgba(26,32,39,.16)}
 #zf>#fr{height:80px;padding:5px 6px;display:none}
+#zf>#fr:empty{display:none!important}   /* v40: нет кадров — нет полосы */
 #zf.m-wall>#fr,#zf.c-plan.m-dim>#fr{display:flex}
 #zf>#pp{position:relative;left:auto;right:auto;bottom:auto;border-top:1px solid var(--ln);padding:4px 6px}
 #zf.m-exp>#pp{display:none!important}
 #pp.cmp:not(.on){display:none!important}   /* v23: панели нет — полосы нет */
-#pp.cmp{display:flex!important;flex-wrap:nowrap;overflow-x:auto;align-items:center;gap:8px;scrollbar-width:none}
+#pp.cmp{display:flex!important;flex-wrap:nowrap;overflow-x:auto;align-items:center;gap:8px;scrollbar-width:none;padding-right:0!important}   /* v40: справа от ⋯ — ничего */
 #pp.cmp>.row{flex:0 0 auto;flex-wrap:nowrap;margin:0}
 #pp.cmp>.row+.row{border-left:1px solid var(--ln);padding-left:8px}
 #pp.cmp .zs,#pp.cmp>.row>span.mu{display:none!important}
@@ -223,7 +224,7 @@ body.mk #rl{top:76px}
   <button id="bMore" title="Ещё: настройки, слои, линейка, маркеры">⋮</button><i id="zBt" title="Дальномер"></i>
 </div>
 <div id="hl" title="Коснуться — строка целиком"><span id="zIn"></span> <span id="st">Добавьте кадры: 📷 или 🖼.</span></div>
-<div id="zMenu"><button id="bSet" title="Настройки">⚙ Настройки</button><button id="bLay" title="Слои видимости">◫ Слои</button><button id="bRul" title="Линейка: два касания — отрезок, концы перетаскиваются">📏 Линейка</button><button id="bBak" title="Все замеры и кадры — в один файл">💾 Резервная копия</button><label id="bRes" title="Загрузить файл резервной копии (замеры с теми же номерами — заменяются)">♻ Восстановить<input id="fRes" type="file" accept=".json,application/json" style="display:none"></label></div>
+<div id="zMenu"><button id="bExp" title="Выгрузка для Akrix — после всего замера">⇪ Выгрузка для Akrix</button><button id="bSet" title="Настройки">⚙ Настройки</button><button id="bLay" title="Слои видимости">◫ Слои</button><button id="bRul" title="Линейка: два касания — отрезок, концы перетаскиваются">📏 Линейка</button><button id="bBak" title="Все замеры и кадры — в один файл">💾 Резервная копия</button><label id="bRes" title="Загрузить файл резервной копии (замеры с теми же номерами — заменяются)">♻ Восстановить<input id="fRes" type="file" accept=".json,application/json" style="display:none"></label></div>
 <canvas id="cv"></canvas>
 <div id="rl"></div>
 <div id="set">
@@ -258,7 +259,6 @@ body.mk #rl{top:76px}
   <button id="zmW" data-zm="wall" title="Стена: кадры, камера, просмотр"><i>📷</i></button>
   <button id="bMk" data-zm="mk" title="Разметка: пол, потолок, края, коммуникации, проёмы"><i>⌖</i></button>
   <button id="zmD" data-zm="dim" title="Размеры: L, H, лазер"><i>📏</i></button>
-  <button id="zmE" data-zm="exp" title="Выгрузка для Akrix"><i>⇪</i></button>
 </div>
 
 <script>
@@ -272,7 +272,7 @@ const S = { frames: [], sol: null, mosaic: null, tool: 'view', rulers: [], pend:
   sess: null, lines: {}, man: {}, els: [], sel: null, mk: 'sel', und: [], la: {},
   mode: 'wall', room: null, room0: null, psel: null, pund: [], planL: null, wsh: {}, adim: true, dimHits: [], dfoc: null, msel: [], rsr: null, colOpen: false, notes: [], nsel: null, gOpen: false, gsel: '2.0', objRooms: [], pf: null, poolW: [] };   /* v13: pf — выбранный кадр пула, poolW — кадры замеров стен объекта */   /* v11: objRooms — другие помещения объекта */   /* v10: notes — выноски, gsel — точка сетки 'ряд.столбец' */   /* v8: msel — группа (рамка выделения), rsr — рамка на экране */   /* v7: adim — авторазмеры всех объектов; dimHits — подписи размеров под пальцем; dfoc — поле размера в фокусе */   /* v6: mode 'plan' — план помещения */   /* v5: la — привязка концов линий к кадрам */   /* v4: mk 'sel' — выбор и правка */   /* v2: замер, разметка */
 const $ = id => document.getElementById(id);
-const ZVER = 'v39';
+const ZVER = 'v40';
 const PEN = { seen: false, mode: (() => { try { return localStorage.getItem('zamer.pen') || 'auto' } catch (e) { return 'auto' } })(), on() { return this.mode === 'auto' && this.seen } };   /* v21: стилус и палец */   /* v18: номер версии — подставляет build.py */
 function setNum(id) { const v = $(id).value.trim(); if (!v) return null; try { if (!/^[0-9+\-*/(). ,]+$/.test(v)) return null; const r = Function('return (' + v.replace(/,/g, '.') + ')')(); return isFinite(r) && r > 0 ? r : null } catch (e) { return null } }
 function sizeOf(id) { return id >= 100 ? (setNum('sA5') || 120) : (setNum('sA4') || 180) }
@@ -1179,6 +1179,7 @@ function mkTap(p) {
   if (S.mk === 'sel') { const nh = LAY.vyn ? nHit(p) : null; if (nh) { S.nsel = nh.id; S.sel = null; mkPanel(); draw(); return } const gh = LAY.geo ? gHit(p) : null; if (gh) { S.gsel = gh; S.gOpen = true; S.sel = null; S.nsel = null; mkPanel(); draw(); return } S.nsel = null;   /* v10 */
     if (S.msel.length) S.msel = []; { const zh = dmHit(p); S.dsel = zh; if (zh) { S.sel = null; mkPanel(); draw(); return } }   /* v24: размер / пометка */ const dh = S.adim ? dimHit(p) : null; if (dh) { S.sel = dh.id; S.dfoc = dh.ax; mkPanel(); draw(); return } const hit = mkHit(p); S.sel = hit ? hit.id : null; S.dfoc = null; mkPanel(); draw(); return }   /* v4; v7: подпись размера */
   const K = KD[S.mk];
+  if (K.line && S.q4 && S.q4.ok && !S.sol) { toast('Фото по 4 углам: пол, потолок и края — по углам · ⌗4 — заново'); return }   /* v40: оси не сбиваются касанием */
   if (K.line) {
     if (!S.pend) { S.pend = q } else { q = zMod(K.k, S.pend, q); snap(); S.lines[K.k] = [S.pend, q]; S.zRef = [S.pend, q];   /* v24: L / ∥ */ S.pend = null; mkChips(); status(); saveSess(); if (corrH() || S.dispC) { mkPanel(); return refreshDisp() } if (K.k === 'floor') { mkPanel(); return fit() } }
   } else if (K.pt) {
@@ -1867,7 +1868,7 @@ async function ulAdd(f) {
   const q = toPl(cv.width / 2, cv.height / 2), s = UL_S0;
   S.room.ul = { key, name: f.name || 'план', W: c.width, H: c.height, s, x0: Math.round(q[0] - c.width * s / 2), y0: Math.round(q[1] + c.height * s / 2), ok: false };
   UL.c = c; UL.key = key; UL.M = null; UL.W = null; PL.tool = 'wp';   /* v33: стены с плана */ saveRoom(); mkChips(); fit(); mkPanel(); status();
-  toast('План на холсте · ⌂ по плану: касание в помещении — контур');
+  toast('План на холсте · ▭ стены: касание у стены (подсвечены) — стена по грани');   /* v40 */
 }
 function ulDraw() {
   const o = ulGet(); if (!o || !UL.c || UL.key !== o.ul.key || UL.hide) return; const u = o.ul, O = toScr(u.x0, u.y0), A = toScr(u.x0 + u.s, u.y0), B = toScr(u.x0, u.y0 - u.s);
@@ -2563,9 +2564,9 @@ function plPanel() {
     const fa = (m.arcs || {})[s.i], ai = fa && L ? arcInfo(L.v, fa) : null;   /* v10 */
     pp.innerHTML = `<div class="row"><span class="t">Стена С${wN(S.room, s.i)}</span>${fi('L', 'L', d && d.v, L ? '≈' + L.v : 'мм', 90)}${fi('f', 'дуга f', fa, '0', 64)}${PL.tool === 'ct' && !m.closed && m.pts.length >= 2 ? '<button id="bBrk" title="Разрыв: эта ломаная остаётся, следующая — отдельно (или касание последней точки)">⌇ разрыв</button>' : ''}<span style="flex:1"></span><button id="bPu" title="Отменить">↶</button></div>
       ${ai ? `<div class="row mu">дуга: L — хорда, f — стрела (+ наружу) · R ≈ ${ai.R} · по дуге ≈ ${ai.s}</div>` : ''}
-      <div class="row"><button id="bNdA" title="Узел посередине стены">+ узел</button>${m.closed ? '<button id="bOpnK" title="Разомкнуть контур по этой стене (стена убирается)">⌇ разомкнуть здесь</button>' : ''}</div>
+      <div class="row"><button id="bNdA" title="+ узел посередине стены">+</button>${m.closed ? '<button id="bOpnK" title="Разомкнуть контур по этой стене (стена убирается)">⌇</button>' : ''}</div>
       ${m.raw ? `<div class="row"><label title="Уступ у этой стены: глубже — отдельные стены, мельче — элемент общей стены">уступ до<input data-env="w" inputmode="decimal" value="${esc(envAt(plMid(m, s.i)) || '')}" placeholder="${m.envD || ZENV}" style="width:70px">мм</label></div>` : ''}
-      <div class="row"><button id="bWall" style="flex:1;height:36px;background:var(--ac);color:#111;border-color:var(--ac)">📷 ${done ? 'Открыть стену' : poolN(S.room.id, s.i) ? 'Фото-замер · кадров ' + poolN(S.room.id, s.i) : 'Снять стену'}</button></div>
+      <div class="row"><button id="bWall" title="${done ? 'Открыть стену' : poolN(S.room.id, s.i) ? 'Фото-замер · кадров ' + poolN(S.room.id, s.i) : 'Снять стену: фото, разметка'}" style="min-width:44px;height:32px;background:var(--ac);color:#111;border-color:var(--ac)">📷${poolN(S.room.id, s.i) ? ' ' + poolN(S.room.id, s.i) : done ? ' ✓' : ''}</button></div>
       ${ulGet() && d && d.v > 0 ? `<div class="row"><button id="bUlS" style="flex:1">⇲ масштаб плана по С${wN(S.room, s.i)} = ${d.v}</button></div>` : ''}
       <div class="row mu">L — поле активно: замер дальномером 📡 или ввод; длина идёт в подгонку стены${ulGet() && !ulGet().ul.ok ? ' · первый размер задаёт масштаб плана' : ''}</div>`;   /* v14 */
     $('bWall').onclick = () => openWall(s.i);
@@ -2578,7 +2579,7 @@ function plPanel() {
       <div class="row"><span class="mu" style="width:38px">верх</span>${fi('u.mm', 'мм', q.u && q.u.mm, '', 60)}${fi('u.at', 'на', q.u && q.u.at, String(PL.at), 70)}</div>
       <div class="row"><span class="mu" style="width:38px">скругл.</span>${fi('r', 'R', (m.rnd || {})[s.i], '0', 70)}<span class="mu">радиус угла на плане, мм</span></div>
       <div class="row mu">уровни: низ 100, верх 1800 от пола (как в Akrix); пусто — 90°</div>
-      ${m.pts.length > (m.closed ? 3 : 2) ? '<div class="row"><button id="bNdX" title="Удалить узел (соседние стены — одна)">✕ узел</button></div>' : ''}`;   /* v17 */
+      ${m.pts.length > (m.closed ? 3 : 2) ? '<div class="row"><button id="bNdX" title="✕ узел: удалить (соседние стены — одна)">✕</button></div>' : ''}`;   /* v17 */
   } else {
     const uo = ulGet();   /* v21: одна строка; остальное — под ⋯ */
     pp.innerHTML = `<div class="row"><span class="t">${esc(S.room.name)}</span>${fi('H', 'H', m.H, 'мм', 64)}${!uo && !m.pts.length ? `<label class="ulb">📐 план<input data-ul type="file" accept="image/*" style="display:none"></label>` : ''}${uo && !uo.ul.ok ? '<span class="er" style="font-size:12px" title="Масштаб плана не задан: введите длину L любой стены">масштаб ≈</span>' : ''}<span style="flex:1"></span>${PL.tool === 'ct' && !m.closed && m.pts.length >= 2 ? '<button id="bBrk" title="Разрыв: эта ломаная остаётся, следующая — отдельно (или касание последней точки)">⌇ разрыв</button>' : ''}<button id="bRmM" title="Ещё: объект, помещение, план, контур"${S.rmMore ? ' class="arm" style="background:var(--ac);border-color:var(--ac)"' : ''}>⋯</button><button id="bPu" title="Отменить">↶</button></div>
@@ -3257,9 +3258,13 @@ function zLay() {
     if (m === 'exp') zExp();
   } finally { zBusy = false }
 }
+function zWarnG() {   /* v40: «С1: нет L», «С2: нет L» … — одной строкой */
+  const w = zWarn(), nl = w.filter(t => /^С\d+: нет L$/.test(t)).map(t => t.split(':')[0]);
+  return nl.length > 1 ? [`нет L: ${nl.join(', ')}`, ...w.filter(t => !/^С\d+: нет L$/.test(t))] : w;
+}
 function zExp() {   /* выгрузка: строка статуса целиком + что выгружается */
   const pl = S.mode === 'plan', n = pl ? S.objRooms.length + 1 : 0;
-  const h = `<div class="row"><b>Выгрузка для Akrix</b><span class="mu">${pl ? (n > 1 ? `объект: помещений ${n}` : 'помещение') : S.sess ? 'плоскость / стена' : ''}</span></div><div class="row mu">${$('zIn').innerHTML} ${$('st').innerHTML}</div>${zWarn().map(t => `<div class="row" data-zw0 style="color:var(--er)">⚠ ${esc(t)}</div>`).join('')}
+  const h = `<div class="row"><b>Выгрузка для Akrix</b><span class="mu">${pl ? (n > 1 ? `объект: помещений ${n}` : 'помещение') : S.sess ? 'плоскость / стена' : ''}</span></div><div class="row mu">${$('zIn').innerHTML} ${$('st').innerHTML}</div>${zWarnG().map(t => `<div class="row" data-zw0 style="color:var(--er)">⚠ ${esc(t)}</div>`).join('')}
     <div class="row">${pl ? `<button data-zx="r">⇪ помещение</button>${n > 1 ? `<button data-zx="o">⇪ объект (${n})</button>` : ''}` : S.sess ? `<button data-zx="w">⇪ замер (.json)</button>${S.sess.room ? '<button data-zx="p">⌂ к плану — помещение</button>' : ''}` : '<span class="mu">нет замера: ☰ → новый</span>'}</div>`;
   const x = $('zx'); if (x.innerHTML === h) return; x.innerHTML = h;
   x.querySelectorAll('[data-zx]').forEach(b => b.onclick = () => { const k = b.dataset.zx; if (k === 'r') exportRoom(); else if (k === 'o') exportObj2(); else if (k === 'w') exportJson(); else zmSet('plan') });
@@ -3345,7 +3350,8 @@ addEventListener('resize', resize); resize(); mkChips();
 zInit();   /* v22: каркас */
 $('zVer').textContent = 'Замер ' + ZVER; $('zVer2').textContent = 'Akrix Замер ' + ZVER;   /* v18 */
 $('zb').appendChild($('zopt'));   /* v39: модификаторы — справа от пресетов (DrawNote) */
-window.PM = { dmInShow, zCol, PRE0, wpOps, q4Y, nchOut, WS, wsStroke, q4Q, q4Use, q4Need, q4Tap, q4Set, q4Mosaic, ulWalls, wpTap, zBreak, envApply, envAt, zEnv, ulSteps, lqStart, lqNext, zTapSel, zMosaic, frEnsure, zWarn, zBackup, zRestore, opOut, ZD, zdPts, zdCopy, nAttach, LAY, BT, btUi, mkChips, ZPX, zpOut, zwOut, zpGet, ZN_K, ZOPT, zOpt, zMod, dmOut, dmTap, zLW, zdGet, zFrDel, zFrBack, ZA, ulRetrace, zmSet, zCur, zSheet, zLay, zUndo, zRedo, zDone, PEN, status, ZVER, geoBuild, plUndo, ctOpen, ctAddNode, ctDelNode, ctClear, sessList, opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
+$('bExp').onclick = () => zmSet('exp');   /* v40: выгрузка — из меню ⋮ */
+window.PM = { zWarnG, dmInShow, zCol, PRE0, wpOps, q4Y, nchOut, WS, wsStroke, q4Q, q4Use, q4Need, q4Tap, q4Set, q4Mosaic, ulWalls, wpTap, zBreak, envApply, envAt, zEnv, ulSteps, lqStart, lqNext, zTapSel, zMosaic, frEnsure, zWarn, zBackup, zRestore, opOut, ZD, zdPts, zdCopy, nAttach, LAY, BT, btUi, mkChips, ZPX, zpOut, zwOut, zpGet, ZN_K, ZOPT, zOpt, zMod, dmOut, dmTap, zLW, zdGet, zFrDel, zFrBack, ZA, ulRetrace, zmSet, zCur, zSheet, zLay, zUndo, zRedo, zDone, PEN, status, ZVER, geoBuild, plUndo, ctOpen, ctAddNode, ctDelNode, ctClear, sessList, opSnap, opT, ulSnapSt, ulFree, stDraw, opList: () => (S.room.ms.ops || []), ulGet, ulAdd, ulContour, ulMasks, ulScale, UL, poolList, poolSet, poolAdd, poolDel, poolN, poolLoad, exportObjObj, wN, gnMax, objLoad, LAY, gridFull, gStats, gPts, gOut, nOut, arcInfo, layPanel, PREF, pickTool, tbOpen, kIco, detectEls, wEnds, wCorners, elSide, elDist, elRef, setDim, dimHit, mkPanel, draw, S, PL, newRoom, openRoom, openWall, exportRoomObj, plFlip, plLen, btVal, manV, saveNow, toD, refreshDisp, lnHit, anchorOf, corrH, elGeo, solve, img2plane, detect, recompute, addFiles, toScr, toPl, fit, wf, toW, fromW, dims, exportObj, openSess, newSess, sessList, tool };
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
 dbOpen().then(() => { if (!/[?&]nolist/.test(location.search)) sessList(true) });
 </script>
