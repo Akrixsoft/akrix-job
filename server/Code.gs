@@ -264,7 +264,13 @@ const API = {
     s.getRange(b.row, 12).setValue('да'); return {};
   },
   take(me, b){ append_(SH.takes, [now_(), me.id, b.order, b.op, 'взял']); taskMsg_(me.id); return {}; },
-  untake(me, b){ append_(SH.takes, [now_(), me.id, b.order, b.op, 'отменил']); taskMsg_(me.id); return {}; },
+  untake(me, b){
+    if (b.row){ const sh = sh_(SH.tasks), r = sh.getRange(+b.row, 1, 1, 5).getValues()[0];   // назначенная/запланированная — отказаться: строка остаётся, исполнитель снимается
+      if (String(r[0]).trim() !== String(b.order).trim() || String(r[1]).trim() !== String(b.op) || String(r[2]).trim() !== me.id) throw new Error('Задача уже изменена — обнови');
+      sh.getRange(+b.row, 3).setValue(''); sh.getRange(+b.row, 5).setValue(String(r[4] || '') + ' · отказался ' + me.id + ' ' + now_());
+      if (!me.boss) notifyBosses_('leave', '↩️ ' + me.name + ' отказался от задачи: ' + opName_(b.order, b.op) + ' · ' + b.order + '.');
+      taskMsg_(me.id); return {}; }
+    append_(SH.takes, [now_(), me.id, b.order, b.op, 'отменил']); taskMsg_(me.id); return {}; },
   unjoin(me, b){ append_(SH.takes, [now_(), b.who, b.order, b.op, 'отключён ' + me.id]); taskMsg_(String(b.who)); return {}; },
   /* доли участников: задаёт позвавший (взявший задачу) или руководитель; 'доли S1:70,S3:30' или 'доли сброс' */
   shareSet(me, b){ const e = Object.entries(b.shares || {}).filter(x => +x[1] > 0);

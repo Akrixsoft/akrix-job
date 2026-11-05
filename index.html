@@ -586,6 +586,12 @@ details.kpk[open]>summary.ksum{margin:0 -8px;padding:0 8px}
 .nosheet{max-height:88vh;overflow-y:auto} .nosheet .cadd input,.nosheet .cadd select{min-height:42px;font-size:15px}
 .nodates{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px} .nof{font-size:12px;color:var(--mute);display:flex;flex-direction:column;gap:3px} .nof input{min-height:40px;font-size:13px;padding:4px 6px;width:100%}
 .pcur{font-size:13px;margin-top:2px;color:var(--ink)} .pcur.mute{color:var(--mute)}
+
+/* фильтр «Все работы» */
+.wfbar{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0}
+.wf{border:1px solid var(--line,#d9dce1);background:var(--card,#fff);color:inherit;border-radius:16px;padding:6px 11px;font:inherit;font-size:14px;cursor:pointer}
+.wf.on{background:var(--acc,#e3ae0b);border-color:var(--acc,#e3ae0b);color:#111;font-weight:600}
+.wf.x{color:var(--bad,#c33)}
 .who{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
 </style></head><body>
 <div class="app">
@@ -728,7 +734,7 @@ function build(D){
   D.tasks.forEach(r=>{ const o=ord(r[0]); if(!o||!r[1]) return; const who=String(r[2]).trim(), op=String(r[1]).trim(), due=d10(r[3]);
     if(String(r[4]||'').indexOf('план')===0&&who){ PLANS.push({o, op, who, date:due, row:r[5], by:String(r[4]).slice(5).trim()});   // план на день: до этого дня — бронь, в этот день — обычная задача
       if(due>D.today){ if(!PLANNED[o.id+'|'+op]) PLANNED[o.id+'|'+op]={who, date:due}; return; } }
-    if(who===ME){ if(!o.tasks.some(t=>t.op===op)) o.tasks.push({op, dueDate:due, due:r[3]?dayDiff(due):null}); }
+    if(who===ME){ if(!o.tasks.some(t=>t.op===op)) o.tasks.push({op, dueDate:due, due:r[3]?dayDiff(due):null, row:r[5]}); }
     else if(who) TAKEN[o.id+'|'+op]=who; });
   const tk={}; D.takes.forEach(r=>{ if(String(r[4]).indexOf('доли ')===0) return; tk[String(r[2]).trim()+'|'+r[3]+'|'+r[1]]=String(r[4]); });
   Object.entries(tk).forEach(([k,act])=>{ const joined=act.startsWith('подключ'); if(act!=='взял'&&!joined) return; const [oid,op,who]=k.split('|'), o=ord(oid); if(!o) return;
@@ -1752,32 +1758,40 @@ function urgency(o){ const need=needHours(o,'ceh'), dl=DEADLINES.find(d=>d.order
   const st=dlStatus(dl); let days=0; for(let i=0;i<=st.n;i++) if(isWorkday(addD(TODAY,i))) days++;
   const rank = need<0.05 ? 9e8 : st.have/need - (o.hard?0.001:0);
   return {need, have:st.have, days, n:st.n, rank, cls:need<0.05?'ok':st.cls, txt:need<0.05?'цех готов':st.n<0?'срок прошёл':st.txt}; }
+/* фильтр «Все работы»: выбранные работы по всем заказам сразу + показ готовых и ждущих присадки (запоминается на телефоне) */
+function wfGet(){ if(!S.wf){ let v=null; try{ v=JSON.parse(localStorage.getItem('akx_wf')||'null'); }catch(e){} S.wf=Object.assign({ops:[], done:true, wait:true}, v||{}); } if(!S.wfClosed) S.wfClosed={}; return S.wf; }
+function wfSave(){ try{ localStorage.setItem('akx_wf', JSON.stringify(S.wf)); }catch(e){} }
 const PRIS_AFTER=['sborka','sborka_obj','kompl','mont'];   // допущение: сборка, комплектовка и монтаж — после присадки
 const lowMe = k => { const l=skillLv(ME,k); return l!=null&&l<=1; };   // навык 0–1: сам не берёт, просится помощником
 function vAllWork(){
   const mine=ORDERS.filter(o=>o.team.includes(ME)).map(o=>({o,u:urgency(o)})).sort((a,b)=>a.u.rank-b.u.rank);
   let free=0, totalH=0, myH=0;
-  const body=mine.map(({o,u})=>{ totalH+=u.need; const groups=o.lines.map(l=>{ const c=catL(l)[l.cat], ops=opsOf(o,l);
-      const rows=ops.map(op=>{ const k=l.cat+'.'+op[0], p=l.prog[op[0]]||0, st=opStatus(p), who=takenBy(o,k);
+  const F=wfGet(), names=new Set(), fOn=F.ops.length>0;
+  const body=mine.map(({o,u})=>{ totalH+=u.need; let shown=0; const groups=o.lines.map(l=>{ const c=catL(l)[l.cat], ops=opsOf(o,l);
+      const rows=ops.map(op=>{ const k=l.cat+'.'+op[0], p=l.prog[op[0]]||0, st=opStatus(p), who=takenBy(o,k); names.add(op[1]);
         if(p<100&&!who&&!PLANNED[o.id+'|'+k]) free++;
         if(p<100&&who===ME) myH+=payParts(opAmount(o,l,op)*(1-p/100),op,prisPct(o,l,op)).fix/RATE_H;
         const wait=l.cat==='korpus'&&PRIS_AFTER.includes(op[0])&&p<100&&(l.prog.pris||0)<100&&ops.some(x=>x[0]==='pris')?'<span class="chip n" style="margin-left:4px">после присадки</span>':'';
-        const self=o.tasks.find(t=>t.op===k&&t.self), cancel=self?`<button class="btn small undo" data-act="untake" data-o="${ORDERS.indexOf(o)}" data-op="${k}" title="Отменить взятое">✕</button>`:'';
+        const own=o.tasks.find(t=>t.op===k&&(t.self||t.row)), cancel=own?`<button class="btn small undo" data-act="untake" data-o="${ORDERS.indexOf(o)}" data-op="${k}" title="${own.self?'Отменить взятое':'Отказаться'}">✕</button>`:'';
         const pl=PLANNED[o.id+'|'+k];
         const act = p>=100 ? '' : who===ME ? chip('ok','моя')+cancel
           : !who&&pl ? `<span class="wtk">${pl.who===ME?'моя':esc(PEOPLE[pl.who]||pl.who)} · ${dayDiff(pl.date)===1?'завтра':dShort(pl.date)}</span>`
           : who ? `<span class="wtk">${esc(PEOPLE[who]||who)}</span>`+(lowMe(k)?` <button class="btn small ghost" data-act="askJoin" data-o="${ORDERS.indexOf(o)}" data-op="${k}" data-to="${esc(who)}">Попроситься</button>`:'')
           : lowMe(k) ? `<button class="btn small ghost" data-act="askJoin" data-o="${ORDERS.indexOf(o)}" data-op="${k}">Попроситься</button>` : `<button class="btn small take" data-act="take" data-o="${ORDERS.indexOf(o)}" data-op="${k}">Беру</button>`;
+        if((fOn&&!F.ops.includes(op[1]))||(p>=100&&!F.done)||(wait&&!F.wait)){ return ''; } shown++;
         return `<div class="wrow ${p>=100?'done':''}"><span class="on">${esc(op[1])}<span class="oc2 num">${opCost(o,l,op)}${wait}</span></span><span class="ost ${st[0]}">${st[1]}</span>${act}</div>`; }).join('');
-      return `<div class="wg"><div class="wgh">${esc(c.name)}</div>${rows}</div>`; }).join('');
-    return `<details class="fold wo urg-${u.cls}" ${S.openWork===o.id?'open':''} data-wo="${esc(o.id)}"><summary>${svgChev}<span class="wot"><span class="won">${oName(o)} ${oCode(o)}</span><span class="wos">${hoursFrac(o,'ceh')}</span></span><span class="fm">${chip(u.cls,u.txt)}</span></summary><div class="fb">${groups}</div></details>`; }).join('');
+      return rows?`<div class="wg"><div class="wgh">${esc(c.name)}</div>${rows}</div>`:''; }).join('');
+    if(fOn&&!shown) return '';
+    return `<details class="fold wo urg-${u.cls}" ${S.openWork===o.id||(fOn&&!S.wfClosed[o.id])?'open':''} data-wo="${esc(o.id)}"><summary>${svgChev}<span class="wot"><span class="won">${oName(o)} ${oCode(o)}</span><span class="wos">${hoursFrac(o,'ceh')}</span></span><span class="fm">${chip(u.cls,u.txt)}</span></summary><div class="fb">${groups}</div></details>`; }).join('');
   const top=mine.find(x=>x.u.have!=null&&x.u.need>=0.05);
   const worst=top?top.u.cls:'n', tone=worst==='bad'?'low':worst==='warn'?'warn':'';
   const sub=top?`работа по всем заказам · горит: ${esc(top.o.client)}, ${top.u.txt}`:`работа по всем заказам · свободных операций ${free}`;
   // личное: взятое мной против моих часов по плану до конца недели
   let planH=0; for(let i=0;i<=6-((TODAY.getDay()+6)%7);i++){ const pl=(CAL[ME]||{})[iso(addD(TODAY,i))]; if(pl&&!pl.off) planH+=PLAN.hoursPerDay; }
   const me=`<div class="small" style="padding:2px 0 8px">Ты взял <b class="num">${fmt0(myH)} ч</b> работы · по твоему плану до конца недели <b class="num">${fmt0(planH)} ч</b>${planH&&myH>planH?' — <span style="color:var(--bad)">больше, чем успеешь</span>':''}</div>`;
-  return UI.tileFold('Все работы', fmt0(totalH)+' ч', sub, me+(body||UI.note('Заказов нет'))+UI.note('Сверху — заказы с наименьшим запасом. Запас и дефицит: часы людей по их календарю ('+PLAN.hoursPerDay+' ч в день выхода) минус работа; часы раздаются заказам по очереди: сначала ближайшему дедлайну.'), tone, S.workOpen, 'w');
+  const fbar=`<div class="wfbar">${[...names].map(n=>`<button class="wf ${F.ops.includes(n)?'on':''}" data-act="wf" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div>
+    <div class="wfbar">${F.ops.length?'<button class="wf x" data-act="wf" data-n="">✕ Сбросить</button>':''}<button class="wf ${F.done?'on':''}" data-act="wf" data-n="" data-f="done">✓ Готовые</button><button class="wf ${F.wait?'on':''}" data-act="wf" data-n="" data-f="wait">⏳ После присадки</button></div>`;
+  return UI.tileFold('Все работы', fmt0(totalH)+' ч', sub, me+UI.fold(fOn?'🔎 Фильтр: '+F.ops.length:'🔎 Фильтр работ', fbar, S.wfOpen||fOn)+(body||(fOn?UI.note('По выбранным работам ничего нет'):'')||UI.note('Заказов нет'))+UI.note('Сверху — заказы с наименьшим запасом. Запас и дефицит: часы людей по их календарю ('+PLAN.hoursPerDay+' ч в день выхода) минус работа; часы раздаются заказам по очереди: сначала ближайшему дедлайну.'), tone, S.workOpen, 'w');
 }
 
 /* ============ BLOCK: EVENTS ============ */
@@ -1936,7 +1950,10 @@ document.addEventListener('click',e=>{
     o.notes.push({who:ME, at:hm(nowMin()), text:t, next:nx}); api('noteAdd',{order:o.id, text:t, next:nx}).catch(fail); toast('Заметка добавлена'); renderKeep(`[data-act="noteAdd"][data-o="${b.dataset.o}"]`, b); return; }
   if(a==='mountPick'){ S.mountOrder=b.dataset.o; S.fixAddOpen=null; render(); window.scrollTo(0,0); return; }
   if(a==='taskTap'){ S.openTask = S.openTask===b.dataset.t ? null : b.dataset.t; S.tasksOpen=true; renderKeep(`[data-act="taskTap"][data-t="${b.dataset.t}"]`, b); return; }
-  if(a==='untake'){ const o=ORDERS[+b.dataset.o], i=o.tasks.findIndex(t=>t.op===b.dataset.op&&t.self); if(i>=0){ o.tasks.splice(i,1); api('untake',{order:o.id, op:b.dataset.op}).catch(fail); toast('Отменено'); } }
+  if(a==='wf'){ const F=wfGet(), n=b.dataset.n, f=b.dataset.f; S.wfOpen=true;
+    if(f) F[f]=!F[f]; else if(!n) F.ops=[]; else F.ops=F.ops.includes(n)?F.ops.filter(x=>x!==n):F.ops.concat([n]); S.wfClosed={}; wfSave(); renderKeep(`[data-act="wf"][data-n="${CSS.escape(n)}"]${f?`[data-f="${f}"]`:''}`, b); return; }
+  if(a==='untake'){ const o=ORDERS[+b.dataset.o], i=o.tasks.findIndex(t=>t.op===b.dataset.op&&(t.self||t.row)); if(i>=0){ const t=o.tasks[i]; o.tasks.splice(i,1);
+    if(t.self) api('untake',{order:o.id, op:b.dataset.op}).catch(fail); if(t.row) api('untake',{order:o.id, op:b.dataset.op, row:t.row}).catch(fail); toast(t.self?'Отменено':'Отказался — руководитель увидит'); } }
   if(a==='take'){ const o=ORDERS[+b.dataset.o]; if(!takenBy(o,b.dataset.op)){ o.tasks.push({op:b.dataset.op, due:null, self:true}); api('take',{order:o.id, op:b.dataset.op}).catch(fail); const {op}=findOp(o,b.dataset.op); toast('Взял: '+op[1]); } S.workOpen=true; S.openWork=o.id; }
   if(a==='fundPer'){ S.fundPer=b.dataset.v; }
   if(a==='buyAdd'){ const n=document.getElementById('buy-n').value.trim(), q0=document.getElementById('buy-q').value.trim(), u=(document.getElementById('buy-u')||{}).value||'шт', q=q0?(/[a-zа-я²]/i.test(q0)?q0:q0+' '+u):'', ord=document.getElementById('buy-o').value; if(!n){ toast('Впиши, что купить'); return; }
@@ -2004,7 +2021,7 @@ document.addEventListener('toggle',e=>{ const d=e.target; if(!d.matches) return;
   if(d.matches('details.tasks')){ S.tasksOpen=d.open; return; }
   if(d.matches('details.kpk')){ S.kitPick=S.kitPick||{}; S.kitPick[d.dataset.k]=d.open; return; }
   if(d.matches('details.fold') && d.querySelector(':scope>.fb>.cg')){ const od=d.closest('details.ord'); if(od) S.openCompose=d.open?od.dataset.ord:null; return; }
-  if(d.matches('details.wo')){ if(d.open) S.openWork=d.dataset.wo; return; }
+  if(d.matches('details.wo')){ if(d.open) S.openWork=d.dataset.wo; if(S.wfClosed) S.wfClosed[d.dataset.wo]=!d.open; return; }
   if(d.matches('details.tile.w') && d.querySelector('details.wo')){ S.workOpen=d.open; return; }
   if(!d.matches('details.ord')) return;
   if(d.open) S.openOrd=d.dataset.ord; else if(S.openOrd===d.dataset.ord) S.openOrd=null; },true);
@@ -2048,7 +2065,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793453802';
+const BUILD='1793868183';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
