@@ -613,7 +613,7 @@ details.kpk[open]>summary.ksum{margin:0 -8px;padding:0 8px}
 .tor{display:grid;grid-template-columns:1.3fr repeat(4,1fr);gap:4px;padding:6px 0;border-bottom:1px solid var(--line,#e3e5e9);font-size:13px;text-align:right}
 .tor>:first-child{text-align:left}.tor.th{font-size:11px;color:var(--mute,#777);border-bottom:2px solid var(--line,#e3e5e9)}.tor.tt{font-weight:700;border-bottom:0}.tor .neg{color:var(--bad,#c33)}
 
-.gear{background:none;border:0;font-size:18px;line-height:1;padding:2px 4px;cursor:pointer;color:var(--mute,#777);vertical-align:middle}
+.gear{background:var(--acc,#e3ae0b);border:0;border-radius:50%;width:30px;height:30px;font-size:19px;line-height:30px;padding:0;cursor:pointer;color:#111;vertical-align:middle;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.15)}
 .who{display:flex;align-items:center;gap:4px;max-width:55vw!important;overflow:visible!important}
 
 /* 1С-стиль: плотные таблицы */
@@ -2356,7 +2356,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1794814093';
+const BUILD='1794816170';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
