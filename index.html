@@ -592,6 +592,66 @@ details.kpk[open]>summary.ksum{margin:0 -8px;padding:0 8px}
 .wf{border:1px solid var(--line,#d9dce1);background:var(--card,#fff);color:inherit;border-radius:16px;padding:6px 11px;font:inherit;font-size:14px;cursor:pointer}
 .wf.on{background:var(--acc,#e3ae0b);border-color:var(--acc,#e3ae0b);color:#111;font-weight:600}
 .wf.x{color:var(--bad,#c33)}
+
+/* лицевой счёт и ведомость */
+.accrow{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line,#e3e5e9);padding:8px 0;font:inherit;color:inherit;cursor:pointer}
+.accrow>span{display:flex;flex-direction:column}
+.accd{padding:2px 0 8px 10px;border-left:3px solid var(--acc,#e3ae0b);margin:4px 0 6px}
+.accl{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line,#e3e5e9);font-size:14px}
+.accl .neg{color:var(--bad,#c33)} .accl.req{opacity:.7}
+.acts3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:6px 0}
+.strow{display:grid;grid-template-columns:1fr 92px;gap:2px 8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line,#e3e5e9)}
+.strow .small{grid-column:1}.strow input[type=number]{grid-row:1/3;grid-column:2;text-align:right}
+
+.wsel{width:22px;height:22px;margin:0 8px 0 0;accent-color:var(--acc,#e3ae0b)}
+.wbulk{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:6px 0;background:var(--bg,#eef0f3)}
+
+.strow .stn{display:flex;align-items:center;gap:6px}.lnk{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer}
+.stord{grid-column:1/-1;padding:2px 0 4px 10px;border-left:3px solid var(--acc,#e3ae0b)}
+.pjd{display:flex;justify-content:space-between;padding:10px 0 2px;font-weight:700;border-bottom:2px solid var(--line,#e3e5e9)}
+.accl.void{text-decoration:line-through;opacity:.5}
+.tor{display:grid;grid-template-columns:1.3fr repeat(4,1fr);gap:4px;padding:6px 0;border-bottom:1px solid var(--line,#e3e5e9);font-size:13px;text-align:right}
+.tor>:first-child{text-align:left}.tor.th{font-size:11px;color:var(--mute,#777);border-bottom:2px solid var(--line,#e3e5e9)}.tor.tt{font-weight:700;border-bottom:0}.tor .neg{color:var(--bad,#c33)}
+
+.gear{background:none;border:0;font-size:18px;line-height:1;padding:2px 4px;cursor:pointer;color:var(--mute,#777);vertical-align:middle}
+.who{display:flex;align-items:center;gap:4px;max-width:55vw!important;overflow:visible!important}
+
+/* 1С-стиль: плотные таблицы */
+.t1c{background:var(--card,#fff);border-radius:12px;overflow:hidden;font-size:13px;margin-bottom:10px;border:1px solid var(--line,#e3e5e9)}
+.t1r{display:grid;grid-template-columns:1.6fr .7fr .7fr .9fr .9fr;gap:4px;align-items:center;padding:7px 10px;border:0;border-top:1px solid var(--line,#e3e5e9);background:none;width:100%;font:inherit;color:inherit;text-align:right}
+.t1r>:first-child{text-align:left}.t1r.w4{grid-template-columns:1.6fr 1fr .8fr .8fr}
+button.t1r{cursor:pointer}button.t1r:active{background:rgba(0,0,0,.04)}
+.t1c>.t1r:nth-child(even):not(.th):not(.tt){background:rgba(0,0,0,.018)}
+.t1r.th{border-top:0;font-size:11px;color:var(--mute,#777);background:rgba(0,0,0,.03);text-transform:none}
+.t1r.tt{font-weight:700;background:rgba(0,0,0,.03)}
+.t1r .good{color:var(--good,#1a8a3a)}.t1r .bad,.t1c .bad{color:var(--bad,#c33)}.t1r .mute{color:var(--mute,#777)}.t1r.void{text-decoration:line-through;opacity:.5}
+.t1n{display:flex;align-items:center;gap:5px}.dot{width:7px;height:7px;border-radius:50%;background:#bbb;display:inline-block}.dot.on{background:var(--good,#1a8a3a)}
+.t1f{font-size:11px;color:var(--warn,#c80);font-style:normal}
+.t1c.kv>div{display:flex;justify-content:space-between;padding:7px 10px;border-top:1px solid var(--line,#e3e5e9)}.t1c.kv>div:first-child{border-top:0}
+.pc-h{display:flex;justify-content:space-between;align-items:center;margin:8px 0}.pc-n{font-size:20px}.pc-k{text-align:right;font-size:12px;color:var(--mute,#777)}.pc-k b{display:block;font-size:18px;color:inherit}
+.pc-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:rgba(0,0,0,.05);padding:3px;border-radius:10px;margin-bottom:10px}
+.pc-tabs button{border:0;background:none;padding:7px 0;border-radius:8px;font:inherit;font-size:13px;cursor:pointer;color:inherit}.pc-tabs button.on{background:var(--card,#fff);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.dense .kpi .v{font-size:18px}.dense .accl,.dense .accrow{font-size:13px}
+
+#view>.pc{grid-column:1/-1}
+.pc-nav{display:flex;justify-content:space-between;align-items:center}.pc-nav span{display:flex;gap:6px}
+.t1r.th .lnk{font-size:11px;color:inherit;text-align:inherit;padding:0}
+
+.t1r.w5{grid-template-columns:2fr .6fr .6fr .7fr .6fr}
+.t1r.wN{grid-template-columns:1.4fr repeat(6,.6fr)}
+.t1r.sub{display:block;text-align:left;background:rgba(0,0,0,.03);border-top:0}
+.t1r.rl{grid-template-columns:1fr auto}
+.t1x{padding:4px 10px 8px 22px;background:rgba(227,174,11,.07);font-size:12.5px}.t1x>div{display:flex;justify-content:space-between;padding:3px 0}.t1x .void{text-decoration:line-through;opacity:.5}
+.pc-tabs{grid-template-columns:repeat(5,1fr)}.pc-tabs button{font-size:12.5px}
+.rh{font-size:20px;margin:8px 0}
+.t1c.draft{border:2px solid var(--acc,#e3ae0b)}
+
+.t1r.wO{grid-template-columns:2fr .9fr .6fr .8fr}.t1r.sel{background:rgba(227,174,11,.12)!important}
+.regc{padding:6px}.regc details.ord{margin:0}
+.rh2{font-size:15px;margin:12px 2px 6px}
+.t1r.buyr{align-items:start}.t1r.buyr .kb{margin-top:4px}
+.t1r .t1f{color:var(--bad,#c33);font-weight:700}
+#view>.t1c,#view>.rh2,#view>.small,#view>.olist{grid-column:1/-1}
 .who{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
 </style></head><body>
 <div class="app">
@@ -944,7 +1004,6 @@ function vToday(){
   html+=vMoneyTile();
   const p=planParts(), pt2=planLoad(ME,p.t);
   html+=UI.tileFold(`План на завтра`, p.big, (p.mine?p.chipTxt:'время не указано')+(pt2.n?` · задач ${pt2.n}, ${fmt(pt2.h)} из ${PLAN.hoursPerDay} ч`:' · задачи не выбраны'), p.body, (p.chipCls==='bad'?'low':p.chipCls==='warn'?'warn':'')+(p.bigMid?' mid':''), p.editing||S.planOpen, (p.needsInput?'need ':'')+'w');
-  html+=(IS_BOSS?'':vNotifyEmp())+vAndroid();
   if(S.closing) html+=vClosePanel();
   else if(S.onShift) html+=`<div class="tile w endbar"><button class="btn end" data-act="shift">Закрыть смену</button></div>`;
   return html;
@@ -1218,7 +1277,7 @@ function orderCard(o, boss){
       ${boss?vCompose(o):''}
       ${boss?UI.fold('Монтаж: список и заметки', `<div class="small mute">${o.mountAt?'Монтаж начат '+o.mountAt:'Монтаж не начат'}</div>${vKitList(o,ORDERS.indexOf(o),true)}<div class="wgh" style="padding-top:6px">Заметки</div>${vNotes(o,ORDERS.indexOf(o),false)}`, false, `<span class="num">${kitTotals(o).n} поз. · ${o.notes.length} зам.</span>`):''}
       ${boss?vFundSystem(o):''}
-      ${boss?`<button class="btn ghost small ${S.closeAsk===o.id?'warnbtn':''}" data-act="orderClose" data-o="${ORDERS.indexOf(o)}" style="margin-top:10px;width:100%">${S.closeAsk===o.id?'Точно закрыть? Нажми ещё раз':'Закрыть заказ — сдан, открыть к выплате'}</button>`:''}
+      ${boss&&S.closeAsk===o.id?closeSummary(o):''}${boss?`<button class="btn ghost small ${S.closeAsk===o.id?'warnbtn':''}" data-act="orderClose" data-o="${ORDERS.indexOf(o)}" style="margin-top:10px;width:100%">${S.closeAsk===o.id?'Точно закрыть? Нажми ещё раз':'Закрыть заказ — сдан, открыть к выплате'}</button>`:''}
     </div>
   </details>`;
 }
@@ -1242,8 +1301,23 @@ function vNewOrder(){ if(!S.newOrd) return ''; const n=S.newOrd, kinds=Object.ke
     <div class="cadd"><select id="no-m"><option value="">мастер — не назначен</option>${WORKERS.map(p=>`<option value="${p}">${esc(PEOPLE[p]||p)}</option>`).join('')}</select></div>
     <button class="btn pgo" data-act="newOrdSave">Создать заказ</button><button class="btn ghost" data-act="newOrdClose" style="width:100%;margin-top:8px">Отмена</button></div>`; }
 /* ===== END BLOCK: НОВЫЙ ЗАКАЗ ===== */
-function vBossOrders(){ return UI.h('Заказы')+`<button class="btn" data-act="newOrd" style="width:100%;margin-bottom:10px">+ Новый заказ</button>`+vFixHub()+(ORDERS.length?`<div class="olist">${[...ORDERS].sort(byShip).map(o=>orderCard(o,true)).join('')}</div>`:UI.sec('',UI.note('Заказов в работе нет — нажми «+ Новый заказ».')))+vDoneOrders(); }
+function vBossOrders(){ return UI.h('Заказы')+`<button class="btn" data-act="newOrd" style="width:100%;margin-bottom:10px">+ Новый заказ</button>`+vFixHub()+(ORDERS.length?orderRegistry()+`<div class="olist" hidden>${[].map(o=>orderCard(o,true)).join('')}</div>`:UI.sec('',UI.note('Заказов в работе нет — нажми «+ Новый заказ».')))+vDoneOrders(); }
+/* реестр заказов: плотная таблица, тап — карточка заказа под строкой */
+function orderRegistry(){ const L=[...ORDERS].sort(byShip); let F=0;
+  const rows=L.map(o=>{ const st=orderStats(o), cd=DEADLINES.find(d=>d.order===o.id&&d.scope==='ceh'), cs=cd?dlStatus(cd):null, op=S.openOrd===o.id; F+=st.fund;
+    const tone=st.gap>10||(cs&&cs.cls==='bad')?'bad':cs&&cs.cls==='warn'?'warn':'';
+    return `<button class="t1r wO ${op?'sel':''}" data-act="regOpen" data-o="${esc(o.id)}"><span><b>${esc(o.client)}</b><span class="small mute"> ${esc(o.product)} · ${esc(o.id)}</span>${o.hard?' <span class="t1f">!</span>':''}</span>
+      <span class="num ${tone}">${cs?esc(cs.txt):'—'}</span><span class="num">${Math.round(st.fact)}%</span><span class="num">${fmt0(o.cost||st.fund)}</span></button>`+(op?`<div class="regc">${orderCard(o,true)}</div>`:''); }).join('');
+  return `<div class="t1c"><div class="t1r th wO"><span>Заказ</span><span>срок цеха</span><span>готово</span><span>₾</span></div>${rows}<div class="t1r tt wO"><span>${L.length} в работе</span><span></span><span></span><span class="num">${fmt0(L.reduce((a,o)=>a+(o.cost||orderStats(o).fund),0))}</span></div></div>`; }
 /* выполненные (статус «сдан»): свёрнуто одной шапкой; внутри — кто сколько заработал */
+function orderFund(oid){ const by={}; MARKS.forEach(m=>{ if(String(m[2]).trim()!==oid) return; const sh=shares(oid, m[3]+'.'+m[4], String(m[1]), String(m[9]||''), String(m[10]||'')), a=num(m[7])||0;
+    Object.entries(sh).forEach(([p,k])=>{ by[p]=(by[p]||0)+a*k; }); }); return by; }
+function closeSummary(o){ const by=orderFund(o.id), left=[]; o.lines.forEach(l=>opsOf(o,l).forEach(op=>{ if((l.prog[op[0]]||0)<100) left.push(op[1]); }));
+  const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([p,v])=>UI.row(esc(PEOPLE[p]||p),'',`<b class="num">${fmt0(v)} ₾</b>`)).join('');
+  return `<div class="pbox" style="margin-top:10px"><div class="pbh"><b>Проверь перед закрытием</b><span class="num">${fmt0(Object.values(by).reduce((a,b)=>a+b,0))} ₾</span></div>
+    ${left.length?`<div class="flag warn">Не отмечено ${left.length}: ${esc([...new Set(left)].slice(0,6).join(', '))}${left.length>6?'…':''}</div>`:''}${rows?UI.list(rows):UI.note('Начислений нет')}
+    <div class="small mute">После закрытия эти суммы станут «к выплате». Ошибся — заказ можно вернуть в работу из «Выполненных».</div></div>`; }
+function ao_(p,oid){ const o=accOrders(p).list.find(x=>x.id===oid); if(!o) return ''; const r=o.acc-o.paid; return r<=0.5?chip('ok','выплачено'):(o.paid>0.5?'выплачено '+fmt0(o.paid)+' ₾ · ':'')+'остаток '+fmt0(r)+' ₾'; }
 function vDoneOrders(){ if(!DONE.length) return '';
   const by={}; MARKS.forEach(m=>{ const oid=String(m[2]).trim(); if(!CLOSED.has(oid)) return; const sh=shares(oid, m[3]+'.'+m[4], String(m[1]), String(m[9]||''), String(m[10]||'')), a=num(m[7])||0;
     Object.entries(sh).forEach(([p,k])=>{ (by[oid]=by[oid]||{})[p]=(by[oid][p]||0)+a*k; }); });
@@ -1254,9 +1328,9 @@ function vDoneOrders(){ if(!DONE.length) return '';
       const act=S.dpay===k+'|pay'?`<div class="kb dpf"><input id="dp-a" type="number" min="1" inputmode="numeric" value="${due}"><button class="btn small" data-act="dPay" data-o="${esc(d.id)}" data-who="${esc(p)}">Выдано</button><button class="btn small undo" data-act="dOpen" data-k="">✕</button></div>`
         :S.dpay===k+'|bonus'?`<div class="kb dpf"><input id="dp-b" type="number" min="1" inputmode="numeric" placeholder="₾"><button class="btn small" data-act="dBonus" data-o="${esc(d.id)}" data-who="${esc(p)}">Премия</button><button class="btn small undo" data-act="dOpen" data-k="">✕</button></div>`
         :`<div class="kb">${st||`<button class="btn small" data-act="dOpen" data-k="${esc(k)}|pay">Выплатить ${fmt0(due)} ₾</button>`}<button class="btn small ghost" data-act="dOpen" data-k="${esc(k)}|bonus">+ премия</button></div>`;
-      return UI.row(esc(PEOPLE[p]||p), `${paid?'выплачено '+fmt0(paid)+' ₾':''}${paid&&rem>0.5?' · остаток '+fmt0(rem)+' ₾':''}`+act, `<b class="num">${fmt0(v)} ₾</b>`); }).join('');
-    return UI.fold(`<b>${esc(d.client)}</b> · ${esc(d.product)}`, `<div class="small mute num" style="margin-bottom:4px">${esc(d.id)} · сдан ${d.date?dShort(d.date):'—'} · стоимость ${fmt0(d.cost)} ₾ · фонд ${fmt0(fund)} ₾${d.cost?` (${fmt(fund/d.cost*100)}%)`:''}</div>${(rows?UI.list(rows):UI.note('Начислений нет'))+vFixes(d.id,false)}`, S.doneOrd===d.id, `<span class="num small">${d.date?dShort(d.date):''}</span>`); }).join('');
-  return UI.sec('', UI.fold('Выполненные', list+UI.note('Выплата по заказу учитывает авансы человека: если они уже покрывают заработанное — «покрыто авансом». Итоги по людям — в «Людях».'), S.doneOpen, (()=>{ const n=badges('boss').borders; return (n?chip('warn',`к выплате: ${n}`)+' ':'')+`<span class="num">${DONE.length}</span>`; })())); }
+      void act; return UI.row(esc(PEOPLE[p]||p), ao_(p,d.id), `<b class="num">${fmt0(v)} ₾</b>`); }).join('');
+    return UI.fold(`<b>${esc(d.client)}</b> · ${esc(d.product)}`, `<div class="small mute num" style="margin-bottom:4px">${esc(d.id)} · сдан ${d.date?dShort(d.date):'—'} · стоимость ${fmt0(d.cost)} ₾ · фонд ${fmt0(fund)} ₾${d.cost?` (${fmt(fund/d.cost*100)}%)`:''}</div>${(rows?UI.list(rows):UI.note('Начислений нет'))+vFixes(d.id,false)}<button class="btn small ghost ${S.reopenAsk===d.id?'warnbtn':''}" data-act="orderReopen" data-o="${esc(d.id)}" style="margin-top:8px;width:100%">${S.reopenAsk===d.id?'Точно вернуть? Нажми ещё раз':'↩ Вернуть в работу — исправить отметки'}</button>`, S.doneOrd===d.id, `<span class="num small">${d.date?dShort(d.date):''}</span>`); }).join('');
+  return UI.sec('', UI.fold('Выполненные', list+UI.note('Выплаты — в «Людях»: ведомость и лицевой счёт каждого.'), S.doneOpen, (()=>{ const n=badges('boss').borders; return (n?chip('warn',`к выплате: ${n}`)+' ':'')+`<span class="num">${DONE.length}</span>`; })())); }
 function vOrders(){ const mine=ORDERS.filter(o=>o.team.includes(ME)); return UI.h('Мои заказы')+(mine.length?`<div class="olist">${mine.sort(byShip).map(o=>orderCard(o,false)).join('')}</div>`:UI.sec('',UI.note('Заказов нет'))); }
 
 /* ============ BLOCK: ROUTER ============ */
@@ -1319,14 +1393,14 @@ function render(){
   const seg=document.getElementById('roleseg'); seg.hidden=!IS_BOSS;
   document.getElementById('role-emp').setAttribute('aria-pressed',S.role==='emp');
   document.getElementById('role-boss').setAttribute('aria-pressed',S.role==='boss');
-  document.getElementById('who').textContent=meName();
+  document.getElementById('who').innerHTML=esc(meName())+` <button class="gear" data-act="settings" aria-label="Настройки">⚙</button>`;
   const bd=badges(S.role);
   document.getElementById('tabs').innerHTML=TABS[S.role].map(([k,n])=>`<button data-tab="${k}" aria-current="${S.tab===k}">${ICON[k]}<span>${n}</span>${S.tab===k?'':badgeHtml(bd[k])}</button>`).join('');
   if(IS_BOSS){ const other=badges(S.role==='boss'?'emp':'boss'), tot=Object.values(other).reduce((a,x)=>a+x,0);
     document.getElementById(S.role==='boss'?'role-emp':'role-boss').classList.toggle('hasdot', tot>0); document.getElementById(S.role==='boss'?'role-boss':'role-emp').classList.remove('hasdot'); }
   const v={today:vToday,orders:vOrders,borders:vBossOrders,fund:vBossFund,staff:vBossStaff,norms:vBossNorms,tomorrow:vBossTomorrow,cal:vCal,mount:vMountTab,buy:vBuy}[S.tab];
   const tapeX={}; document.querySelectorAll('.ptape').forEach(x=>tapeX[x.id]=x.scrollLeft);
-  document.getElementById('view').innerHTML=v()+(S.role==='emp'?vStartPick():'')+(S.role==='boss'?vNewOrder():'');
+  document.getElementById('view').innerHTML=(S.settings?vSettings():v())+(S.role==='emp'?vStartPick():'')+(S.role==='boss'?vNewOrder():'');
   stickTops(); document.querySelectorAll('.ptape').forEach(x=>{ if(tapeX[x.id]!=null) x.scrollLeft=tapeX[x.id]; });
   bindUnits(); bindPlan();
 }
@@ -1500,13 +1574,16 @@ function hoursBy(from){ const r={}, t0=iso(TODAY); shiftsSince(from).forEach(s=>
     if(!s[3]&&d10(s[0])===t0) h=segsOf(s).reduce((a,g)=>a+Math.max(0,(g.e?toMin(g.e):nowMin())-toMin(g.s)),0)/60;   // открытая сегодня: закрытые отрезки + текущий
     r[p]=(r[p]||0)+(h||0); }); return r; }
 function vBossFund(){
-  const from=S.fundPer==='week'?weekStart():new Date(TODAY.getFullYear(),TODAY.getMonth(),1), e=earnedBy(from), f=iso(from);
+  const from=S.fundPer==='week'?weekStart():new Date(TODAY.getFullYear(),TODAY.getMonth(),1), e=earnedBy(from), f=iso(from), hh=hoursBy(from);
   const byOrder={}; MARKS.forEach(m=>{ if(d10(m[0])<f) return; const k=String(m[2]).trim(); byOrder[k]=(byOrder[k]||0)+(num(m[7])||0); });
   const seg=`<div class="seg" role="group"><button data-act="fundPer" data-v="week" aria-pressed="${S.fundPer==='week'}">Неделя</button><button data-act="fundPer" data-v="month" aria-pressed="${S.fundPer==='month'}">Месяц</button></div>`;
+  const ppl=Object.keys(PEOPLE).filter(p=>e[p]).sort((a,b)=>e[b]-e[a]); let E=0,H=0;
+  const pr=ppl.map(p=>{ const h=hh[p]||0; E+=e[p]; H+=h; return `<button class="t1r w4" data-act="person" data-p="${esc(p)}" data-t="works"><span><b>${esc(PEOPLE[p])}</b></span><span class="num">${h?fmt(h):'—'}</span><span class="num">${fmt0(e[p])}</span><span class="num ${h?(e[p]/h>=RATE_H?'good':e[p]/h>=RATE_H*0.6?'':'bad'):''}">${h?fmt(e[p]/h):'—'}</span></button>`; }).join('');
+  const ords=Object.entries(byOrder).sort((a,b)=>b[1]-a[1]); const O=ords.reduce((a,x)=>a+x[1],0);
   return UI.h('Фонд · выполнено')+UI.sec('', seg)+
-    UI.sec('По сотрудникам', UI.list(Object.keys(PEOPLE).filter(p=>e[p]).map(p=>UI.row(esc(PEOPLE[p]),'',`<b class="num">${fmt0(e[p])} ₾</b>`)).join('')||UI.note('Отметок за период нет'))+
-      UI.fold('Правила', UI.note('Отметка с напарником делится 50/50. Другое деление (2/3–1/3, почасово) — правкой суммы в листе «Отметки». Присадка — '+P.prisAuto+'% пула плюс бонус по заказу.')))+
-    UI.sec('По заказам', UI.list(Object.entries(byOrder).map(([k,v])=>{ const o=ORDERS.find(x=>x.id===k); return UI.row(o?oName(o):esc(k), o?esc(k):'сдан', `<b class="num">${fmt0(v)} ₾</b>`); }).join('')||UI.note('—')));
+    `<div class="t1c"><div class="t1r th w4"><span>Сотрудник</span><span>часы</span><span>₾</span><span>₾/ч</span></div>${pr||'<div class="t1r"><span class="mute">Отметок за период нет</span></div>'}<div class="t1r tt w4"><span>Итого</span><span class="num">${fmt(H)}</span><span class="num">${fmt0(E)}</span><span class="num">${H?fmt(E/H):'—'}</span></div></div>`+
+    `<div class="t1c"><div class="t1r th rl"><span>Заказ</span><span>выполнено, ₾</span></div>${ords.map(([k,v])=>{ const o=ORDERS.find(x=>x.id===k); return `<div class="t1r rl"><span>${esc(ONAME[k]||k)}<span class="small mute"> ${esc(k)}${o?'':' · сдан'}</span></span><span class="num">${fmt0(v)}</span></div>`; }).join('')||'<div class="t1r"><span class="mute">—</span></div>'}<div class="t1r tt rl"><span>Итого</span><span class="num">${fmt0(O)}</span></div></div>`+
+    UI.sec('', UI.fold('Правила', UI.note('Отметка с напарником делится по долям (поровну, ученику 20–40%). Присадка — '+P.prisAuto+'% пула сотруднику.')));
 }
 /* ============ BLOCK: SKILLS GRID (руководитель выставляет уровни 0–3) ============ */
 const SK_LV=['0 — только учеником','1 — помощник, доля 0–40%','2 — делает сам','3 — ведёт, учит'];
@@ -1540,11 +1617,85 @@ function vMoneyTile(){ const m=money(ME);
     `<div class="pbox"><div class="pbh"><b>Попросить аванс</b><span class="small mute num">${m.avail==null?'без лимита':'доступно до '+fmt0(m.avail)+' ₾'}</span></div>
       <div class="grid2"><label for="adv-a">Сумма, ₾<input id="adv-a" type="number" min="1" step="10" inputmode="numeric"></label><label for="adv-n">Зачем (необязательно)<input id="adv-n" type="text" placeholder="одной строкой"></label></div>
       <button class="btn small" data-act="payRequest">Отправить запрос</button></div>`;
-  const body=`<div class="grid2">${UI.kpi('к выплате', fmt0(m.toPay)+' ₾', 'по закрытым заказам', m.toPay>0?'good':'', true)}${UI.kpi('в работе', fmt0(m.open)+' ₾', 'по открытым заказам', '', true)}</div>
-    ${m.adv?`<div class="flag warn">Аванс в счёт будущих: ${fmt0(m.adv)} ₾ — спишется при закрытии заказов</div>`:''}
-    ${form}${ords?UI.fold('По заказам', UI.list(ords)):''}${PAYS.some(x=>x.who===ME)?UI.fold('Выплаты и авансы', UI.list(payHist(ME,15)), true):''}`;
+  const body=vAccount(ME,false)+`
+    ${form}`; void ords;
   return UI.tileFold('Деньги', fmt0(m.toPay)+' ₾', `к выплате · в работе ${fmt0(m.open)} ₾${m.pend.length?' · аванс ждёт решения':''}`, body, m.toPay>0?'good':'', S.moneyOpen, 'w'); }
-function vPayBoss(p){ const m=money(p), open=S.payOpen===p;
+/* ===== BLOCK: ЛИЦЕВОЙ СЧЁТ — всё по деньгам человека: итог, по заказам, лента операций; ведомость на всех (руководитель) ===== */
+function accOps(p){ const out=[];
+  MARKS.forEach(m=>{ const oid=String(m[2]).trim(), sh=shares(oid, m[3]+'.'+m[4], String(m[1]), String(m[9]||''), String(m[10]||'')), v=(num(m[7])||0)*(sh[p]||0); if(!v) return;
+    out.push({at:String(m[0]), k:'acc', order:oid, txt:String(m[4])==='premia'?'Премия':String(m[5]||m[4]), amt:v}); });
+  PAYS.filter(x=>x.who===p&&x.st!=='отменён'&&x.st!=='отклонено').forEach(x=>out.push({at:x.at, k:x.st==='запрос'?'req':'pay', order:x.order, txt:x.type+(x.note?' · '+x.note:''), amt:x.amt, row:x.row}));
+  return out.sort((a,b)=>a.at<b.at?1:-1); }
+/* по заказам: начислено, выплачено (сначала привязанные к заказу, остальное — по закрытым заказам от старых), остаток */
+function accOrders(p){ const m=money(p), by={};
+  Object.entries(m.byO).forEach(([id,v])=>by[id]={id, acc:v, paid:0, closed:CLOSED.has(id), date:(DONE.find(d=>d.id===id)||{}).date||''});
+  let free=0; PAYS.filter(x=>x.who===p&&x.st==='выдано').forEach(x=>{ if(x.order&&by[x.order]) by[x.order].paid+=x.amt; else free+=x.amt; });
+  Object.values(by).filter(o=>o.closed).sort((a,b)=>a.date<b.date?-1:1).forEach(o=>{ const t=Math.max(0,Math.min(free,o.acc-o.paid)); o.paid+=t; free-=t; });
+  return {list:Object.values(by).sort((a,b)=>(a.closed-b.closed)||(a.date<b.date?1:-1)), adv:free}; }
+function accMonths(ops){ return [...new Set(ops.map(o=>o.at.slice(0,7)))].sort().reverse(); }
+const MON3=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'], monName=k=>MON3[+k.slice(5,7)-1]+' '+k.slice(0,4);
+function vAccount(p, boss){ const m=money(p), ao=accOrders(p), ops=accOps(p), S2=S.acc||(S.acc={}), st=S2[p]||(S2[p]={}), mons=accMonths(ops), mon=st.mon||'';
+  const kp=`<div class="grid2">${UI.kpi('к выплате', fmt0(m.toPay)+' ₾', 'по сданным заказам', m.toPay>0?'good':'', true)}${UI.kpi('в работе', fmt0(m.open)+' ₾', 'заказы не сданы', '', true)}</div>
+    <div class="small mute num" style="margin:4px 0">Заработано всего ${fmt0(m.closed+m.open)} ₾ · выплачено ${fmt0(m.paid)} ₾</div>
+    ${m.adv?`<div class="flag warn">Аванс в счёт будущих: ${fmt0(m.adv)} ₾ — спишется при сдаче заказов</div>`:''}`;
+  const ordRows=ao.list.map(o=>{ const rest=o.acc-o.paid, open=st.ord===o.id;
+    const sub=(o.closed?'сдан'+(o.date?' '+dShort(o.date):''):'в работе')+(o.paid>0.5?` · выплачено ${fmt0(o.paid)}`:'')+(o.closed&&rest>0.5?` · <b>остаток ${fmt0(rest)}</b>`:'');
+    const det=open?`<div class="accd">${ops.filter(x=>x.order===o.id).map(x=>`<div class="accl"><span>${ddmm(x.at)} · ${esc(x.txt)}</span><b class="num ${x.k==='acc'?'':'neg'}">${x.k==='acc'?'+':'−'}${fmt0(x.amt)}</b></div>`).join('')}</div>`:'';
+    return `<button class="accrow" data-act="accOrd" data-p="${esc(p)}" data-o="${esc(o.id)}"><span><b>${esc(ONAME[o.id]||o.id)}</b><span class="small mute">${sub}</span></span><b class="num">${fmt0(o.acc)} ₾</b></button>${det}`; }).join('');
+  const lst=ops.filter(x=>!mon||x.at.slice(0,7)===mon);
+  const chips=mons.length>1?`<div class="wfbar"><button class="wf ${!mon?'on':''}" data-act="accMon" data-p="${esc(p)}" data-m="">Все</button>${mons.slice(0,6).map(k=>`<button class="wf ${mon===k?'on':''}" data-act="accMon" data-p="${esc(p)}" data-m="${k}">${monName(k)}</button>`).join('')}</div>`:'';
+  const sum=k=>lst.filter(x=>x.k===k).reduce((a,x)=>a+x.amt,0);
+  const opRows=lst.slice(0,st.all?999:30).map(x=>`<div class="accl ${x.k}"><span>${ddmm(x.at)} · ${x.k==='acc'?esc(x.txt):`<b>${esc(x.txt)}</b>`}<span class="small mute">${x.order?' · '+esc(ONAME[x.order]||x.order):''}</span></span><b class="num ${x.k==='acc'?'':'neg'}">${x.k==='req'?'запрос ':''}${x.k==='acc'?'+':'−'}${fmt0(x.amt)}</b>${x.k==='req'&&p===ME?`<button class="btn small undo" data-act="payCancel" data-row="${x.row}" aria-label="Отменить запрос">✕</button>`:''}${x.k==='pay'&&boss&&x.row&&CAPS.includes('payVoid')?`<button class="btn small undo ${S.voidAsk===String(x.row)?'warnbtn':''}" data-act="payVoid" data-row="${x.row}">${S.voidAsk===String(x.row)?'Отменить?':'✕'}</button>`:''}</div>`).join('');
+  const opsBox=chips+`<div class="small mute num" style="margin:2px 0 6px">${mon?monName(mon)+': ':''}начислено ${fmt0(sum('acc'))} ₾ · выплачено ${fmt0(sum('pay'))} ₾</div>`+(opRows||UI.note('Операций нет'))+(lst.length>30&&!st.all?`<button class="btn small ghost" data-act="accAll" data-p="${esc(p)}">Показать все (${lst.length})</button>`:'');
+  let act='';
+  if(boss){ const f=st.form;
+    act=f?`<div class="pbox"><div class="pbh"><b>${f==='pay'?'Выплата':f==='adv'?'Аванс':'Премия'}</b></div>
+        <div class="grid2"><label for="ac-a">Сумма, ₾<input id="ac-a" type="number" min="1" step="10" inputmode="numeric" value="${f==='pay'?Math.round(m.toPay)||'':''}"></label>
+        ${f==='bonus'?`<label for="ac-o">Заказ<select id="ac-o">${ao.list.map(o=>`<option value="${esc(o.id)}">${esc(ONAME[o.id]||o.id)}</option>`).join('')}</select></label>`:'<label for="ac-n">Комментарий<input id="ac-n" type="text" placeholder="необязательно"></label>'}</div>
+        <div class="grid2"><button class="btn small ghost" data-act="accForm" data-p="${esc(p)}" data-f="">Отмена</button><button class="btn small" data-act="accDo" data-p="${esc(p)}" data-f="${f}">${f==='bonus'?'Начислить':'Выдано'}</button></div></div>`
+      :S.person===p?`<button class="btn small ghost" data-act="payMode" data-who="${esc(p)}" style="margin:6px 0">Лимит аванса: ${m.mode==='free'?'без лимита':'до заработанного'}</button>`:`<div class="acts3"><button class="btn small" data-act="accForm" data-p="${esc(p)}" data-f="pay">Выплатить</button><button class="btn small ghost" data-act="accForm" data-p="${esc(p)}" data-f="adv">Аванс</button><button class="btn small ghost" data-act="accForm" data-p="${esc(p)}" data-f="bonus" ${ao.list.length?'':'disabled'}>Премия</button></div>
+        <button class="btn small ghost" data-act="payMode" data-who="${esc(p)}" style="margin-top:6px">Лимит аванса: ${m.mode==='free'?'без лимита':'до заработанного'}</button>`; }
+  const inCard=boss&&S.person===p; if(inCard) return (st.form?act:'')+(ordRows?UI.fold('По заказам', `<div class="accl0">${ordRows}</div>`, true):'')+UI.fold('Операции', opsBox, true)+(st.form?'':act);
+  return kp+act+(ordRows?UI.fold('По заказам', `<div class="accl0">${ordRows}</div>`, !!st.ord):'')+UI.fold('Операции', opsBox, !!st.opsOpen||!!mon); }
+/* ведомость: все, у кого есть к выплате — галочки, суммы, одна кнопка */
+function vStatement(){ const ppl=[...new Set(WORKERS.concat(PAYS.map(x=>x.who)))].filter(p=>PEOPLE[p]).map(p=>({p, m:money(p)})).filter(x=>x.m.toPay>0.5||x.m.open>0.5||x.m.adv>0.5);
+  if(!ppl.length) return ''; const sel=S.stSel||(S.stSel={}); let tot=0;
+  const rows=ppl.map(({p,m})=>{ const due=Math.round(m.toPay), on=sel[p]!=null?sel[p].on:due>0, v=sel[p]&&sel[p].v!=null?sel[p].v:due; if(on) tot+=+v||0;
+    const last=PAYS.filter(x=>x.who===p&&x.st==='выдано').sort((a,b)=>a.at<b.at?1:-1)[0], ex=S.stEx===p;
+    const ords=ex?accOrders(p).list.filter(o=>o.closed&&o.acc-o.paid>0.5).map(o=>`<div class="accl"><span>${esc(ONAME[o.id]||o.id)}</span><b class="num">${fmt0(o.acc-o.paid)}</b></div>`).join('')||UI.note('Остатков по сданным заказам нет'):'';
+    return `<div class="strow"><span class="stn"><input type="checkbox" data-act="stOn" data-p="${esc(p)}" ${on?'checked':''} ${due>0?'':'disabled'} aria-label="Выдать"> <button class="lnk" data-act="stEx" data-p="${esc(p)}"><b>${esc(PEOPLE[p])}</b> ${ex?'▴':'▾'}</button></span>
+      <span class="small mute num">к выплате <b>${fmt0(due)}</b> · в работе ${fmt0(m.open)}${m.adv?` · аванс ${fmt0(m.adv)}`:''}<br>${last?`прошлая ${ddmm(last.at)} — ${fmt0(last.amt)} ₾`:'выплат не было'}</span>
+      <input class="num" type="number" min="0" inputmode="numeric" data-st="${esc(p)}" value="${due>0?v:''}" ${due>0?'':'disabled placeholder="0"'} onchange="stVal(this)">${ex?`<div class="stord">${ords}</div>`:''}</div>`; }).join('');
+  return `<div class="t1c draft"><div class="t1r sub"><b>Новая ведомость · ${dShort(iso(TODAY))}</b></div><div style="padding:0 10px 8px">`+rows+`<button class="btn" data-act="stPay" ${tot>0?'':'disabled'} style="width:100%;margin-top:8px">Выдано · ${fmt0(tot)} ₾</button>`+`<button class="btn small ghost" data-act="stDraft" style="width:100%;margin-top:6px">Отмена</button>`+UI.note('Подставлены все, у кого есть «к выплате». Сними лишних, поправь суммы. Тап по имени — остатки по заказам.')+`</div></div>`; }
+/* журнал выплат: все выдачи по датам, фильтр по месяцу и человеку, отменённые — зачёркнуты */
+function vPayJournal(){ const all=PAYS.filter(x=>x.st==='выдано'||x.st==='отменён'); if(!all.length) return '';
+  const J=S.pj||(S.pj={}), mons=accMonths(all), mon=J.mon!=null?J.mon:(mons[0]||''), who=J.who||'';
+  const L=all.filter(x=>(!mon||x.at.slice(0,7)===mon)&&(!who||x.who===who)).sort((a,b)=>a.at<b.at?1:-1), ok=L.filter(x=>x.st==='выдано');
+  const days={}; L.forEach(x=>(days[x.at.slice(0,10)]=days[x.at.slice(0,10)]||[]).push(x));
+  const body=Object.entries(days).map(([d,xs])=>{ const t=xs.filter(x=>x.st==='выдано').reduce((a,x)=>a+x.amt,0);
+    return `<div class="pjd"><span>${dShort(d)}</span><b class="num">${fmt0(t)} ₾</b></div>`+xs.map(x=>`<div class="accl ${x.st==='отменён'?'void':''}"><span>${esc(PEOPLE[x.who]||x.who)} · ${esc(x.type)}<span class="small mute">${x.order?' · '+esc(ONAME[x.order]||x.order):''}${x.note?' · '+esc(x.note):''}${x.by&&PEOPLE[x.by]?' · выдал '+esc(PEOPLE[x.by]):''}${x.st==='отменён'?' · отменена':''}</span></span><b class="num">${fmt0(x.amt)}</b></div>`).join(''); }).join('');
+  const sumT=t=>ok.filter(x=>x.type===t).reduce((a,x)=>a+x.amt,0);
+  const chipsM=`<div class="wfbar">${mons.slice(0,6).map(k=>`<button class="wf ${mon===k?'on':''}" data-act="pjMon" data-m="${k}">${monName(k)}</button>`).join('')}<button class="wf ${!mon?'on':''}" data-act="pjMon" data-m="">Все</button></div>`;
+  const chipsP=`<div class="wfbar">${[...new Set(all.map(x=>x.who))].map(p=>`<button class="wf ${who===p?'on':''}" data-act="pjWho" data-p="${esc(p)}">${esc(PEOPLE[p]||p)}</button>`).join('')}</div>`;
+  return UI.fold('📒 Журнал выплат', chipsM+chipsP+`<div class="small num" style="margin:4px 0 6px">Выдано <b>${fmt0(sumT('зарплата')+sumT('аванс'))} ₾</b> · зарплата ${fmt0(sumT('зарплата'))} · авансы ${fmt0(sumT('аванс'))} · выдач ${ok.length}</div>`+(body||UI.note('Выплат нет')), !!S.pjOpen, `<span class="small mute">${mon?monName(mon):'всё время'}</span>`); }
+/* оборотная ведомость за месяц: долг на начало + начислено (по сданным заказам, датой сдачи) − выплачено = долг на конец */
+function vTurnover(){ const mons=accMonths(PAYS.filter(x=>x.st==='выдано').concat(DONE.filter(d=>d.date).map(d=>({at:d.date})))); if(!mons.length) return '';
+  const T=S.to||(S.to={}), mon=T.mon||mons[0], m0=mon+'-01', m1=mon<'9'?(+mon.slice(5,7)===12?(+mon.slice(0,4)+1)+'-01-01':mon.slice(0,5)+String(+mon.slice(5,7)+1).padStart(2,'0')+'-01'):'';
+  const dd=Object.fromEntries(DONE.map(d=>[d.id,d.date||'']));
+  const ppl=[...new Set(WORKERS.concat(PAYS.map(x=>x.who)))].filter(p=>PEOPLE[p]);
+  let tot=[0,0,0,0];
+  const rows=ppl.map(p=>{ const byO=money(p).byO; let b0=0, acc=0, pay=0;
+    Object.entries(byO).forEach(([id,v])=>{ if(!CLOSED.has(id)) return; const d=dd[id]||''; if(d<m0) b0+=v; else if(d<m1) acc+=v; });
+    PAYS.filter(x=>x.who===p&&x.st==='выдано').forEach(x=>{ const d=x.at.slice(0,10); if(d<m0) b0-=x.amt; else if(d<m1) pay+=x.amt; });
+    const b1=b0+acc-pay; if(!b0&&!acc&&!pay&&!b1) return ''; tot=[tot[0]+b0,tot[1]+acc,tot[2]+pay,tot[3]+b1];
+    return `<div class="tor"><b>${esc(PEOPLE[p])}</b><span class="num">${fmt0(b0)}</span><span class="num">${fmt0(acc)}</span><span class="num">${fmt0(pay)}</span><span class="num ${b1<0?'neg':''}">${fmt0(b1)}</span></div>`; }).join('');
+  const chips=`<div class="wfbar">${mons.slice(0,6).map(k=>`<button class="wf ${mon===k?'on':''}" data-act="toMon" data-m="${k}">${monName(k)}</button>`).join('')}</div>`;
+  return UI.fold('📊 Оборотная ведомость', chips+`<div class="tor th"><span></span><span>на начало</span><span>начислено</span><span>выплачено</span><span>на конец</span></div>`+(rows||UI.note('Движений нет'))+
+    `<div class="tor tt"><b>Итого</b>${tot.map(v=>`<span class="num">${fmt0(v)}</span>`).join('')}</div>`+UI.note('Долг перед человеком: плюс — должен ты, минус — выдан аванс сверх заработанного. Начисление — датой сдачи заказа.'), !!S.toOpen, `<span class="small mute">${monName(mon)}</span>`); }
+function stVal(el){ const p=el.dataset.st, sel=S.stSel||(S.stSel={}); sel[p]=Object.assign({on:true}, sel[p], {v:Math.max(0,Math.round(+el.value||0))}); render(); }
+/* ===== END BLOCK: ЛИЦЕВОЙ СЧЁТ ===== */
+function vPayBoss(p){ return vAccount(p, true); }
+function vPayBossOld(p){ const m=money(p), open=S.payOpen===p;
   const line=`<div class="small" style="margin:6px 0 2px">К выплате <b class="num">${fmt0(m.toPay)} ₾</b> · в работе <span class="num">${fmt0(m.open)} ₾</span>${m.adv?` · аванс в счёт будущих <span class="num">${fmt0(m.adv)} ₾</span>`:''}</div>`;
   const mode=`<button class="btn small ghost" data-act="payMode" data-who="${esc(p)}">Лимит аванса: ${m.mode==='free'?'без лимита':'до заработанного'}</button>`;
   const form=`<div class="grid2">${mode}<span class="small mute" style="align-self:center">выплаты — в выполненных заказах</span></div>`;
@@ -1573,31 +1724,129 @@ function vAndroid(){ if(AND) return ''; const c=S.pairCode;
     <div class="${AND?'':'grid2'}">${AND?'':'<button class="btn ghost" data-act="apkGet">Скачать APK</button>'}<button class="btn" data-act="pairCode" ${AND?'style="width:100%"':''}>${c?'Новый код':'Получить код'}</button></div>
     ${c?`<div class="pcode num">${c.slice(0,3)} ${c.slice(3)}</div><div class="small mute" style="text-align:center">Введи код в приложении · действует 10 минут</div>`:''}`, S.andOpen||!!c, '')); }
 /* ===== END BLOCK: ANDROID ===== */
+/* настройки — отдельный экран по ⚙ в шапке: уведомления бота и подключение телефона, чтобы не мешали в разделах */
+function vSettings(){ return `<button class="btn small ghost" data-act="settings" style="margin-bottom:8px">← Назад</button>`+UI.h('Настройки')+(IS_BOSS?vNotifySet():vNotifyEmp())+vAndroid(); }
 function vNotifyEmp(){ return UI.sec('', UI.fold('Мои уведомления', `<div class="nlist">${empRows()}</div>`+UI.note('Сними галку — бот перестанет присылать это сообщение. Вне смены всё приходит беззвучно.'), S.nsetOpen, `<span class="small mute num">${Object.keys(ETYPES).length-MYOFF.length} из ${Object.keys(ETYPES).length}</span>`)); }
 function vBossStaff(){
   if(S.skills) return vSkills();
-  const from=weekStart(), e=earnedBy(from), hh=hoursBy(from), wk=shiftsSince(from);
-  return UI.h('Сотрудники · неделя')+vPayRequests()+vNotifySet()+vAndroid()+`<button class="btn small" data-act="skOpen" style="margin-bottom:10px">Карта навыков</button>`+WORKERS.map(p=>{ const ea=e[p]||0, h=hh[p]||0, perH=h?ea/h:0, tone=perH>=RATE_H?'good':perH>=RATE_H*0.6?'warn':'low';
-    const late=wk.filter(r=>String(r[1])===p&&num(r[6])>5).length;
-    return UI.sec(esc(PEOPLE[p]), `<div class="grid2">${UI.kpi('₾/ч', h?fmt(perH):'—', `норма ${RATE_H}`, h?tone:'', true)}${UI.kpi('заработал', fmt0(ea)+' ₾', `мог ${fmt0(h*RATE_H)} · ${fmt(h)} ч`, '', true)}</div>
-      <div class="bar"><i class="${perH<RATE_H*0.6?'late':''}" style="width:${Math.min(100,perH/RATE_H*100)}%"></i></div>
-      ${(()=>{ const f0=iso(weekStart()), m=TIMEJ.filter(t=>t.who===p&&String(t.start).slice(0,10)>=f0).reduce((a,t)=>a+(t.end?t.min:Math.max(0,(Date.now()-tsMs(t.start))/6e4)),0), pc=h?Math.round(m/60/h*100):null;
-        return pc==null?'':`<div class="small" style="margin:4px 0">По задачам учтено <b class="num ${pc<60?'bad':''}">${Math.min(pc,100)}%</b> смены за неделю</div>`; })()}
-      ${vPace(p)}${late?`<div class="flag warn">Опозданий за неделю: ${late}</div>`:''}${flagsOf(p).map(x=>`<div class="flag warn">${esc(x)}</div>`).join('')}${vPayBoss(p)}`,
-      h?chip(perH>=RATE_H?'ok':perH>=RATE_H*0.6?'warn':'bad', `${fmt(perH)} ₾/ч`):chip('n','нет смен')); }).join('');
+  if(S.rep) return vReport();
+  if(S.person&&PEOPLE[S.person]) return vPersonCard(S.person);
+  const from=weekStart(), e=earnedBy(from), hh=hoursBy(from), t0=iso(TODAY);
+  const ppl=staffOrder();
+  let T=[0,0,0,0];
+  const rows=ppl.map(p=>{ const ea=e[p]||0, h=hh[p]||0, perH=h?ea/h:0, m=money(p), fl=flagsOf(p).length, sh=SHIFTS.filter(r=>d10(r[0])===t0&&String(r[1])===p).pop();
+    const now=sh?(sh[3]?'ушёл':'на смене'):'';
+    T=[T[0]+h,T[1]+ea,T[2]+m.toPay,T[3]+m.open];
+    return `<button class="t1r" data-act="person" data-p="${esc(p)}"><span class="t1n"><b>${esc(PEOPLE[p])}</b>${now?`<i class="dot ${now==='на смене'?'on':''}"></i>`:''}${fl?`<span class="t1f">⚑${fl}</span>`:''}</span>
+      <span class="num">${h?fmt(h):'—'}</span><span class="num ${h?(perH>=RATE_H?'good':perH>=RATE_H*0.6?'':'bad'):''}">${h?fmt(perH):'—'}</span><span class="num ${m.toPay>0.5?'good':''}">${fmt0(m.toPay)}</span><span class="num mute">${fmt0(m.open)}</span></button>`; }).join('');
+  const table=`<div class="t1c"><div class="t1r th">${[['name','Сотрудник'],['h','ч нед'],['ph','₾/ч'],['pay','к выпл.'],['open','в работе']].map(([k,n])=>`<button class="lnk" data-act="sSort" data-k="${k}">${n}${(S.sSort||'name')===k?' ▾':''}</button>`).join('')}</div>${rows}
+    <div class="t1r tt"><span>Итого</span><span class="num">${fmt(T[0])}</span><span></span><span class="num">${fmt0(T[2])}</span><span class="num">${fmt0(T[3])}</span></div></div>
+    <div class="small mute" style="margin:4px 2px 10px">Неделя с ${dShort(iso(from))} · норма ${RATE_H} ₾/ч · ● на смене · ⚑ флаги. Тап по строке — карточка сотрудника.</div>`;
+  return UI.h('Люди')+vPayRequests()+UI.sec('', table)+vStatementDocs()+vReportsList()+`<button class="btn small ghost" data-act="skOpen" style="margin-bottom:10px">Карта навыков</button>`;
 }
+function staffOrder(){ const from=weekStart(), e=earnedBy(from), hh=hoursBy(from), k=S.sSort||'name';
+  const L=[...new Set(WORKERS.concat(PAYS.map(x=>x.who)))].filter(p=>PEOPLE[p]);
+  const val=p=>k==='h'?(hh[p]||0):k==='ph'?((hh[p]?(e[p]||0)/hh[p]:0)):k==='pay'?money(p).toPay:k==='open'?money(p).open:0;
+  return k==='name'?L:L.sort((a,b)=>val(b)-val(a)); }
+/* ===== BLOCK: ОТЧЁТЫ — общие отчёты с фильтром «период + сотрудник»; карточка сотрудника открывает их же по одному человеку ===== */
+const REPS=[['works','Работы и выработка','что сделал, время, заработал, ₾/ч'],['pays','Журнал выплат','все выдачи по датам'],['turn','Оборотная ведомость','долг на начало · начислено · выплачено · на конец'],['tab','Табель','смены, часы, опоздания'],['weeks','Выработка по неделям','₾/ч за 6 недель']];
+const curMon=()=>iso(TODAY).slice(0,7);
+function opTitle(cat, code){ if(code==='premia') return 'Премия'; const c=CAT_M2[cat]||CAT_PCT[cat]; const o=c&&c.ops&&c.ops.find(x=>x[0]===code); return o?o[1]:code; }
+function inMon(d, mon){ return !mon||String(d).slice(0,7)===mon; }
+function rfMonths(){ const set=new Set([curMon()]); MARKS.forEach(m=>set.add(String(m[0]).slice(0,7))); PAYS.forEach(x=>set.add(x.at.slice(0,7))); SHIFTS.forEach(r=>set.add(d10(r[0]).slice(0,7))); return [...set].filter(Boolean).sort().reverse().slice(0,6); }
+function rfBar(withWho){ const F=S.rf||(S.rf={mon:curMon(), who:''});
+  return `<div class="wfbar">${rfMonths().map(k=>`<button class="wf ${F.mon===k?'on':''}" data-act="rf" data-k="mon" data-v="${k}">${monName(k)}</button>`).join('')}<button class="wf ${!F.mon?'on':''}" data-act="rf" data-k="mon" data-v="">Всё время</button></div>`+
+    (withWho?`<div class="wfbar"><button class="wf ${!F.who?'on':''}" data-act="rf" data-k="who" data-v="">Все</button>${staffOrder().map(p=>`<button class="wf ${F.who===p?'on':''}" data-act="rf" data-k="who" data-v="${esc(p)}">${esc(PEOPLE[p])}</button>`).join('')}</div>`:''); }
+/* работы: по каждой операции заказа — время факт, норма (заработок / ставка), ₾, ₾/ч; тап — отметки по модулям */
+function worksOf(p, mon){ const by={};
+  const row=(o,k)=>by[o+'|'+k]||(by[o+'|'+k]={o, k, min:0, earn:0, units:[], last:''});
+  MARKS.forEach(m=>{ if(!inMon(m[0],mon)) return; const oid=String(m[2]).trim(), k=m[3]+'.'+m[4], sh=shares(oid, k, String(m[1]), String(m[9]||''), String(m[10]||''))[p]||0, v=(num(m[7])||0)*sh; if(!v) return;
+    const r=row(oid,k); r.earn+=v; r.units.push({at:String(m[0]), u:String(m[5]||''), v, mode:String(m[10]||'')}); if(String(m[0])>r.last) r.last=String(m[0]); });
+  TIMEJ.forEach(t=>{ if(t.who!==p||!inMon(t.start,mon)) return; const r=row(t.order,t.op); r.min+=t.end?t.min:Math.max(0,(Date.now()-tsMs(t.start))/6e4); if(String(t.start)>r.last) r.last=String(t.start); });
+  return Object.values(by).sort((a,b)=>a.last<b.last?1:-1); }
+function worksTable(p, mon, showWho){ const L=worksOf(p,mon); let H=0,E=0,Et=0;
+  const rows=L.map(r=>{ const h=r.min/60, nh=r.earn/RATE_H, ph=h>0.05?r.earn/h:null, [cat,code]=r.k.split('.'), key=p+'|'+r.o+'|'+r.k, ex=S.wx===key; H+=h; E+=r.earn; if(h>0.05) Et+=r.earn;
+    const eff=h>0.05&&nh>0?nh/h:null;
+    return `<button class="t1r w5" data-act="wx" data-k="${esc(key)}"><span><b>${esc(opTitle(cat,code))}</b><span class="small mute"> ${esc(ONAME[r.o]||r.o)}</span></span><span class="num">${h>0.05?fmt(h):'—'}</span><span class="num mute">${fmt(nh)}</span><span class="num">${fmt0(r.earn)}</span><span class="num ${ph==null?'':ph>=RATE_H?'good':ph>=RATE_H*0.6?'':'bad'}">${ph==null?'—':fmt(ph)}</span></button>`+
+      (ex?`<div class="t1x">${r.units.sort((a,b)=>a.at<b.at?1:-1).map(u=>`<div><span>${ddmm(u.at)} · ${esc(u.u||'весь объём')}${u.mode==='станок'?' · 🤖':''}</span><b class="num">${fmt0(u.v)}</b></div>`).join('')||'<div><span class="mute">Отметок в периоде нет — только время</span></div>'}${eff!=null?`<div><span>Норма/факт</span><b class="num ${eff>=1?'good':'bad'}">${Math.round(eff*100)}%</b></div>`:''}</div>`:''); }).join('');
+  if(!rows) return showWho?'':'<div class="t1c"><div class="t1r"><span class="mute">Работ в периоде нет</span></div></div>';
+  return `<div class="t1c">${showWho?`<div class="t1r sub"><b>${esc(PEOPLE[p])}</b></div>`:''}<div class="t1r th w5"><span>Работа · заказ</span><span>ч факт</span><span>ч норма</span><span>₾</span><span>₾/ч</span></div>${rows}
+    <div class="t1r tt w5"><span>Итого</span><span class="num">${fmt(H)}</span><span class="num">${fmt(E/RATE_H)}</span><span class="num">${fmt0(E)}</span><span class="num">${H>0.05?fmt(Et/H):'—'}</span></div>${E-Et>0.5?`<div class="t1r sub small mute">₾/ч — только по работам с учтённым временем; без времени ${fmt0(E-Et)} ₾</div>`:''}</div>`; }
+function repWorks(who, mon){ return (who?[who]:staffOrder()).map(p=>worksTable(p, mon, !who)).join('')||UI.note('Работ в периоде нет')+''; }
+function repPays(who, mon){ const L=PAYS.filter(x=>(x.st==='выдано'||x.st==='отменён')&&(!who||x.who===who)&&inMon(x.at,mon)).sort((a,b)=>a.at<b.at?1:-1), ok=L.filter(x=>x.st==='выдано');
+  const t=k=>ok.filter(x=>x.type===k).reduce((a,x)=>a+x.amt,0);
+  return `<div class="t1c"><div class="t1r th w4"><span>Дата · ${who?'основание':'сотрудник'}</span><span>вид</span><span>сумма</span><span>выдал</span></div>${L.map(x=>`<div class="t1r w4 ${x.st==='отменён'?'void':''}"><span>${ddmm(x.at)} · ${who?'':'<b>'+esc(PEOPLE[x.who]||x.who)+'</b> '}<span class="small mute">${x.order?esc(ONAME[x.order]||x.order):esc(x.note||'')}</span></span><span>${esc(x.type)}</span><span class="num">${fmt0(x.amt)}</span><span class="small mute">${esc(PEOPLE[x.by]||'')}</span></div>`).join('')||'<div class="t1r"><span class="mute">Выплат нет</span></div>'}
+    <div class="t1r tt w4"><span>Выдано · ${ok.length}</span><span class="small">з/п ${fmt0(t('зарплата'))} · ав ${fmt0(t('аванс'))}</span><span class="num">${fmt0(t('зарплата')+t('аванс'))}</span><span></span></div></div>`; }
+function repTurn(who, mon){ mon=mon||curMon(); const m0=mon+'-01', y=+mon.slice(0,4), mm=+mon.slice(5,7), m1=(mm===12?(y+1)+'-01':y+'-'+String(mm+1).padStart(2,'0'))+'-01';
+  const dd=Object.fromEntries(DONE.map(d=>[d.id,d.date||''])); let tot=[0,0,0,0];
+  const rows=(who?[who]:staffOrder()).map(p=>{ let b0=0, acc=0, pay=0;
+    Object.entries(money(p).byO).forEach(([id,v])=>{ if(!CLOSED.has(id)) return; const d=dd[id]||''; if(d<m0) b0+=v; else if(d<m1) acc+=v; });
+    PAYS.filter(x=>x.who===p&&x.st==='выдано').forEach(x=>{ const d=x.at.slice(0,10); if(d<m0) b0-=x.amt; else if(d<m1) pay+=x.amt; });
+    const b1=b0+acc-pay; if(!who&&!b0&&!acc&&!pay) return ''; tot=[tot[0]+b0,tot[1]+acc,tot[2]+pay,tot[3]+b1];
+    return `<div class="t1r"><span><b>${esc(PEOPLE[p])}</b></span><span class="num">${fmt0(b0)}</span><span class="num">${fmt0(acc)}</span><span class="num">${fmt0(pay)}</span><span class="num ${b1<0?'bad':''}">${fmt0(b1)}</span></div>`; }).join('');
+  return `<div class="t1c"><div class="t1r th"><span>${monName(mon)}</span><span>на начало</span><span>начислено</span><span>выплачено</span><span>на конец</span></div>${rows||'<div class="t1r"><span class="mute">Движений нет</span></div>'}${who?'':`<div class="t1r tt">${['Итого',...tot.map(fmt0)].map((v,i)=>`<span class="${i?'num':''}">${v}</span>`).join('')}</div>`}</div>
+    <div class="small mute" style="margin:-4px 2px 10px">Начислено — по заказам, сданным в этом месяце. Минус на конец — аванс сверх заработанного.</div>`; }
+function repTab(who, mon){ const L=SHIFTS.filter(r=>inMon(d10(r[0]),mon)&&(!who||String(r[1])===who));
+  if(who){ const S2=L.slice().sort((a,b)=>String(a[0])<String(b[0])?1:-1);
+    return `<div class="t1c"><div class="t1r th w4"><span>День</span><span>приход–уход</span><span>часы</span><span>опозд.</span></div>${S2.map(r=>`<div class="t1r w4"><span>${dShort(d10(r[0]))}</span><span class="num">${esc(String(r[2]||'').slice(0,5))}–${esc(String(r[3]||'…').slice(0,5))}</span><span class="num">${r[4]?fmt(num(r[4])):'—'}</span><span class="num ${num(r[6])>5?'bad':''}">${num(r[6])>5?r[6]+' м':''}</span></div>`).join('')||'<div class="t1r"><span class="mute">Смен нет</span></div>'}
+      <div class="t1r tt w4"><span>${S2.length} смен</span><span></span><span class="num">${fmt(S2.reduce((a,r)=>a+(num(r[4])||0),0))}</span><span class="num">${S2.filter(r=>num(r[6])>5).length||''}</span></div></div>`; }
+  const rows=staffOrder().map(p=>{ const X=L.filter(r=>String(r[1])===p); if(!X.length) return ''; const days=new Set(X.map(r=>d10(r[0]))).size, h=X.reduce((a,r)=>a+(num(r[4])||0),0), late=X.filter(r=>num(r[6])>5).length;
+    return `<button class="t1r w4" data-act="person" data-p="${esc(p)}" data-t="tab"><span><b>${esc(PEOPLE[p])}</b></span><span class="num">${days}</span><span class="num">${fmt(h)}</span><span class="num ${late?'bad':''}">${late||''}</span></button>`; }).join('');
+  return `<div class="t1c"><div class="t1r th w4"><span>Сотрудник</span><span>дней</span><span>часы</span><span>опозд.</span></div>${rows||'<div class="t1r"><span class="mute">Смен нет</span></div>'}</div>`; }
+function repWeeks(who){ const N=6, ppl=who?[who]:staffOrder();
+  if(who){ const ws=weekSeries(who,N).reverse(); return `<div class="t1c"><div class="t1r th w4"><span>Неделя</span><span>часы</span><span>заработал</span><span>₾/ч</span></div>${ws.map(w=>`<div class="t1r w4"><span>с ${dShort(iso(w.from))}</span><span class="num">${w.h?fmt(w.h):'—'}</span><span class="num">${fmt0(w.e)}</span><span class="num ${w.h?(w.perH>=RATE_H?'good':w.perH>=RATE_H*0.6?'':'bad'):''}">${w.h?fmt(w.perH):'—'}</span></div>`).join('')}</div>`; }
+  const W=weekSeries(ppl[0]||ME,N).map(w=>w.from);
+  return `<div class="t1c"><div class="t1r th wN"><span>₾/ч</span>${W.map(d=>`<span>${dShort(iso(d))}</span>`).join('')}</div>${ppl.map(p=>`<button class="t1r wN" data-act="person" data-p="${esc(p)}" data-t="works"><span><b>${esc(PEOPLE[p])}</b></span>${weekSeries(p,N).map(w=>`<span class="num ${w.h?(w.perH>=RATE_H?'good':w.perH>=RATE_H*0.6?'':'bad'):'mute'}">${w.h?fmt0(w.perH):'·'}</span>`).join('')}</button>`).join('')}</div>
+    <div class="small mute" style="margin:-4px 2px 10px">Норма ${RATE_H} ₾/ч. Зелёный — норма, красный — ниже 60%.</div>`; }
+function repBody(k, who, mon){ return k==='works'?repWorks(who,mon):k==='pays'?repPays(who,mon):k==='turn'?repTurn(who,mon):k==='tab'?repTab(who,mon):repWeeks(who); }
+function vReport(){ const k=S.rep, r=REPS.find(x=>x[0]===k), F=S.rf||(S.rf={mon:curMon(), who:''});
+  return `<div class="pc"><button class="btn small ghost" data-act="rep" data-k="">← Люди</button><h2 class="rh">${r[1]}</h2>${k==='weeks'?rfBar(true).replace(/^<div class="wfbar">.*?<\/div>/,''):rfBar(true)}${repBody(k, F.who, F.mon)}</div>`; }
+function vReportsList(){ return UI.sec('Отчёты', `<div class="t1c">${REPS.map(([k,n,d])=>`<button class="t1r rl" data-act="rep" data-k="${k}"><span><b>${n}</b><span class="small mute"> ${d}</span></span><span>›</span></button>`).join('')}</div>`); }
+/* ведомости как документы: «Сформировать» → черновик на всех с «к выплате»; проведённые — списком по датам */
+function vStatementDocs(){ const docs={}; PAYS.filter(x=>x.note==='по ведомости'&&(x.st==='выдано'||x.st==='отменён')).forEach(x=>{ const k=x.at.slice(0,16); (docs[k]=docs[k]||[]).push(x); });
+  const list=Object.entries(docs).sort((a,b)=>a[0]<b[0]?1:-1).map(([k,xs])=>{ const ok=xs.filter(x=>x.st==='выдано'), ex=S.sdx===k;
+    return `<button class="t1r w4" data-act="sdx" data-k="${k}"><span><b>№ ${k.slice(2,10).replace(/-/g,'')}${k.slice(11,13)}</b><span class="small mute"> ${dShort(k.slice(0,10))} ${k.slice(11,16)}</span></span><span class="num">${ok.length} чел.</span><span class="num">${fmt0(ok.reduce((a,x)=>a+x.amt,0))}</span><span>${ex?'▴':'▾'}</span></button>`+
+      (ex?`<div class="t1x">${xs.map(x=>`<div class="${x.st==='отменён'?'void':''}"><span>${esc(PEOPLE[x.who]||x.who)}</span><b class="num">${fmt0(x.amt)}</b></div>`).join('')}</div>`:''); }).join('');
+  const draft=S.stDraft?vStatement():'';
+  const due=staffOrder().reduce((a,p)=>a+money(p).toPay,0);
+  return UI.sec('Ведомости на выплату', (draft||`<button class="btn" data-act="stDraft" style="width:100%;margin-bottom:8px" ${due>0.5?'':'disabled'}>Сформировать ведомость · ${fmt0(due)} ₾</button>`)+
+    (list?`<div class="t1c"><div class="t1r th w4"><span>Документ</span><span>людей</span><span>сумма</span><span></span></div>${list}</div>`:UI.note('Проведённых ведомостей пока нет'))); }
+/* ===== END BLOCK: ОТЧЁТЫ ===== */
+/* карточка сотрудника: вкладки Сводка · Счёт · Выплаты · Смены */
+function vPersonCard(p){ const tab=S.ptab||'sum', m=money(p);
+  const tabs=[['sum','Сводка'],['works','Работы'],['acc','Счёт'],['pays','Выплаты'],['shifts','Смены']].map(([k,n])=>`<button class="${tab===k?'on':''}" data-act="ptab" data-k="${k}">${n}</button>`).join('');
+  const L=staffOrder(), i=L.indexOf(p), prv=L[(i-1+L.length)%L.length], nxt=L[(i+1)%L.length];
+  const head=`<div class="pc-nav"><button class="btn small ghost" data-act="person" data-p="">← Все</button><span><button class="btn small ghost" data-act="person" data-p="${esc(prv)}" aria-label="Предыдущий">‹</button><button class="btn small ghost" data-act="person" data-p="${esc(nxt)}" aria-label="Следующий">›</button></span></div>
+    <div class="pc-h"><div><b class="pc-n">${esc(PEOPLE[p])}</b><div class="small mute">${esc(ROLE[p]||'сотрудник')}</div></div>
+    <div class="pc-k"><span>к выплате</span><b class="num ${m.toPay>0.5?'good':''}">${fmt0(m.toPay)} ₾</b></div></div><div class="acts3"><button class="btn small" data-act="pQuick" data-p="${esc(p)}" data-f="pay">Выплатить</button><button class="btn small ghost" data-act="pQuick" data-p="${esc(p)}" data-f="adv">Аванс</button><button class="btn small ghost" data-act="pQuick" data-p="${esc(p)}" data-f="bonus">Премия</button></div><div class="pc-tabs">${tabs}</div>`;
+  let body='';
+  if(tab==='sum'){ const ws=weekSeries(p,4), from=weekStart(), late=shiftsSince(from).filter(r=>String(r[1])===p&&num(r[6])>5).length, fl=flagsOf(p);
+    const f0=iso(from), hh=(hoursBy(from)[p]||0), tm=TIMEJ.filter(t=>t.who===p&&String(t.start).slice(0,10)>=f0).reduce((a,t)=>a+(t.end?t.min:Math.max(0,(Date.now()-tsMs(t.start))/6e4)),0), pc=hh?Math.min(100,Math.round(tm/60/hh*100)):null;
+    body=`<div class="t1c kv"><div><span>Заработано всего</span><b class="num">${fmt0(m.closed+m.open)} ₾</b></div><div><span>Выплачено</span><b class="num">${fmt0(m.paid)} ₾</b></div>
+      <div><span>К выплате</span><b class="num">${fmt0(m.toPay)} ₾</b></div><div><span>В работе (заказы не сданы)</span><b class="num">${fmt0(m.open)} ₾</b></div>${m.adv?`<div><span>Аванс сверх заработанного</span><b class="num bad">${fmt0(m.adv)} ₾</b></div>`:''}
+      <div><span>Учтено по задачам за неделю</span><b class="num ${pc!=null&&pc<60?'bad':''}">${pc==null?'—':pc+'%'}</b></div><div><span>Опозданий за неделю</span><b class="num ${late?'bad':''}">${late}</b></div></div>
+      <div class="t1c"><div class="t1r th w4"><span>Неделя</span><span>часы</span><span>заработал</span><span>₾/ч</span></div>${ws.slice().reverse().map(w=>`<div class="t1r w4"><span>с ${dShort(iso(w.from))}</span><span class="num">${w.h?fmt(w.h):'—'}</span><span class="num">${fmt0(w.e)}</span><span class="num ${w.h?(w.perH>=RATE_H?'good':w.perH>=RATE_H*0.6?'':'bad'):''}">${w.h?fmt(w.perH):'—'}</span></div>`).join('')}</div>
+      ${vPace(p)}${fl.map(x=>`<div class="flag warn">${esc(x)}</div>`).join('')}`; }
+  if(tab==='acc') body=`<div class="dense">${vAccount(p,true)}</div>`;
+  if(tab==='works'||tab==='pays'||tab==='shifts'){ const F=S.rf||(S.rf={mon:curMon(), who:''}); body=rfBar(false)+repBody(tab==='shifts'?'tab':tab, p, F.mon)+(tab==='works'?`<div class="small mute" style="margin:-4px 2px 10px">ч норма = заработок / ${RATE_H} ₾/ч. Тап по строке — отметки по модулям.</div>`:''); }
+  if(false){ const L=PAYS.filter(x=>x.who===p&&x.st!=='отклонено').sort((a,b)=>a.at<b.at?1:-1);
+    body=`<div class="t1c"><div class="t1r th w4"><span>Дата</span><span>вид</span><span>сумма</span><span>статус</span></div>${L.map(x=>`<div class="t1r w4 ${x.st==='отменён'?'void':''}"><span>${ddmm(x.at)}<span class="small mute"> ${x.order?esc(ONAME[x.order]||x.order):esc(x.note||'')}</span></span><span>${esc(x.type)}</span><span class="num">${fmt0(x.amt)}</span><span class="small">${esc(x.st)}</span></div>`).join('')||'<div class="t1r"><span class="mute">Выплат нет</span></div>'}
+      <div class="t1r tt w4"><span>Выдано</span><span></span><span class="num">${fmt0(m.paid)}</span><span></span></div></div>`; }
+  if(false){ const d0=iso(addD(TODAY,-30)), L=SHIFTS.filter(r=>String(r[1])===p&&d10(r[0])>=d0).sort((a,b)=>String(a[0])<String(b[0])?1:-1);
+    body=`<div class="t1c"><div class="t1r th w4"><span>День</span><span>приход–уход</span><span>часы</span><span>опозд.</span></div>${L.map(r=>`<div class="t1r w4"><span>${dShort(d10(r[0]))}</span><span class="num">${esc(String(r[2]||'').slice(0,5))}–${esc(String(r[3]||'…').slice(0,5))}</span><span class="num">${r[4]?fmt(num(r[4])):'—'}</span><span class="num ${num(r[6])>5?'bad':''}">${num(r[6])>5?r[6]+' м':''}</span></div>`).join('')||'<div class="t1r"><span class="mute">Смен нет за 30 дней</span></div>'}
+      <div class="t1r tt w4"><span>За 30 дней</span><span>${L.length} смен</span><span class="num">${fmt(L.reduce((a,r)=>a+(num(r[4])||0),0))}</span><span></span></div></div>`; }
+  return `<div class="pc">${head}${body}</div>`; }
 function vBossNorms(){
-  const m2=Object.values(CAT_M2).map(c=>UI.fold(c.name,
-    c.incomplete?`<div class="flag warn">Нет данных: ${c.incomplete}</div>`:
-    UI.list(c.ops.map(op=>{ const r=(c.rates?c.rates['Кухни, комоды']:c.rate)*op[2]/100;
-      return UI.row(op[1], `${fmt(op[2])}% · ${fmt(r)} ₾/м²`, `<span class="num small">${fmt(r/RATE_H)} ч/м²</span>`);}).join('')),
-    false, `<span class="num">${c.rates?Object.entries(c.rates).map(([k,v])=>`${k.toLowerCase()} ${v}`).join(' / '):c.rate??'—'} ₾/м²</span>`)).join('');
-  const pct=Object.values(CAT_PCT).map(c=>UI.fold(c.name, UI.list(c.ops.map(op=>UI.row(op[1],'',`<span class="num small">${fmt(op[2])}%</span>`)).join('')), false,
-    `<span class="num">${fmt(c.ops.reduce((s,o)=>s+(o[2]||0),0))}%</span>`)).join('');
+  const rateOf=c=>c.rates?c.rates['Кухни, комоды']:c.rate;
+  const m2=Object.values(CAT_M2).map(c=>`<div class="t1c"><div class="t1r sub"><b>${esc(c.name)}</b><span class="small mute num"> · ${c.rates?Object.entries(c.rates).map(([k,v])=>`${k.toLowerCase()} ${v}`).join(' / '):c.rate??'—'} ₾/м²</span></div>`+
+    (c.incomplete?`<div class="t1r"><span class="bad">Нет данных: ${esc(c.incomplete)}</span></div>`:`<div class="t1r th w4"><span>Операция</span><span>%</span><span>₾/м²</span><span>ч/м²</span></div>`+c.ops.map(op=>{ const r=rateOf(c)*op[2]/100;
+      return `<div class="t1r w4"><span>${esc(op[1])}</span><span class="num">${fmt(op[2])}</span><span class="num">${fmt(r)}</span><span class="num mute">${fmt(r/RATE_H)}</span></div>`; }).join(''))+`</div>`).join('');
+  const pct=Object.values(CAT_PCT).map(c=>`<div class="t1c"><div class="t1r sub"><b>${esc(c.name)}</b><span class="small mute num"> · ${fmt(c.ops.reduce((s,o)=>s+(o[2]||0),0))}% от стоимости</span></div><div class="t1r th rl"><span>Операция</span><span>%</span></div>`+
+    c.ops.map(op=>`<div class="t1r rl"><span>${esc(op[1])}</span><span class="num">${fmt(op[2])}</span></div>`).join('')+`</div>`).join('');
   return UI.h('Нормы операций')+
-    UI.sec('Присадка', UI.list(UI.row('Сотруднику по выгрузке','',`<b class="num">${P.prisAuto}% пула</b>`)+UI.row('Свободный остаток — фонд бонусов','',`<b class="num">${100-P.prisAuto}% пула</b>`))+UI.note('Бонус за фрезеровки и ручную доработку задаётся в «Составе заказа», в ₾. Значения — лист «Параметры».'))+
-    UI.sec('По м²', m2+UI.note(`Время = сумма / ${RATE_H} ₾/ч. Для корпуса показана ставка кухонь.`))+
-    UI.sec('% от стоимости заказа', pct||UI.note('—'));
+    `<div class="t1c"><div class="t1r sub"><b>Присадка</b></div><div class="t1r rl"><span>Сотруднику по выгрузке</span><b class="num">${P.prisAuto}% пула</b></div><div class="t1r rl"><span>Свободный остаток — фонд бонусов</span><b class="num">${100-P.prisAuto}% пула</b></div></div>`+
+    `<h3 class="rh2">По м²</h3>`+m2+`<div class="small mute" style="margin:-4px 2px 12px">Время = сумма / ${RATE_H} ₾/ч. Для корпуса — ставка кухонь.</div>`+
+    `<h3 class="rh2">% от стоимости заказа</h3>`+(pct||UI.note('—'));
 }
 function vFundSystem(o){
   const st=orderStats(o);
@@ -1739,15 +1988,15 @@ const BUY_ST={'нужно':'warn','заказано':'n','получено':'ok'
 function vBuy(){
   const row=x=>{ const acts=IS_BOSS&&x.status!=='получено'&&x.status!=='отменено'?
       `<div class="kb" style="margin-top:4px">${x.status==='нужно'?`<button class="btn ghost small" data-act="buySet" data-row="${x.row}" data-v="заказано">Заказано</button>`:''}<button class="btn small" data-act="buySet" data-row="${x.row}" data-v="получено">Получено</button><button class="btn small undo" data-act="buySet" data-row="${x.row}" data-v="отменено">✕</button></div>`:'';
-    return UI.row(`${esc(x.name)}${x.qty?` <span class="mute num">× ${esc(x.qty)}</span>`:''}`, `${x.order?oLabel(x.order)+' · ':''}${esc(PEOPLE[x.by]||x.by)} · ${x.at.slice(8,10)}.${x.at.slice(5,7)}`+acts, chip(BUY_ST[x.status]||'n', x.status)); };
+    return `<div class="t1r rl buyr"><span><b>${esc(x.name)}</b>${x.qty?` <span class="mute num">× ${esc(x.qty)}</span>`:''}<span class="small mute"> ${x.order?oLabel(x.order)+' · ':''}${esc(PEOPLE[x.by]||x.by)} · ${x.at.slice(8,10)}.${x.at.slice(5,7)}</span>${acts}</span><span>${chip(BUY_ST[x.status]||'n', x.status)}</span></div>`; };
   const act=BUY.filter(x=>x.status==='нужно'||x.status==='заказано').sort((a,b)=>a.status===b.status?(a.at<b.at?1:-1):a.status==='нужно'?-1:1);
   const done=BUY.filter(x=>x.status==='получено').sort((a,b)=>a.upd<b.upd?1:-1).slice(0,20);
   // подсказки: справочник (правится в таблице) + всё, что уже покупали; частые — чипами
   return UI.h('Закупка')+UI.sec('Добавить', `
       <div class="cadd buyrow"><div class="bdd-wrap"><input id="buy-n" type="text" autocomplete="off" placeholder="что купить — выбрать или новое"><div id="buy-dd" class="bdd" hidden></div></div><input id="buy-q" type="text" inputmode="decimal" placeholder="кол."><select id="buy-u">${['шт','уп','компл','л','кг','м','м²','лист'].map(u=>`<option>${u}</option>`).join('')}</select></div>
       <div class="cadd"><select id="buy-o"><option value="">для цеха (без заказа)</option>${ORDERS.map(o=>`<option value="${esc(o.id)}">${esc(o.client)} · ${esc(o.product)}</option>`).join('')}</select><button class="btn small" data-act="buyAdd">Добавить</button></div>`)+
-    UI.sec('Нужно купить', act.length?UI.list(act.map(row).join('')):UI.note('Список пуст'), chip(act.length?'warn':'ok', String(act.length)))+
-    (done.length?UI.sec('', UI.fold('Получено', UI.list(done.map(row).join('')), false, done.length)):'');
+    UI.sec('Нужно купить', act.length?`<div class="t1c">${act.map(row).join('')}</div>`:UI.note('Список пуст'), chip(act.length?'warn':'ok', String(act.length)))+
+    (done.length?UI.sec('', UI.fold('Получено', `<div class="t1c">${done.map(row).join('')}</div>`, false, done.length)):'');
 }
 
 /* ============ BLOCK: ВСЕ РАБОТЫ (выбор задач сотрудником) ============ */
@@ -1766,7 +2015,7 @@ const lowMe = k => { const l=skillLv(ME,k); return l!=null&&l<=1; };   // нав
 function vAllWork(){
   const mine=ORDERS.filter(o=>o.team.includes(ME)).map(o=>({o,u:urgency(o)})).sort((a,b)=>a.u.rank-b.u.rank);
   let free=0, totalH=0, myH=0;
-  const F=wfGet(), names=new Set(), fOn=F.ops.length>0;
+  const F=wfGet(), names=new Set(), fOn=F.ops.length>0, selAll=[]; if(!S.wsel) S.wsel=new Set();
   const body=mine.map(({o,u})=>{ totalH+=u.need; let shown=0; const groups=o.lines.map(l=>{ const c=catL(l)[l.cat], ops=opsOf(o,l);
       const rows=ops.map(op=>{ const k=l.cat+'.'+op[0], p=l.prog[op[0]]||0, st=opStatus(p), who=takenBy(o,k); names.add(op[1]);
         if(p<100&&!who&&!PLANNED[o.id+'|'+k]) free++;
@@ -1779,7 +2028,8 @@ function vAllWork(){
           : who ? `<span class="wtk">${esc(PEOPLE[who]||who)}</span>`+(lowMe(k)?` <button class="btn small ghost" data-act="askJoin" data-o="${ORDERS.indexOf(o)}" data-op="${k}" data-to="${esc(who)}">Попроситься</button>`:'')
           : lowMe(k) ? `<button class="btn small ghost" data-act="askJoin" data-o="${ORDERS.indexOf(o)}" data-op="${k}">Попроситься</button>` : `<button class="btn small take" data-act="take" data-o="${ORDERS.indexOf(o)}" data-op="${k}">Беру</button>`;
         if((fOn&&!F.ops.includes(op[1]))||(p>=100&&!F.done)||(wait&&!F.wait)){ return ''; } shown++;
-        return `<div class="wrow ${p>=100?'done':''}"><span class="on">${esc(op[1])}<span class="oc2 num">${opCost(o,l,op)}${wait}</span></span><span class="ost ${st[0]}">${st[1]}</span>${act}</div>`; }).join('');
+        const sk=ORDERS.indexOf(o)+'|'+k, sel=fOn&&p<100?`<input type="checkbox" class="wsel" data-act="wsel" data-k="${esc(sk)}" ${S.wsel&&S.wsel.has(sk)?'checked':''} aria-label="Выбрать">`:''; if(sel) selAll.push(sk);
+        return `<div class="wrow ${p>=100?'done':''} ${sel?'hassel':''}">${sel}<span class="on">${esc(op[1])}<span class="oc2 num">${opCost(o,l,op)}${wait}</span></span><span class="ost ${st[0]}">${st[1]}</span>${act}</div>`; }).join('');
       return rows?`<div class="wg"><div class="wgh">${esc(c.name)}</div>${rows}</div>`:''; }).join('');
     if(fOn&&!shown) return '';
     return `<details class="fold wo urg-${u.cls}" ${S.openWork===o.id||(fOn&&!S.wfClosed[o.id])?'open':''} data-wo="${esc(o.id)}"><summary>${svgChev}<span class="wot"><span class="won">${oName(o)} ${oCode(o)}</span><span class="wos">${hoursFrac(o,'ceh')}</span></span><span class="fm">${chip(u.cls,u.txt)}</span></summary><div class="fb">${groups}</div></details>`; }).join('');
@@ -1791,7 +2041,9 @@ function vAllWork(){
   const me=`<div class="small" style="padding:2px 0 8px">Ты взял <b class="num">${fmt0(myH)} ч</b> работы · по твоему плану до конца недели <b class="num">${fmt0(planH)} ч</b>${planH&&myH>planH?' — <span style="color:var(--bad)">больше, чем успеешь</span>':''}</div>`;
   const fbar=`<div class="wfbar">${[...names].map(n=>`<button class="wf ${F.ops.includes(n)?'on':''}" data-act="wf" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div>
     <div class="wfbar">${F.ops.length?'<button class="wf x" data-act="wf" data-n="">✕ Сбросить</button>':''}<button class="wf ${F.done?'on':''}" data-act="wf" data-n="" data-f="done">✓ Готовые</button><button class="wf ${F.wait?'on':''}" data-act="wf" data-n="" data-f="wait">⏳ После присадки</button></div>`;
-  return UI.tileFold('Все работы', fmt0(totalH)+' ч', sub, me+UI.fold(fOn?'🔎 Фильтр: '+F.ops.length:'🔎 Фильтр работ', fbar, S.wfOpen||fOn)+(body||(fOn?UI.note('По выбранным работам ничего нет'):'')||UI.note('Заказов нет'))+UI.note('Сверху — заказы с наименьшим запасом. Запас и дефицит: часы людей по их календарю ('+PLAN.hoursPerDay+' ч в день выхода) минус работа; часы раздаются заказам по очереди: сначала ближайшему дедлайну.'), tone, S.workOpen, 'w');
+  S.wselAll=selAll; [...S.wsel].forEach(k=>{ if(!selAll.includes(k)) S.wsel.delete(k); });
+  const bulk=fOn&&selAll.length?`<div class="wbulk"><button class="btn small ghost" data-act="wselAll">${S.wsel.size===selAll.length?'Снять все':'Выбрать все ('+selAll.length+')'}</button><button class="btn small" data-act="wDo" ${S.wsel.size?'':'disabled'}>✓ Готово · ${S.wsel.size}</button></div>`:'';
+  return UI.tileFold('Все работы', fmt0(totalH)+' ч', sub, me+bulk+UI.fold(fOn?'🔎 Фильтр: '+F.ops.length:'🔎 Фильтр работ', fbar, S.wfOpen||fOn)+(body||(fOn?UI.note('По выбранным работам ничего нет'):'')||UI.note('Заказов нет'))+UI.note('Сверху — заказы с наименьшим запасом. Запас и дефицит: часы людей по их календарю ('+PLAN.hoursPerDay+' ч в день выхода) минус работа; часы раздаются заказам по очереди: сначала ближайшему дедлайну.'), tone, S.workOpen, 'w');
 }
 
 /* ============ BLOCK: EVENTS ============ */
@@ -1806,11 +2058,11 @@ function geo(){ if(AND) return Promise.resolve('');   // в Android-прилож
   return new Promise(res=>{ if(!navigator.geolocation) return res('');
   const t=setTimeout(()=>res(''),4000);
   navigator.geolocation.getCurrentPosition(p=>{ clearTimeout(t); res(p.coords.latitude.toFixed(5)+', '+p.coords.longitude.toFixed(5)); }, ()=>{ clearTimeout(t); res(''); }, {timeout:3500,maximumAge:60000}); }); }
-document.getElementById('role-emp').onclick=()=>{S.role='emp';S.tab='today';render();};
-document.getElementById('role-boss').onclick=()=>{S.role='boss';S.tab='borders';render();};
+document.getElementById('role-emp').onclick=()=>{S.settings=false;S.role='emp';S.tab='today';render();};
+document.getElementById('role-boss').onclick=()=>{S.settings=false;S.role='boss';S.tab='borders';render();};
 document.addEventListener('click',e=>{
   if(S.joinOpen&&!e.target.closest('.tpop,.tppl-btn')){ S.joinOpen=null; render(); }
-  const t=e.target.closest('[data-tab]'); if(t){S.tab=t.dataset.tab;render();window.scrollTo(0,0);return;}
+  const t=e.target.closest('[data-tab]'); if(t){S.tab=t.dataset.tab;S.settings=false;S.person=null;S.rep=null;render();window.scrollTo(0,0);return;}
   const b=e.target.closest('[data-act]'); if(!b||b.tagName==='SELECT'||b.tagName==='INPUT') return;
   const a=b.dataset.act;
   if(a==='shift'){
@@ -1890,13 +2142,47 @@ document.addEventListener('click',e=>{
     if(!(v>0)){ toast('Впиши сумму'); return; } if(m.avail!=null&&v>m.avail+0.5){ toast('Можно попросить до '+fmt0(m.avail)+' ₾'); return; }
     const x={at:iso(TODAY)+' '+hm(nowMin()), who:ME, type:'аванс', amt:v, st:'запрос', note:n, row:0}; PAYS.push(x);
     api('payRequest',{amount:v, note:n}).then(r=>{ x.row=r.row; }).catch(fail); toast('Запрос отправлен руководителю'); }
+  if(a==='payVoid'){ const r=b.dataset.row; if(S.voidAsk!==r){ S.voidAsk=r; render(); return; } S.voidAsk=null; const x=PAYS.find(y=>String(y.row)===r); if(x){ x.st='отменён'; api('payCancel',{row:x.row}).catch(fail); toast('Выплата отменена'); } }
   if(a==='payCancel'){ const x=PAYS.find(y=>String(y.row)===b.dataset.row); S.moneyOpen=true; if(x){ x.st='отменён'; api('payCancel',{row:x.row}).catch(fail); toast('Запрос отменён'); } }
   if(a==='payDecide'){ const x=PAYS.find(y=>String(y.row)===b.dataset.row); if(x){ x.st=b.dataset.v; api('payDecide',{row:x.row, status:b.dataset.v}).catch(fail); toast(b.dataset.v==='выдано'?'Аванс выдан':'Отклонено'); } }
   if(a==='payOpen'){ S.payOpen = S.payOpen===b.dataset.who ? null : b.dataset.who; }
   if(a==='payAdd'){ const who=b.dataset.who, v=Math.round(+document.getElementById('pay-a').value||0), t=document.getElementById('pay-t').value, n=document.getElementById('pay-n').value.trim();
     if(!(v>0)){ toast('Впиши сумму'); return; } const x={at:iso(TODAY)+' '+hm(nowMin()), who, type:t, amt:v, st:'выдано', note:n, row:0}; PAYS.push(x); S.payOpen=null;
     api('payAdd',{who, type:t, amount:v, note:n}).then(r=>{ x.row=r.row; }).catch(fail); toast(`${t==='аванс'?'Аванс':'Зарплата'} ${fmt0(v)} ₾ — ${PEOPLE[who]||who}`); }
+  if(a==='accOrd'){ const st=(S.acc[b.dataset.p]=S.acc[b.dataset.p]||{}); st.ord=st.ord===b.dataset.o?null:b.dataset.o; }
+  if(a==='accMon'){ const st=(S.acc[b.dataset.p]=S.acc[b.dataset.p]||{}); st.mon=b.dataset.m; st.opsOpen=true; }
+  if(a==='accAll'){ S.acc[b.dataset.p].all=true; }
+  if(a==='accForm'){ const st=(S.acc[b.dataset.p]=S.acc[b.dataset.p]||{}); st.form=b.dataset.f||null; S.payOpen=b.dataset.p; }
+  if(a==='accDo'){ const p=b.dataset.p, f=b.dataset.f, v=Math.round(+document.getElementById('ac-a').value||0); if(!(v>0)){ toast('Впиши сумму'); return; }
+    const now=iso(TODAY)+' '+hm(nowMin()), st=S.acc[p];
+    if(f==='bonus'){ const oid=document.getElementById('ac-o').value; MARKS.push([now, p, oid, 'korpus', 'premia', 'премия', 100, v, 0, '', '', '', 0]); api('bonusAdd',{who:p, order:oid, amount:v}).catch(fail); toast(`Премия ${fmt0(v)} ₾ — ${PEOPLE[p]||p}`); }
+    else { const t=f==='adv'?'аванс':'зарплата', n=(document.getElementById('ac-n')||{}).value||''; const x={at:now, who:p, type:t, amt:v, st:'выдано', note:n.trim(), order:'', row:0, by:ME}; PAYS.push(x);
+      api('payAdd',{who:p, type:t, amount:v, note:n.trim()}).then(r=>{ x.row=r.row; }).catch(fail); toast(`${t==='аванс'?'Аванс':'Выплачено'} ${fmt0(v)} ₾ — ${PEOPLE[p]||p}`); }
+    st.form=null; }
+  if(a==='person'){ const was=S.person; S.person=b.dataset.p||null; if(b.dataset.t){ S.ptab=b.dataset.t==='tab'?'shifts':b.dataset.t; S.rep=null; } else if(!was) S.ptab='sum'; window.scrollTo(0,0); }
+  if(a==='ptab'){ S.ptab=b.dataset.k; }
+  if(a==='regOpen'){ S.openOrd=S.openOrd===b.dataset.o?null:b.dataset.o; }
+  if(a==='rep'){ S.rep=b.dataset.k||null; window.scrollTo(0,0); }
+  if(a==='rf'){ const F=S.rf||(S.rf={mon:curMon(), who:''}); F[b.dataset.k]=b.dataset.v; }
+  if(a==='wx'){ S.wx=S.wx===b.dataset.k?null:b.dataset.k; }
+  if(a==='sdx'){ S.sdx=S.sdx===b.dataset.k?null:b.dataset.k; }
+  if(a==='stDraft'){ S.stDraft=!S.stDraft; S.stSel={}; }
+  if(a==='sSort'){ S.sSort=b.dataset.k; }
+  if(a==='pQuick'){ const p=b.dataset.p; S.ptab='acc'; const A=S.acc||(S.acc={}); (A[p]=A[p]||{}).form=b.dataset.f; }
+  if(a==='settings'){ S.settings=!S.settings; window.scrollTo(0,0); }
+  if(a==='stEx'){ S.stEx=S.stEx===b.dataset.p?null:b.dataset.p; }
+  if(a==='pjMon'){ (S.pj=S.pj||{}).mon=b.dataset.m; S.pjOpen=true; }
+  if(a==='pjWho'){ const J=(S.pj=S.pj||{}); J.who=J.who===b.dataset.p?'':b.dataset.p; S.pjOpen=true; }
+  if(a==='toMon'){ (S.to=S.to||{}).mon=b.dataset.m; S.toOpen=true; }
+  if(a==='stOn'){ const p=b.dataset.p, sel=S.stSel||(S.stSel={}); sel[p]=Object.assign({}, sel[p], {on:b.checked}); }
+  if(a==='stPay'){ const sel=S.stSel||{}, now=iso(TODAY)+' '+hm(nowMin()); let n=0, tot=0;
+    document.querySelectorAll('[data-st]').forEach(el=>{ const p=el.dataset.st, cb=document.querySelector(`[data-act="stOn"][data-p="${CSS.escape(p)}"]`), v=Math.round(+el.value||0); if(!cb||!cb.checked||!(v>0)) return;
+      const x={at:now, who:p, type:'зарплата', amt:v, st:'выдано', note:'по ведомости', order:'', row:0, by:ME}; PAYS.push(x); n++; tot+=v;
+      api('payAdd',{who:p, type:'зарплата', amount:v, note:'по ведомости'}).then(r=>{ x.row=r.row; }).catch(fail); });
+    S.stSel={}; if(n) S.stDraft=false; toast(n?`Ведомость проведена · ${n} чел. · ${fmt0(tot)} ₾`:'Никого не выбрано'); }
   if(a==='payMode'){ const w=b.dataset.who, nm=(PAYMODE[w]||'earned')==='free'?'earned':'free'; PAYMODE[w]=nm; api('payMode',{who:w, mode:nm}).catch(fail); toast('Лимит аванса: '+(nm==='free'?'без лимита':'до заработанного')); }
+  if(a==='orderReopen'){ const id=b.dataset.o; if(S.reopenAsk!==id){ S.reopenAsk=id; render(); return; } S.reopenAsk=null; CLOSED.delete(id);
+    api('orderSet',{order:id, col:12, value:'в работе'}).then(()=>{ toast('Заказ снова в работе — отметки можно править'); reload(); }).catch(fail); return; }
   if(a==='orderClose'){ const o=ORDERS[+b.dataset.o]; if(S.closeAsk!==o.id){ S.closeAsk=o.id; S.openOrd=o.id; render(); return; }
     S.closeAsk=null; CLOSED.add(o.id); api('orderSet',{order:o.id, col:12, value:'сдан'}).then(()=>{ toast('Заказ закрыт — заработанное открыто к выплате'); reload(); }).catch(fail); return; }
   if(a==='dOpen'){ S.dpay=b.dataset.k||null; S.doneOpen=true; if(b.dataset.k) S.doneOrd=b.dataset.k.split('|')[0]; }
@@ -1950,6 +2236,11 @@ document.addEventListener('click',e=>{
     o.notes.push({who:ME, at:hm(nowMin()), text:t, next:nx}); api('noteAdd',{order:o.id, text:t, next:nx}).catch(fail); toast('Заметка добавлена'); renderKeep(`[data-act="noteAdd"][data-o="${b.dataset.o}"]`, b); return; }
   if(a==='mountPick'){ S.mountOrder=b.dataset.o; S.fixAddOpen=null; render(); window.scrollTo(0,0); return; }
   if(a==='taskTap'){ S.openTask = S.openTask===b.dataset.t ? null : b.dataset.t; S.tasksOpen=true; renderKeep(`[data-act="taskTap"][data-t="${b.dataset.t}"]`, b); return; }
+  if(a==='wsel'){ const k=b.dataset.k; if(b.checked) S.wsel.add(k); else S.wsel.delete(k); render(); return; }
+  if(a==='wselAll'){ if(S.wsel.size===(S.wselAll||[]).length) S.wsel.clear(); else S.wsel=new Set(S.wselAll); render(); return; }
+  if(a==='wDo'){ if(S.wDoAsk!==S.wsel.size){ S.wDoAsk=S.wsel.size; toast('Отметить готовыми '+S.wsel.size+' — нажми ещё раз'); return; } S.wDoAsk=null; const e0=S.todayEarned; let n=0;
+    [...S.wsel].forEach(sk=>{ const i=sk.indexOf('|'), oi=+sk.slice(0,i), k=sk.slice(i+1); try{ const {line,op}=findOp(ORDERS[oi],k); if((line.prog[op[0]]||0)>=100) return; line.units.forEach((u,ui)=>tickUnit(oi,k,ui,true,true)); n++; }catch(e){} });
+    S.wsel.clear(); toast(`Отмечено ${n} · +${fmt0(S.todayEarned-e0)} ₾`); render(); return; }
   if(a==='wf'){ const F=wfGet(), n=b.dataset.n, f=b.dataset.f; S.wfOpen=true;
     if(f) F[f]=!F[f]; else if(!n) F.ops=[]; else F.ops=F.ops.includes(n)?F.ops.filter(x=>x!==n):F.ops.concat([n]); S.wfClosed={}; wfSave(); renderKeep(`[data-act="wf"][data-n="${CSS.escape(n)}"]${f?`[data-f="${f}"]`:''}`, b); return; }
   if(a==='untake'){ const o=ORDERS[+b.dataset.o], i=o.tasks.findIndex(t=>t.op===b.dataset.op&&(t.self||t.row)); if(i>=0){ const t=o.tasks[i]; o.tasks.splice(i,1);
@@ -2065,7 +2356,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1793868183';
+const BUILD='1794814093';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 

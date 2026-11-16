@@ -118,7 +118,7 @@ const API = {
   /* ---- загрузка всего для приложения ---- */
   boot(me){ ensureTriggers_(); ensureWebhook_();
     const o = sh_(SH.orders);
-    return { me, caps: ['closeFor'], params: params_(), today: today_(), now: hm_(),
+    return { me, caps: ['closeFor', 'payVoid'], params: params_(), today: today_(), now: hm_(),
       staff: read_(SH.staff, 2, 10).map(r => ({ id: String(r[0]), name: String(r[1]), role: String(r[4]).trim(), helperRate: r[5], active: String(r[6]).trim() !== 'нет', tg: !!r[3], payMode: String(r[8] || '').trim() === 'без лимита' ? 'free' : 'earned', subs: subsOf_(r[9]), subsRaw: String(r[9] || '') })),
       pays: sh_(SH.pays) ? read_(SH.pays, 2, 9) : [],
       ops: read_(SH.ops, 2, 11),
@@ -350,7 +350,7 @@ const API = {
     notifyBosses_('adv', 'Запрос аванса: ' + me.name + ' — ' + a + ' ₾' + (b.note ? ' (' + b.note + ')' : '') + '. Решение — в «Людях».');
     return { row }; },
   payCancel(me, b){ const s = sh_(SH.pays), r = s.getRange(b.row, 1, 1, 8).getValues()[0];
-    if (String(r[1]) !== me.id || r[4] !== 'запрос') throw new Error('Отменить можно только свой нерассмотренный запрос');
+    if (!me.boss && (String(r[1]) !== me.id || r[4] !== 'запрос')) throw new Error('Отменить можно только свой нерассмотренный запрос');   // руководитель — любую (ошибочная выплата)
     s.getRange(b.row, 5, 1, 3).setValues([['отменён', me.id, now_()]]); return {}; },
   payDecide: bossOnly_(function(me, b){ const ok = ['выдано', 'отклонено']; if (ok.indexOf(b.status) < 0) throw new Error('Неизвестное решение');
     const s = sh_(SH.pays), r = s.getRange(b.row, 1, 1, 8).getValues()[0]; if (r[4] !== 'запрос') throw new Error('Запрос уже рассмотрен');
