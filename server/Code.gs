@@ -486,7 +486,7 @@ function orderNew_(b){ if (b.mode !== 'new') return []; const s = sh_(SH.orders)
     if (id && have.indexOf(id) >= 0) return;   // уже есть — просто привязка
     const client = String(o.client || pr.client || '').trim(); if (!client) throw new Error('Нет клиента у изделия ' + (o.product || i + 1));
     if (!id){ const ini = client.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join(''), dd = Utilities.formatDate(new Date(), TZ, 'ddMM');
-      id = ini + ' ' + dd + (list.length > 1 ? '-' + String(i + 1).padStart(2, '0') : ''); let n = 2; const base = id; while (have.indexOf(id) >= 0) id = base + '/' + (n++); }
+      id = ini + ' ' + dd + (list.length > 1 ? '-' + String(i + 1).padStart(2, '0') : ''); let n = 2; const base = id; while (have.indexOf(id) >= 0) id = base + '-' + String(n++).padStart(2, '0'); }   // второе изделие того же клиента в тот же день — «-02»
     const sys = o.sys === 'pct' ? 'pct' : 'm2', row = new Array(27).fill('');
     row[ORD.id] = "'" + id; row[ORD.client] = client; row[ORD.product] = String(o.product || pr.name || '').trim(); row[ORD.sys] = sys === 'm2' ? 'м²' : '%';
     row[ORD.kind] = String(o.kind || 'Кухни, комоды'); row[ORD.cost] = Math.round(+o.cost || 0) || ''; row[ORD.term] = o.hard ? 'жёсткий' : 'мягкий';
