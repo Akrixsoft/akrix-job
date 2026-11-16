@@ -109,7 +109,7 @@ function doPost(e){
 }
 function bossOnly_(f){ f.boss = true; return f; }
 /* ===== BLOCK: SYNC — счётчик изменений: любая запись +1; клиенты опрашивают его и перечитывают таблицу только при изменении ===== */
-const RO_ = { boot: 1, mini: 1, pairCode: 1, staffList: 1, orderList: 1 };
+const RO_ = { boot: 1, mini: 1, pairCode: 1, staffList: 1, orderList: 1, jobRefs: 1 };
 function ver_(){ return +(PropertiesService.getScriptProperties().getProperty('VER') || 0); }
 function bump_(){ const pr = PropertiesService.getScriptProperties(), v = (+(pr.getProperty('VER') || 0)) + 1; pr.setProperty('VER', String(v)); return v; }
 /* ===== END BLOCK: SYNC ===== */
@@ -225,6 +225,12 @@ const API = {
       if (all.length) sp.getRange(2, 1, all.length, 9).clearContent();
       if (keep.length) sp.getRange(2, 1, keep.length, 9).setValues(keep); });
     return { linked, added, unmatched, created }; }),
+  /* ---- конструктор: справочники для окна «Экспорт в Job» — группы материалов со ставками, типы ставки, сотрудники ---- */
+  jobRefs(me){ const g = {}; read_(SH.ops, 2, 7).forEach(r => { const sys = String(r[0]).trim(), code = String(r[1]).trim(); if (!code) return;
+      const x = g[code] || (g[code] = { code, name: String(r[2] || code).trim(), sys: [], rate: '', pctSum: 0 }); const sy = /%/.test(sys) ? 'pct' : 'm2';
+      if (x.sys.indexOf(sy) < 0) x.sys.push(sy); if (sy === 'm2' && String(r[3]).trim() && !x.rate) x.rate = String(r[3]).trim(); x.pctSum += +String(r[6] || 0).replace(',', '.') || 0; });
+    return { groups: Object.values(g).map(x => ({ code: x.code, name: x.name, sys: x.sys, rate: x.rate })), kinds: ['Кухни, комоды', 'Прочее'], terms: ['мягкий', 'жёсткий'],
+      staff: read_(SH.staff, 2, 7).filter(r => String(r[0]).trim() && String(r[6]).trim() !== 'нет').map(r => ({ id: String(r[0]).trim(), name: String(r[1]), role: String(r[4]).trim() })) }; },
   /* ---- внешние программы (Drilling, конструктор): список сотрудников для выбора оператора ---- */
   staffList(me){ return { staff: read_(SH.staff, 2, 7).filter(r => String(r[0]).trim() && String(r[6]).trim() !== 'нет').map(r => ({ id: String(r[0]).trim(), name: String(r[1]), role: String(r[4]).trim() })) }; },
   /* ---- Android: код подключения и компактное состояние для шторки ---- */
@@ -491,6 +497,7 @@ function orderNew_(b){ if (b.mode !== 'new') return []; const s = sh_(SH.orders)
     row[ORD.id] = "'" + id; row[ORD.client] = client; row[ORD.product] = String(o.product || pr.name || '').trim(); row[ORD.sys] = sys === 'm2' ? 'м²' : '%';
     row[ORD.kind] = String(o.kind || 'Кухни, комоды'); row[ORD.cost] = Math.round(+o.cost || 0) || ''; row[ORD.term] = o.hard ? 'жёсткий' : 'мягкий';
     row[ORD.ship] = d(o.ship); row[ORD.ceh] = d(o.ceh); row[ORD.done] = d(o.done); row[ORD.status] = 'в работе';
+    if (o.team) row[ORD.team] = [].concat(o.team).join(', '); if (o.master) row[ORD.master] = String(o.master); if (+o.shopPct > 0 && +o.shopPct < 100) row[ORD.shopPct] = Math.round(+o.shopPct);
     if (sys === 'm2'){ const area = {}; (o.modules || []).forEach(m => (m.parts || []).forEach(p => { const g = String(p.group || m.group || 'korpus'); area[g] = (area[g] || 0) + (+p.area || 0); }));
       Object.keys(area).forEach(g => { const c = hdr.indexOf(g); if (c >= 0) row[ORD.mat0 + c] = Math.round(area[g] * 100) / 100; }); }
     else if (+o.cost > 0) row[ORD.mat0] = Math.round(+o.cost);
