@@ -192,7 +192,7 @@ const API = {
       return { id, client: String(r[1]), product: String(r[2]), project: String(r[26] || ''), state: String(r[11] || ''),
         modules: mr.filter(m => String(m[0]).trim() === id).map(m => { const g = String(m[1]).trim(), d = done[id + '|' + g + '|' + String(m[2]).trim()] || {}, n = Object.keys(opsN[g] || {}).length;
           return { name: String(m[2]), code: String(m[5] || '') || code(m[2]), id: String(m[6] || ''), group: g, area: +String(m[3]).replace(',', '.') || 0, done: n ? Math.round(Object.keys(d).length / n * 100) / 100 : 0, pris: !!d.pris, note: String(m[4] || '') }; }) }; }) }; },
-  orderPush: bossOnly_(function(me, b){ if (b.mode !== 'link') throw new Error('Пока поддерживается только mode:link');
+  orderPush: bossOnly_(function(me, b){ const created = orderNew_(b); if (b.mode !== 'link') throw new Error('mode: link или new');
     const pid = String((b.project || {}).id || ''); if (!pid) throw new Error('Нет id проекта');
     const so = sh_(SH.orders), sm = sh_(SH.modules); if (!String(so.getRange(1, 27).getValue())) so.getRange(1, 27).setValue('Проект');
     if (!String(sm.getRange(1, 6).getValue())) sm.getRange(1, 6, 1, 2).setValues([['Код', 'id конструктора']]);
@@ -224,7 +224,7 @@ const API = {
       (o.modules || []).forEach(m => (m.parts || []).forEach(p => keep.push(["'" + oid, String(m.id || ''), String(m.jobName || m.name || ''), String(p.key || ''), String(p.code || ''), String(p.mat || ''), String(p.group || m.group || ''), +p.area || 0, pid])));
       if (all.length) sp.getRange(2, 1, all.length, 9).clearContent();
       if (keep.length) sp.getRange(2, 1, keep.length, 9).setValues(keep); });
-    return { linked, added, unmatched }; }),
+    return { linked, added, unmatched, created }; }),
   /* ---- внешние программы (Drilling, конструктор): список сотрудников для выбора оператора ---- */
   staffList(me){ return { staff: read_(SH.staff, 2, 7).filter(r => String(r[0]).trim() && String(r[6]).trim() !== 'нет').map(r => ({ id: String(r[0]).trim(), name: String(r[1]), role: String(r[4]).trim() })) }; },
   /* ---- Android: код подключения и компактное состояние для шторки ---- */
@@ -476,6 +476,26 @@ function checkTimers(){ const s = sh_(SH.time); if (!s) return; const now = Date
     const q = tg_('sendMessage', { chat_id: String(st[3]), text: '⏱ ' + lbl + '\nПрошло ' + (h ? h + ' ч ' : '') + (m ? m + ' мин' : '') + ' — продолжаешь?',
       reply_markup: { inline_keyboard: [[{ text: '+30 мин', callback_data: 'tx:30:' + r[9] }, { text: '+1 ч', callback_data: 'tx:60:' + r[9] }, { text: '+2 ч', callback_data: 'tx:120:' + r[9] }], [{ text: '⏸ Пауза', callback_data: 'p' }]] } });
     if (q && q.ok) msgKeep_('TQ_' + st[0], st[3], q.result.message_id); }); }
+/* конструктор → Job, mode:'new': заказа ещё нет — создать строку «Заказы» (клиент, изделие, система, сроки, площади групп из деталей), дальше — как link.
+   order: {id?, client, product, sys:'m2'|'pct', kind, cost, hard, ship, ceh, done, modules:[…как в link]}; id пустой — Job выдаёт: инициалы клиента + ДДММ (+ -01, -02 для нескольких изделий) */
+function orderNew_(b){ if (b.mode !== 'new') return []; const s = sh_(SH.orders), out = [];
+  const ids = () => s.getRange(1, 1, s.getLastRow(), 1).getDisplayValues().map(x => String(x[0]).trim());
+  const hdr = s.getRange(1, ORD.mat0 + 1, 1, 9).getDisplayValues()[0].map(h => String(h).split('·').pop().trim());
+  const pr = b.project || {}, list = b.orders || [], d = v => /^\d{4}-\d\d-\d\d$/.test(String(v || '')) ? v : '';
+  list.forEach((o, i) => { let id = String(o.id || '').trim(); const have = ids();
+    if (id && have.indexOf(id) >= 0) return;   // уже есть — просто привязка
+    const client = String(o.client || pr.client || '').trim(); if (!client) throw new Error('Нет клиента у изделия ' + (o.product || i + 1));
+    if (!id){ const ini = client.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join(''), dd = Utilities.formatDate(new Date(), TZ, 'ddMM');
+      id = ini + ' ' + dd + (list.length > 1 ? '-' + String(i + 1).padStart(2, '0') : ''); let n = 2; const base = id; while (have.indexOf(id) >= 0) id = base + '/' + (n++); }
+    const sys = o.sys === 'pct' ? 'pct' : 'm2', row = new Array(27).fill('');
+    row[ORD.id] = "'" + id; row[ORD.client] = client; row[ORD.product] = String(o.product || pr.name || '').trim(); row[ORD.sys] = sys === 'm2' ? 'м²' : '%';
+    row[ORD.kind] = String(o.kind || 'Кухни, комоды'); row[ORD.cost] = Math.round(+o.cost || 0) || ''; row[ORD.term] = o.hard ? 'жёсткий' : 'мягкий';
+    row[ORD.ship] = d(o.ship); row[ORD.ceh] = d(o.ceh); row[ORD.done] = d(o.done); row[ORD.status] = 'в работе';
+    if (sys === 'm2'){ const area = {}; (o.modules || []).forEach(m => (m.parts || []).forEach(p => { const g = String(p.group || m.group || 'korpus'); area[g] = (area[g] || 0) + (+p.area || 0); }));
+      Object.keys(area).forEach(g => { const c = hdr.indexOf(g); if (c >= 0) row[ORD.mat0 + c] = Math.round(area[g] * 100) / 100; }); }
+    else if (+o.cost > 0) row[ORD.mat0] = Math.round(+o.cost);
+    s.appendRow(row); o.id = id; out.push({ id, product: row[ORD.product] }); });
+  b.mode = 'link'; return out; }
 /* сообщения бота с кнопками для идущей задачи (вопрос таймера, «Пора») — после паузы/закрытия кнопки снимаются */
 function msgKeep_(key, chat, id){ try { const pr = PropertiesService.getScriptProperties(); let a = []; try { a = JSON.parse(pr.getProperty(key) || '[]'); } catch (e) {}
   a.push({ c: String(chat), id }); pr.setProperty(key, JSON.stringify(a.slice(-10))); } catch (e) {} }
