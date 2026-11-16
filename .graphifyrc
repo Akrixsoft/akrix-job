@@ -1,0 +1,4 @@
+# Graphify: Akrix — single-file HTML-приложения. Разбирать <script> внутри .html как код (локальный AST, без LLM)
+language.html=.svelte
+# Google Apps Script = JavaScript
+language.gs=js
