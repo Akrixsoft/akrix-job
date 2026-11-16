@@ -1,0 +1,13 @@
+# GRAPHIFY:BEGIN — только код; данные, бинарники, сборки не индексировать
+apk/
+*.apk
+android/app/build/
+android/.gradle/
+android/build/
+*.png
+*.jpg
+*.webp
+*.md
+*.pdf
+graphify-out/
+# GRAPHIFY:END
