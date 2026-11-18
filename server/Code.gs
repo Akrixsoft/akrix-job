@@ -198,7 +198,7 @@ const API = {
     if (!String(sm.getRange(1, 6).getValue())) sm.getRange(1, 6, 1, 2).setValues([['Код', 'id конструктора']]);
     let sp = sh_(SH.parts); if (!sp){ sp = book_().insertSheet(SH.parts); sp.appendRow(['Заказ', 'id модуля', 'Модуль', 'Деталь (key)', 'Код', 'Материал', 'Группа', 'Площадь', 'Проект']); }
     let linked = 0, added = 0; const unmatched = [];
-    (b.orders || []).forEach(o => { const oid = String(o.id || '').trim(), row = findOrderRow_(oid); const cur = String(so.getRange(row, 27).getValue() || '');
+    const byOrder = {}; (b.orders || []).forEach(o => { const oid = String(o.id || '').trim(), row = findOrderRow_(oid), l0 = linked, a0 = added, u0 = unmatched.length; const cur = String(so.getRange(row, 27).getValue() || '');
       if (cur && cur !== pid) throw new Error('Заказ ' + oid + ' уже связан с другим проектом');
       so.getRange(row, 27).setValue(pid);
       const mr = read_(SH.modules, 2, 7).filter(m => String(m[0]).trim() === oid), byName = {}; mr.forEach(m => byName[String(m[2]).trim().toLowerCase()] = m);
@@ -223,8 +223,9 @@ const API = {
       const all = sp.getLastRow() > 1 ? sp.getRange(2, 1, sp.getLastRow() - 1, 9).getValues() : [], keep = all.filter(r => String(r[0]).trim() !== oid);
       (o.modules || []).forEach(m => (m.parts || []).forEach(p => keep.push(["'" + oid, String(m.id || ''), String(m.jobName || m.name || ''), String(p.key || ''), String(p.code || ''), String(p.mat || ''), String(p.group || m.group || ''), +p.area || 0, pid])));
       if (all.length) sp.getRange(2, 1, all.length, 9).clearContent();
-      if (keep.length) sp.getRange(2, 1, keep.length, 9).setValues(keep); });
-    return { linked, added, unmatched, created }; }),
+      if (keep.length) sp.getRange(2, 1, keep.length, 9).setValues(keep);
+      byOrder[oid] = { linked: linked - l0, added: added - a0 }; unmatched.slice(u0).forEach(u => { u.order = oid; }); });
+    return { linked, added, unmatched, created, byOrder }; }),
   /* ---- конструктор: справочники для окна «Экспорт в Job» — группы материалов со ставками, типы ставки, сотрудники ---- */
   jobRefs(me){ const g = {}; read_(SH.ops, 2, 7).forEach(r => { const sys = String(r[0]).trim(), code = String(r[1]).trim(); if (!code) return;
       const x = g[code] || (g[code] = { code, name: String(r[2] || code).trim(), sys: [], rate: '', pctSum: 0 }); const sy = /%/.test(sys) ? 'pct' : 'm2';
@@ -487,6 +488,7 @@ function checkTimers(){ const s = sh_(SH.time); if (!s) return; const now = Date
 function orderNew_(b){ if (b.mode !== 'new') return []; const s = sh_(SH.orders), out = [];
   const ids = () => s.getRange(1, 1, s.getLastRow(), 1).getDisplayValues().map(x => String(x[0]).trim());
   const hdr = s.getRange(1, ORD.mat0 + 1, 1, 9).getDisplayValues()[0].map(h => String(h).split('·').pop().trim());
+  const pctG = {}; read_(SH.ops, 2, 2).forEach(r => { if (/%/.test(String(r[0]))) pctG[String(r[1]).trim()] = 1; });
   const pr = b.project || {}, list = b.orders || [], d = v => /^\d{4}-\d\d-\d\d$/.test(String(v || '')) ? v : '';
   list.forEach((o, i) => { let id = String(o.id || '').trim(); const have = ids();
     if (id && have.indexOf(id) >= 0) return;   // уже есть — просто привязка
@@ -498,9 +500,10 @@ function orderNew_(b){ if (b.mode !== 'new') return []; const s = sh_(SH.orders)
     row[ORD.kind] = String(o.kind || 'Кухни, комоды'); row[ORD.cost] = Math.round(+o.cost || 0) || ''; row[ORD.term] = o.hard ? 'жёсткий' : 'мягкий';
     row[ORD.ship] = d(o.ship); row[ORD.ceh] = d(o.ceh); row[ORD.done] = d(o.done); row[ORD.status] = 'в работе';
     if (o.team) row[ORD.team] = [].concat(o.team).join(', '); if (o.master) row[ORD.master] = String(o.master); if (+o.shopPct > 0 && +o.shopPct < 100) row[ORD.shopPct] = Math.round(+o.shopPct);
-    if (sys === 'm2'){ const area = {}; (o.modules || []).forEach(m => (m.parts || []).forEach(p => { const g = String(p.group || m.group || 'korpus'); area[g] = (area[g] || 0) + (+p.area || 0); }));
-      Object.keys(area).forEach(g => { const c = hdr.indexOf(g); if (c >= 0) row[ORD.mat0 + c] = Math.round(area[g] * 100) / 100; }); }
-    else if (+o.cost > 0) row[ORD.mat0] = Math.round(+o.cost);
+    // площади групп по деталям; в системе «%» группы с нормами в % (корпус) получают стоимость, остальные (dop, МДФ…) — площадь, как в ручном заказе
+    const area = {}; (o.modules || []).forEach(m => (m.parts || []).forEach(p => { const g = String(p.group || m.group || 'korpus'); area[g] = (area[g] || 0) + (+p.area || 0); }));
+    Object.keys(area).forEach(g => { const c = hdr.indexOf(g); if (c < 0 || (sys === 'pct' && pctG[g])) return; row[ORD.mat0 + c] = Math.max(0.01, Math.round(area[g] * 100) / 100); });
+    if (sys === 'pct' && +o.cost > 0) row[ORD.mat0] = Math.round(+o.cost);
     s.appendRow(row); o.id = id; out.push({ id, product: row[ORD.product] }); });
   b.mode = 'link'; return out; }
 /* сообщения бота с кнопками для идущей задачи (вопрос таймера, «Пора») — после паузы/закрытия кнопки снимаются */
