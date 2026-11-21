@@ -693,3 +693,43 @@ function setup(){
 }
 /* проверка бота: пишет руководителю */
 function testBot(){ const b = staffTg_().find(x => x.boss); if (!b) throw new Error('Откройте приложение хотя бы раз — бот запомнит ваш Telegram ID'); Logger.log(JSON.stringify(send_(b.tg, 'Akrix Job: бот работает ✅', 'Открыть Akrix Job'))); }
+
+/* ============ BLOCK: FIN — расчёты с клиентом (конструктор Akrix Furniture, Дмитрий 21.11.2026) ============
+   Лист «Расчёты»: договор (из снимка сметы), доп. работы, аванс, доплата, возврат, скидка. Запись — на проект конструктора (P.id) и/или заказ Job.
+   Лист «Клиенты — контакты»: телефон, адрес. Всё — только руководитель / администратор (bossOnly_). Удаление — пометкой (столбец «удалено»), строка остаётся. */
+SH.fin = 'Расчёты'; SH.cli = 'Клиенты — контакты';
+const FIN_H = ['id', 'Дата', 'Проект (id)', 'Заказ', 'Клиент', 'Проект / изделие', 'Тип', 'Сумма', 'Способ', 'Кто внёс', 'Примечание', 'Снимок сметы', 'Создано', 'Удалено'];
+const FIN_T = ['договор', 'доп. работы', 'аванс', 'доплата', 'возврат', 'скидка'], FIN_W = ['нал', 'банк', 'карта', ''];
+const CLI_H = ['Клиент', 'Телефон', 'Адрес', 'Примечание', 'Обновлено'];
+function finSh_(){ let s = sh_(SH.fin); if (!s){ s = book_().insertSheet(SH.fin); s.appendRow(FIN_H); s.setFrozenRows(1); } return s; }
+function cliSh_(){ let s = sh_(SH.cli); if (!s){ s = book_().insertSheet(SH.cli); s.appendRow(CLI_H); s.setFrozenRows(1); } return s; }
+const finRow_ = r => ({ id: String(r[0]), date: String(r[1]).slice(0, 10), project: String(r[2]), order: String(r[3]).replace(/^'/, ''), client: String(r[4]), name: String(r[5]), type: String(r[6]),
+  sum: +String(r[7]).replace(',', '.') || 0, way: String(r[8]), who: String(r[9]), note: String(r[10]), snap: String(r[11]), at: String(r[12]), row: r[r.length - 1] });
+Object.assign(RO_, { finList: 1 });
+Object.assign(API, {
+  /* всё для конструктора: записи, заказы (включая сданные), контакты; b.project / b.order — фильтр (пусто — весь реестр) */
+  finList: bossOnly_(function(me, b){ finSh_(); cliSh_();
+    const P = String(b.project || ''), O = String(b.order || '');
+    const rows = read_(SH.fin, 2, FIN_H.length).filter(r => !String(r[13]).trim()).map(finRow_).filter(x => (!P && !O) || (P && x.project === P) || (O && x.order === O));
+    const orders = read_(SH.orders, 2, 27).filter(r => String(r[0]).trim() && !/^пример/.test(String(r[0]))).map(r => ({ id: String(r[0]).trim(), client: String(r[1]), product: String(r[2]),
+      cost: +String(r[ORD.cost]).replace(',', '.') || 0, term: String(r[ORD.term]), ship: String(r[ORD.ship]).slice(0, 10), ceh: String(r[ORD.ceh]).slice(0, 10), done: String(r[ORD.done]).slice(0, 10),
+      status: String(r[ORD.status] || '').trim(), project: String(r[26] || '') })).filter(o => (!P && !O) || (P && o.project === P) || (O && o.id === O));
+    const contacts = read_(SH.cli, 2, CLI_H.length).map(r => ({ client: String(r[0]).trim(), phone: String(r[1]), addr: String(r[2]), note: String(r[3]) }));
+    return { rows, orders, contacts, today: today_(), me: me.name }; }),
+  finAdd: bossOnly_(function(me, b){ const s = finSh_(), type = String(b.type || '').trim(), sum = Math.round((+String(b.sum).replace(',', '.') || 0) * 100) / 100;
+    if (FIN_T.indexOf(type) < 0) throw new Error('Тип записи: ' + FIN_T.join(', '));
+    if (!(sum > 0)) throw new Error('Сумма должна быть больше нуля');
+    if (!String(b.project || '').trim() && !String(b.order || '').trim()) throw new Error('Нет проекта и заказа');
+    const way = FIN_W.indexOf(String(b.way || '')) >= 0 ? String(b.way || '') : '', d = /^\d{4}-\d\d-\d\d$/.test(String(b.date || '')) ? b.date : today_();
+    const id = 'F' + Utilities.formatDate(new Date(), TZ, 'yyMMddHHmmss') + Math.floor(Math.random() * 90 + 10);
+    s.appendRow([id, d, String(b.project || ''), b.order ? "'" + String(b.order) : '', String(b.client || ''), String(b.name || ''), type, sum, way, me.name, String(b.note || ''), String(b.snap || ''), now_(), '']);
+    return { id }; }),
+  finDel: bossOnly_(function(me, b){ const s = finSh_(), v = s.getRange(1, 1, s.getLastRow(), 1).getDisplayValues();
+    for (let i = 1; i < v.length; i++) if (String(v[i][0]) === String(b.id)){ s.getRange(i + 1, 14).setValue(now_() + ' · ' + me.name); return { id: b.id }; }
+    throw new Error('Запись не найдена: ' + b.id); }),
+  cliSet: bossOnly_(function(me, b){ const s = cliSh_(), c = String(b.client || '').trim(); if (!c) throw new Error('Нет клиента');
+    const v = s.getLastRow() > 1 ? s.getRange(2, 1, s.getLastRow() - 1, 1).getDisplayValues() : [], row = [c, String(b.phone || ''), String(b.addr || ''), String(b.note || ''), now_()];
+    for (let i = 0; i < v.length; i++) if (String(v[i][0]).trim().toLowerCase() === c.toLowerCase()){ s.getRange(i + 2, 1, 1, 5).setValues([row]); return { client: c }; }
+    s.appendRow(row); return { client: c }; })
+});
+/* ===== END BLOCK: FIN ===== */
