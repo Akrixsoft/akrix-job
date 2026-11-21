@@ -815,7 +815,7 @@ const CNC_H = ['Получено', 'eid', 'Тип', 'ПК', 'Оператор (i
 const CNC_F = [['eid', 's'], ['t', 's'], ['pc', 's'], ['op', 's'], ['opName', 's'], ['ts0', 's'], ['ts1', 's'], ['dur', 'n'], ['order', 's'], ['project', 's'], ['module', 's'], ['part', 's'], ['partName', 's'],
   ['kind', 's'], ['setup', 's'], ['sys', 's'], ['side', 's'], ['holes', 'n'], ['millMm', 'n'], ['mat', 's'], ['L', 'n'], ['W', 'n'], ['th', 'n'], ['runSec', 'n'], ['setupSec', 'n'], ['m0', 'n'], ['idleSec', 'n'],
   ['planSec', 'n'], ['result', 's'], ['source', 's'], ['redo', 'b'], ['x', 'j']];
-const CNC_T = ['shift', 'run', 'setup', 'part', 'manual', 'fault'];
+const CNC_T = ['shift', 'run', 'setup', 'part', 'manual', 'fault', 'gap'];   /* gap — переход между программами (Drilling v1082) */
 function cncSh_(){ let s = sh_(SH.cnc); if (!s){ s = book_().insertSheet(SH.cnc); s.appendRow(CNC_H); s.setFrozenRows(1); } return s; }
 function cncCell_(v, k){ if (v === undefined || v === null || v === '') return '';
   if (k === 'n'){ const n = +String(v).replace(',', '.'); return isFinite(n) ? n : ''; }
