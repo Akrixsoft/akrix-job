@@ -733,3 +733,73 @@ Object.assign(API, {
     s.appendRow(row); return { client: c }; })
 });
 /* ===== END BLOCK: FIN ===== */
+
+/* ============ BLOCK: FIN2 — реестр заказов: статусы Дмитрия, фиксация «общая / цех», расчёт строк (Дмитрий 21.11.2026, конструктор v1075) ============
+   Лист «Реестр заказов»: одна строка на заказ реестра (ключ p:<проект> или o:<заказ Job>) — статус, общая (клиент), цех, источник (авто / ручн), дата фиксации.
+   Правила расчёта — ТОЛЬКО здесь (finReg_, чистая функция): finList отдаёт посчитанные строки reg — конструктор и мини-приложение Job показывают одно и то же.
+   Лист «Заказы» не трогается: «сдан» в Job → «8. Выполнен» в реестре только при чтении. */
+SH.reg = 'Реестр заказов';
+const REG_H = ['Ключ', 'Проект (id)', 'Заказ', 'Клиент', 'Проект / изделие', 'Статус', 'Общая', 'Цех', 'Источник', 'Зафиксировано', 'Кто', 'Обновлено'];
+/*FINREG>*/
+const REG_ST = ['0. Ждем подтверждения', '1. Расчет стоимости', '2. Замер', '3. Проектирование', '4. Деталировка', '5. Раскрой', '6. Сборка', '7. Готов к установке', '8. Выполнен',
+  'Ждем оплату $$$', 'Уточнение деталей', 'Слился', 'Отложен', 'Отменен'];
+const REG_ZERO = ['0. Ждем подтверждения', '2. Замер', 'Уточнение деталей', 'Слился', 'Отложен', 'Отменен', 'Ждем оплату $$$'];   /* формула Дмитрия: остаток 0 */
+function finReg_(rows, orders, reg, today){
+  const G = {}, oBy = {}, k0 = (p, o) => p ? 'p:' + p : 'o:' + o;
+  const g = k => G[k] || (G[k] = { key: k, E: [], O: [], R: null });
+  orders.forEach(o => { oBy[o.id] = o; g(k0(o.project, o.id)).O.push(o); });
+  rows.forEach(e => { const o = e.order && oBy[e.order]; g(e.project ? k0(e.project) : o && o.project ? k0(o.project) : k0('', e.order)).E.push(e); });
+  reg.forEach(r => { if (r.key) g(r.key).R = r; });
+  const sum = (E, t) => E.filter(e => e.type === t).reduce((s, e) => s + e.sum, 0), r2 = v => Math.round(v * 100) / 100;
+  const day = (a, b) => Math.round((Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10)) - Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10))) / 864e5);
+  return Object.keys(G).map(k => { const x = G[k], E = x.E, O = x.O, R = x.R || {};
+    const dg = E.filter(e => e.type === 'договор').sort((a, b) => (a.date + a.at < b.date + b.at ? 1 : -1))[0];
+    const ext = sum(E, 'доп. работы'), disc = sum(E, 'скидка'), adv = sum(E, 'аванс'), pay = sum(E, 'доплата') - sum(E, 'возврат');
+    const base = R.total > 0 ? +R.total : dg ? dg.sum : null, tot = base != null ? r2(base + ext - disc) : ext > 0 ? r2(ext - disc) : null;
+    const lock = O.length > 0 && O.every(o => o.status === 'сдан'), status = lock ? '8. Выполнен' : (R.status || '');
+    const inCalc = adv + pay > 0;   /* заказ без поступлений — не в калькуляции */
+    const rest = REG_ZERO.indexOf(status) >= 0 ? 0 : tot != null ? r2(tot - adv - pay) : null;
+    const open = O.filter(o => o.status !== 'сдан'), dd = (open.length ? open : O).map(o => o.done).filter(Boolean).sort(), done = (open.length ? dd[0] : dd[dd.length - 1]) || '';
+    const pays = E.filter(e => e.type === 'аванс' || e.type === 'доплата').map(e => e.date).sort();
+    const f = E[0] || {}, o0 = O[0] || {};
+    return { key: k, project: k.slice(0, 2) === 'p:' ? k.slice(2) : '', order: o0.id || (k.slice(0, 2) === 'o:' ? k.slice(2) : (f.order || '')), client: R.client || o0.client || f.client || '', name: R.name || o0.product || f.name || '',
+      status, lock, tot, base, ceh: R.ceh > 0 ? +R.ceh : null, ext: r2(ext), disc: r2(disc), adv: r2(adv), pay: r2(pay), rest, inCalc, fixed: R.fixed || '', src: R.src || (dg && !(R.total > 0) ? 'договор' : ''),
+      done, days: done ? day(done, today) : null, ship: O.map(o => o.ship).filter(Boolean).sort()[0] || '', ord: O.map(o => o.id).join(', '), last: pays[pays.length - 1] || '', E, O: O.map(o => o.id) }; }); }
+/*<FINREG*/
+function regSh_(){ let s = sh_(SH.reg); if (!s){ s = book_().insertSheet(SH.reg); s.appendRow(REG_H); s.setFrozenRows(1); } return s; }
+const regRow_ = r => ({ key: String(r[0]), project: String(r[1]), order: String(r[2]).replace(/^'/, ''), client: String(r[3]), name: String(r[4]), status: String(r[5]),
+  total: +String(r[6]).replace(',', '.') || 0, ceh: +String(r[7]).replace(',', '.') || 0, src: String(r[8]), fixed: String(r[9]).slice(0, 10), who: String(r[10]) });
+function regKey_(b){ const p = String(b.project || '').trim(), o = String(b.order || '').trim(); if (b.rk) return String(b.rk);   /* rk — ключ реестра (b.key — ключ доступа) */
+  if (p) return 'p:' + p; if (!o) throw new Error('Нет проекта и заказа');
+  const or = read_(SH.orders, 2, 27).find(r => String(r[0]).trim() === o); return or && String(or[26] || '').trim() ? 'p:' + String(or[26]).trim() : 'o:' + o; }
+/* запись строки реестра: v — только переданные поля (status / total / ceh / src / fixed) */
+function regPut_(me, key, b, v){ const s = regSh_(), last = s.getLastRow(), keys = last > 1 ? s.getRange(2, 1, last - 1, 1).getDisplayValues().map(x => String(x[0])) : [];
+  let i = keys.indexOf(key), row; if (i >= 0) row = s.getRange(i + 2, 1, 1, REG_H.length).getValues()[0];
+  else row = [key, key.slice(0, 2) === 'p:' ? key.slice(2) : '', key.slice(0, 2) === 'o:' ? "'" + key.slice(2) : '', '', '', '', '', '', '', '', '', ''];
+  if (b.client) row[3] = String(b.client); if (b.name) row[4] = String(b.name);
+  if ('status' in v) row[5] = v.status; if ('total' in v) row[6] = v.total; if ('ceh' in v) row[7] = v.ceh; if ('src' in v) row[8] = v.src; if ('fixed' in v) row[9] = v.fixed;
+  row[10] = me.name; row[11] = now_();
+  if (i >= 0) s.getRange(i + 2, 1, 1, REG_H.length).setValues([row]); else s.appendRow(row); return key; }
+const money_ = v => v === '' || v == null ? '' : Math.round((+String(v).replace(',', '.') || 0) * 100) / 100;
+Object.assign(API, (function(){ const L0 = API.finList, A0 = API.finAdd;
+  return {
+    finList: bossOnly_(function(me, b){ const d = L0(me, b); regSh_();
+      const reg = read_(SH.reg, 2, REG_H.length).map(regRow_), P = String(b.project || ''), O = String(b.order || '');
+      d.reg = finReg_(d.rows, d.orders, reg, d.today).filter(x => (!P && !O) || (P && x.project === P) || (O && (x.order === O || x.O.indexOf(O) >= 0)));
+      d.ST = REG_ST; d.ZERO = REG_ZERO; return d; }),
+    /* поступление: первое (аванс / доплата) без прежних и без зафиксированной общей → фиксация общая / цех (b.fixTot / b.fixCeh от конструктора; иначе договор / стоимость заказа Job) */
+    finAdd: bossOnly_(function(me, b){ const type = String(b.type || '').trim(), pay = type === 'аванс' || type === 'доплата'; let key = null, x = null;
+      if (pay){ key = regKey_(b); const all = L0(me, {}), reg = read_(SH.reg, 2, REG_H.length).map(regRow_); x = finReg_(all.rows, all.orders, reg, all.today).find(q => q.key === key) || null; }
+      const r = A0(me, b);
+      if (pay && !(x && (x.adv + x.pay > 0)) && !(x && x.base != null && x.src !== 'договор')){
+        const oc = x ? read_(SH.orders, 2, 27).filter(q => x.O.indexOf(String(q[0]).trim()) >= 0).reduce((s, q) => s + (+String(q[ORD.cost]).replace(',', '.') || 0), 0) : 0;
+        const tot = money_(b.fixTot) || (x && x.base) || oc || '', ceh = money_(b.fixCeh) || oc || '';
+        regPut_(me, key, b, { total: tot, ceh, src: 'авто', fixed: /^\d{4}-\d\d-\d\d$/.test(String(b.date || '')) ? b.date : today_() }); r.fixed = { total: tot, ceh }; }
+      return r; }),
+    /* статус, ручная котировка: b.status / b.total / b.ceh (пустая строка — очистить) */
+    regSet: bossOnly_(function(me, b){ const key = regKey_(b), v = {};
+      if ('status' in b){ const st = String(b.status || ''); if (st && REG_ST.indexOf(st) < 0) throw new Error('Статус: ' + REG_ST.join(', ')); v.status = st; }
+      if ('total' in b || 'ceh' in b){ if ('total' in b) v.total = money_(b.total); if ('ceh' in b) v.ceh = money_(b.ceh); v.src = 'ручн'; if (b.fixed !== false) v.fixed = today_(); }
+      regPut_(me, key, b, v); return { key }; })
+  }; })());
+/* ===== END BLOCK: FIN2 ===== */
