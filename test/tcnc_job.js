@@ -1,0 +1,37 @@
+// Тест BLOCK CNC (сервер Job): cncLog — дубли по eid, поля по столбцам, лимит 300; cncStat — период, фильтры, новые первыми, отказ не руководителю. node test/tcnc_job.js server/Code.gs
+const { ctx, BOOK, props } = require('./mock.js'); const res = [];
+const ck = (n, c, d) => { res.push(!!c); console.log((c ? 'OK   ' : 'FAIL ') + n, c ? '' : JSON.stringify(d)); };
+const st = BOOK.insertSheet('Сотрудники'); st.appendRow(['id', 'имя', 'tg', 'tgid', 'роль', '', 'доступ']);
+st.appendRow(['s1', 'Дмитрий', '', '', 'руководитель', '', 'да']); st.appendRow(['s2', 'Гия', '', '', 'сборщик', '', 'да']); st.appendRow(['s3', 'Ника', '', '', 'администратор', '', 'да']);
+const KB = 'a'.repeat(48), KS = 'b'.repeat(48), KA = 'c'.repeat(48); props['AK_' + KB] = 's1'; props['AK_' + KS] = 's2'; props['AK_' + KA] = 's3';
+const call = b => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(b) }, parameter: {} }).t);
+const d0 = new Date(), iso = n => { const d = new Date(d0); d.setDate(d.getDate() - n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const E1 = { eid: 'stanok-1', t: 'part', pc: 'stanok', op: 's2', opName: 'Гия', ts0: iso(0) + ' 10:00:00', ts1: iso(0) + ' 10:03:20', dur: 200, order: 'К 2111', project: 'PRJ1', module: 'С1·М2', part: 'akx7', partName: 'Бок левый',
+  kind: 'drill', setup: 'flip', sys: 'G55', side: 'A', holes: 14, millMm: 0, mat: 'U963 ЛДСП 18', L: 720, W: 560, th: 18, runSec: 150, setupSec: 40, m0: 1, idleSec: 10, planSec: 140, result: 'done', source: 'auto', redo: false, x: { d: [5, 8] } };
+const v0 = props.VER;
+let r = call({ action: 'cncLog', key: KS, events: [E1, Object.assign({}, E1, { eid: 'stanok-2', t: 'run', ts0: iso(3) + ' 09:00:00', op: 's3', pc: 'shop', order: 'Н 1411', project: '', redo: true, source: 'manual' }), Object.assign({}, E1)] });
+ck('cncLog сотрудником (ПК станка): 2 записано, дубль в пачке отброшен', r.ok && r.data.accepted === 2 && r.data.duplicates === 1, r);
+const S = BOOK.s['Журнал станка'];
+ck('лист «Журнал станка» создан, 34 столбца по договору', S && S.d[0].length === 34 && S.d[0][0] === 'Получено' && S.d[0][33] === 'Отправил' && S.d[0][24] === 'Станок, с', S && S.d[0]);
+const row = S.d[1];
+ck('строка: поля по столбцам, текст с апострофом, числа числами, x — JSON, отправил', row[1] === "'stanok-1" && row[2] === "'part" && row[6] === "'" + E1.ts0 && row[8] === 200 && row[9] === "'К 2111" && row[18] === 14 && row[24] === 150 && row[25] === 40 && row[26] === 1 && row[28] === 140 && row[31] === '' && row[32] === '{"d":[5,8]}' && row[33] === 's2', row);
+ck('переделка → «да»', S.d[2][31] === 'да');
+r = call({ action: 'cncLog', key: KS, events: [E1, { eid: 'stanok-3', t: 'shift', op: 's2', ts0: iso(40) + ' 08:00:00' }, { t: 'part' }, { eid: 'stanok-4', t: 'boom', ts0: iso(1) + ' 12:00:00' }] });
+ck('повтор пачки: прежний eid — дубль, без eid — пропуск, чужой тип — пишется с предупреждением', r.data.accepted === 2 && r.data.duplicates === 1 && r.data.warnings.length === 2 && S.d.length === 5, r);
+ck('cncLog не поднимает счётчик изменений', props.VER === v0, [v0, props.VER]);
+r = call({ action: 'cncLog', key: KS, events: Array.from({ length: 350 }, (_, i) => ({ eid: 'big-' + i, t: 'part', ts0: iso(2) + ' 11:00:00' })) });
+ck('пачка больше 300 — принимаются первые 300', r.data.accepted === 300, r.data);
+r = call({ action: 'cncStat', key: KS }); ck('cncStat сотрудником — отказ', !r.ok, r);
+r = call({ action: 'cncStat', key: KB });
+const ev = r.data.events;
+ck('cncStat руководителем: 30 дней (событие 40 дней назад нет), новые первыми, total / more', r.ok && ev.length === 303 && !ev.some(e => e.eid === 'stanok-3') && ev[0].eid === 'stanok-1' && r.data.more === false && r.data.total === 303 && r.data.to === iso(0) && r.data.from === iso(30), r.data && [ev.length, ev[0], r.data.from]);
+const e = ev[0];
+ck('поля по именам: типы восстановлены (числа, redo, x — объект, текст без апострофа)', e.order === 'К 2111' && e.holes === 14 && e.runSec === 150 && e.redo === false && e.x.d[1] === 8 && e.ts0 === E1.ts0 && e.by === 's2' && e.millMm === 0 && !('redo2' in e), e);
+ck('staff: id, имя, роль', r.data.staff.length === 3 && r.data.staff[1].role === 'сборщик' && r.data.today === iso(0), r.data.staff);
+ck('фильтр project', call({ action: 'cncStat', key: KB, project: 'PRJ1' }).data.events.map(x => x.eid).join() === 'stanok-1');
+ck('фильтр op + pc', call({ action: 'cncStat', key: KB, op: 's3', pc: 'shop' }).data.events.map(x => x.eid).join() === 'stanok-2');
+ck('фильтр order', call({ action: 'cncStat', key: KB, order: 'Н 1411' }).data.events.length === 1);
+ck('период from / to', call({ action: 'cncStat', key: KB, from: iso(50), to: iso(35) }).data.events.map(x => x.eid).join() === 'stanok-3');
+ck('администратор — доступ', call({ action: 'cncStat', key: KA, from: iso(1), to: iso(1) }).ok);
+ck('прежние журналы не тронуты: «Станок — журнал» не создан', !BOOK.s['Станок — журнал']);
+console.log('ИТОГ', res.filter(Boolean).length, '/', res.length); process.exit(res.every(Boolean) ? 0 : 1);

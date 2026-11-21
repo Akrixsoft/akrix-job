@@ -4,3 +4,4 @@ android/build/
 # GRAPHIFY:BEGIN — выходные файлы графа (коммитить или нет — решает Дмитрий)
 graphify-out/
 # GRAPHIFY:END
+test/*.png

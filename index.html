@@ -915,6 +915,7 @@ const meName = () => PEOPLE[ME]||ME;
 /* иконки таб-бара — inline SVG, 24px, stroke */
 const ICON = (()=>{ const w=(d)=>`<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
   return {
+    cnc: w('<path d="M9 3h6v5H9z"/><path d="M10 8h4l-1 4h-2z"/><path d="M12 12v5l-1.2 1.6M12 17l1.2 1.6"/><path d="M4 21h16"/>'),   /* станок: шпиндель со сверлом над столом */
     reg: w('<text x="12" y="18.5" text-anchor="middle" font-size="18" font-weight="700" fill="currentColor" stroke="none" font-family="Arial">₾</text>'),
     today: w('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'),
     cal: w('<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'),
@@ -1336,7 +1337,7 @@ function vOrders(){ const mine=ORDERS.filter(o=>o.team.includes(ME)); return UI.
 
 /* ============ BLOCK: ROUTER ============ */
 const TABS = { emp:[['today','Сегодня'],['mount','Монтаж'],['cal','Календарь'],['orders','Заказы'],['buy','Закупка']],
-  boss:[['borders','Заказы'],['tomorrow','План'],['fund','Фонд'],['staff','Люди'],['norms','Нормы'],['buy','Закупка'],['reg','Реестр']] };   /* реестр — только руководитель / администратор (вкладки boss) */
+  boss:[['borders','Заказы'],['tomorrow','План'],['fund','Фонд'],['staff','Люди'],['norms','Нормы'],['buy','Закупка'],['reg','Реестр'],['cnc','Станок']] };   /* реестр, станок — только руководитель / администратор (вкладки boss) */
 /* ============ BLOCK: РОСТ И МОТИВАЦИЯ (сотрудник) + ФЛАГИ (руководитель) ============ */
 function weekSeries(p,n){ const out=[]; for(let i=n-1;i>=0;i--){ const a=addD(weekStart(),-7*i), b=addD(a,7);
     const e=(earnedBy(a)[p]||0)-(earnedBy(b)[p]||0), h=(hoursBy(a)[p]||0)-(hoursBy(b)[p]||0); out.push({from:a, e, h, perH:h?e/h:0}); } return out; }
@@ -1399,7 +1400,7 @@ function render(){
   document.getElementById('tabs').innerHTML=TABS[S.role].map(([k,n])=>`<button data-tab="${k}" aria-current="${S.tab===k}">${ICON[k]}<span>${n}</span>${S.tab===k?'':badgeHtml(bd[k])}</button>`).join('');
   if(IS_BOSS){ const other=badges(S.role==='boss'?'emp':'boss'), tot=Object.values(other).reduce((a,x)=>a+x,0);
     document.getElementById(S.role==='boss'?'role-emp':'role-boss').classList.toggle('hasdot', tot>0); document.getElementById(S.role==='boss'?'role-boss':'role-emp').classList.remove('hasdot'); }
-  const v={today:vToday,orders:vOrders,borders:vBossOrders,fund:vBossFund,staff:vBossStaff,norms:vBossNorms,tomorrow:vBossTomorrow,cal:vCal,mount:vMountTab,buy:vBuy,reg:vReg}[S.tab];
+  const v={today:vToday,orders:vOrders,borders:vBossOrders,fund:vBossFund,staff:vBossStaff,norms:vBossNorms,tomorrow:vBossTomorrow,cal:vCal,mount:vMountTab,buy:vBuy,reg:vReg,cnc:vCnc}[S.tab];
   const tapeX={}; document.querySelectorAll('.ptape').forEach(x=>tapeX[x.id]=x.scrollLeft);
   document.getElementById('view').innerHTML=(S.settings?vSettings():v())+(S.role==='emp'?vStartPick():'')+(S.role==='boss'?vNewOrder():'');
   stickTops(); document.querySelectorAll('.ptape').forEach(x=>{ if(tapeX[x.id]!=null) x.scrollLeft=tapeX[x.id]; });
@@ -2108,6 +2109,107 @@ document.addEventListener('input',e=>{ if(e.target.id!=='reg-q') return; RG.q=e.
   +'.rge{display:grid;grid-template-columns:42px 1fr auto 34px;gap:6px;align-items:center;font-size:13px;border-bottom:1px dashed var(--line);padding:3px 0}.rga{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}.rga button{grid-column:span 2}.rgb select{width:100%}';
   document.head.appendChild(st); })();
 /* ===== END BLOCK: РЕЕСТР ===== */
+/* ============ BLOCK: СТАНОК — учёт работы станка: кто что сделал, время, эффективность, нормы (руководитель / администратор; Дмитрий 21.11.2026, договор job/TO_JOB_cnc.md) ============
+   Данные — сервер cncStat (лист «Журнал станка», пишет Drilling через cncLog). Всё считается здесь, ничего не хранится: грузится ≥ 30 дней (для норм), период и фильтры — на клиенте.
+   Часы станка / простой — по событиям 'run' (программа); установки — по 'setup'; нет таких событий — по деталям 'part'. Время детали = runSec + setupSec (нет — dur).
+   Эффективность = Σ planSec / Σ (runSec + setupSec) по деталям. Свой обработчик событий (data-cact / data-cf). Сотрудникам вкладки нет. */
+const CN={d:null,t:0,busy:null,err:'',per:'week',from:'',to:'',op:'',order:'',pc:'',lf:''};
+try{ const c=JSON.parse(localStorage.getItem('akrixCnc')||'null'); if(c&&c.d&&c.d.events){ CN.d=c.d; CN.t=c.t; CN.lf=c.lf||''; } }catch(e){}
+const cnIso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const cnAdd=(iso,n)=>{ const d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n); return cnIso(d); };
+function cnRange(){ const t=(CN.d&&CN.d.today)||cnIso(new Date());
+  if(CN.per==='today') return [t,t]; if(CN.per==='week') return [cnAdd(t,-6),t]; if(CN.per==='month') return [cnAdd(t,-29),t];
+  return [CN.from||cnAdd(t,-29), CN.to||t]; }
+function cnLoad(){ if(CN.busy) return CN.busy; const t=cnIso(new Date()), r=cnRange(), from=r[0]<cnAdd(t,-30)?r[0]:cnAdd(t,-30);
+  CN.busy=api('cncStat',{from, to:r[1]>t?r[1]:t}).then(d=>{ CN.d=d; CN.t=Date.now(); CN.lf=from; CN.err=''; try{ localStorage.setItem('akrixCnc',JSON.stringify({d,t:CN.t,lf:from})); }catch(e){} })
+    .catch(e=>{ CN.err=e.message||String(e); }).finally(()=>{ CN.busy=null; if(S.tab==='cnc'&&!busy()) render(); }); return CN.busy; }
+const cnMed=a=>{ const v=a.filter(x=>isFinite(x)).sort((x,y)=>x-y), n=v.length; return n?(n%2?v[(n-1)/2]:(v[n/2-1]+v[n/2])/2):null; };
+const cnAvg=a=>{ const v=a.filter(x=>isFinite(x)); return v.length?v.reduce((s,x)=>s+x,0)/v.length:null; };
+const cnSum=(a,f)=>a.reduce((s,e)=>s+(+e[f]||0),0);
+const cnPt=e=>(+e.runSec||0)+(+e.setupSec||0)||(+e.dur||0);   /* время детали, с */
+const cnH=s=>s==null?'—':(s/3600).toLocaleString('ru-RU',{maximumFractionDigits:1})+' ч';
+const cnS=s=>s==null?'—':s<90?Math.round(s)+' с':s<5400?(s/60).toLocaleString('ru-RU',{maximumFractionDigits:1})+' мин':cnH(s);
+const cnP=v=>v==null||!isFinite(v)?'—':Math.round(v*100)+' %';
+const cnDay=e=>String(e.ts0||e.at||'').slice(0,10);
+const cnName=id=>{ const s=(CN.d&&CN.d.staff||[]).find(x=>x.id===id); return s?s.name:(PEOPLE[id]||id||'—'); };
+const cnOpN=e=>e.opName||cnName(e.op);
+const CN_K={drill:'присадка',mill:'фрезеровка',edge:'торцевая',mark:'разметка'}, CN_SU={normal:'обычная',flip:'переворот',pair:'пара',rot:'разворот'};
+const cnKind=k=>{ k=String(k||''); return k.startsWith('manual:')?k.slice(7):CN_K[k]||k||'—'; };
+const cnRedo=e=>e.source==='manual'||e.redo===true;
+const cnSize=e=>{ const m=Math.max(+e.L||0,+e.W||0); return !m?'':m<=600?'до 600':m<=1200?'до 1200':'больше 1200'; };
+/* разложение времени по набору событий */
+function cnTot(E){ const runs=E.filter(e=>e.t==='run'), sets=E.filter(e=>e.t==='setup'), parts=E.filter(e=>e.t==='part'), R=runs.length?runs:parts;
+  return { parts:parts.length, run:cnSum(R,'runSec'), setup:sets.length?sets.reduce((s,e)=>s+(+e.setupSec||+e.dur||0),0):cnSum(parts,'setupSec'), idle:cnSum(R,'idleSec'),
+    redo:parts.length?parts.filter(cnRedo).length/parts.length:null, faults:E.filter(e=>e.t==='fault').length, plan:cnSum(parts,'planSec'), work:cnSum(parts,'runSec')+cnSum(parts,'setupSec') }; }
+/* медиана секунд на установку: события 'setup'; нет — setupSec / m0 деталей */
+const cnSetMed=E=>{ const s=E.filter(e=>e.t==='setup').map(e=>+e.setupSec||+e.dur); return cnMed(s.length?s:E.filter(e=>e.t==='part'&&+e.m0>0).map(e=>e.setupSec/e.m0)); };
+const cnBars=(rows,max)=>rows.map(([l,v,s])=>`<div class="cnb"><span class="cnbl">${l}</span><span class="cnbt"><i style="width:${max>0?Math.max(2,Math.round(v/max*100)):0}%"></i></span><span class="cnbv num">${s}</span></div>`).join('');
+function cnTrend(E,from,to){ const days=[]; for(let d=from; d<=to && days.length<62; d=cnAdd(d,1)) days.push(d); if(days.length<2) return UI.note('Тренд — от двух дней');
+  const by=d=>cnTot(E.filter(e=>cnDay(e)===d)), V=days.map(by), L=[['run','станок','var(--acc)'],['setup','установки','#C9A227'],['idle','простой','var(--bad)']];
+  const mx=Math.max(1,...V.map(v=>Math.max(v.run,v.setup,v.idle))), W=380, H=120, x=i=>8+i*(W-16)/(days.length-1), y=v=>H-14-v/mx*(H-26);
+  return `<svg class="cntr" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${L.map(([k,,c])=>`<polyline fill="none" stroke="${c}" stroke-width="2" points="${V.map((v,i)=>x(i).toFixed(1)+','+y(v[k]).toFixed(1)).join(' ')}"/>`).join('')}
+    <text x="8" y="${H-2}" font-size="10" fill="currentColor">${rgD(days[0])}</text><text x="${W-8}" y="${H-2}" font-size="10" text-anchor="end" fill="currentColor">${rgD(days[days.length-1])}</text><text x="8" y="10" font-size="10" fill="currentColor">${cnH(mx)}</text></svg>
+    <div class="small cnlg">${L.map(([k,n,c])=>`<span><i style="background:${c}"></i>${n} ${cnH(V.reduce((s,v)=>s+v[k],0))}</span>`).join('')}</div>`; }
+function vCnc(){
+  if(!CN.d){ if(!CN.busy) cnLoad(); return UI.sec('Станок', UI.note(/Нет действия cncStat/.test(CN.err)?'Сервер Job ещё без журнала станка — нужно развернуть новую версию веб-приложения (BLOCK CNC).':CN.err?'⚠ '+esc(CN.err):'Загрузка…')); }
+  const [from,to]=cnRange(); if(!CN.busy&&(Date.now()-CN.t>60000||(CN.lf&&from<CN.lf))) setTimeout(cnLoad,0);
+  const A=CN.d.events||[], inP=e=>{ const d=cnDay(e); return d>=from&&d<=to; }, flt=e=>(!CN.op||e.op===CN.op)&&(!CN.order||e.order===CN.order)&&(!CN.pc||e.pc===CN.pc);
+  const E=A.filter(e=>inP(e)&&flt(e)), T=cnTot(E), P=E.filter(e=>e.t==='part');
+  const uniq=f=>[...new Set(A.map(e=>e[f]).filter(Boolean))].sort();
+  const sel=(f,ph,vals,nm)=>`<select data-cf="${f}"><option value="">${ph}</option>${vals.map(v=>`<option value="${esc(v)}" ${CN[f]===v?'selected':''}>${esc(nm?nm(v):v)}</option>`).join('')}</select>`;
+  const pers=[['today','Сегодня'],['week','Неделя'],['month','Месяц'],['own','Свой']].map(([k,n])=>`<button class="rgch ${CN.per===k?'on':''}" data-cact="per" data-v="${k}">${n}</button>`).join('');
+  const head=`<div class="rgchs">${pers}</div>${CN.per==='own'?`<div class="cnf2"><input type="date" data-cf="from" value="${from}"><input type="date" data-cf="to" value="${to}"></div>`:''}
+    <div class="cnf">${sel('op','оператор',uniq('op'),cnName)}${sel('order','заказ',uniq('order'))}${sel('pc','ПК',uniq('pc'))}</div>`;
+  /* сейчас на станке — по всем данным, без периода */
+  const last=t=>A.filter(e=>e.t===t&&(!CN.pc||e.pc===CN.pc)).sort((a,b)=>String(b.ts0||b.at)<String(a.ts0||a.at)?-1:1)[0];
+  const sh=last('shift'), rn=last('run');
+  const now=`<div class="cnnow"><div><span class="mute small">Оператор</span><b>${sh?esc(cnOpN(sh)):'—'}</b><span class="small mute">${sh?esc(rgD(sh.ts0)+' '+String(sh.ts0||'').slice(11,16))+(sh.pc?' · '+esc(sh.pc):''):''}</span></div>
+    <div><span class="mute small">Программа</span><b>${rn?esc(rn.partName||rn.module||rn.part||cnKind(rn.kind)):'—'}</b><span class="small mute">${rn?esc((rn.order?rn.order+' · ':'')+'с '+rgD(rn.ts0)+' '+String(rn.ts0||'').slice(11,16))+(rn.result?' · '+esc(rn.result):' · идёт'):''}</span></div></div>`;
+  const kp=`<div class="rgk cn6">${[['Деталей',fmt0(T.parts)],['Станок',cnS(T.run)],['Установки',cnS(T.setup)],['Простой',cnS(T.idle)],['Переделки',cnP(T.redo),T.redo>0.2],['Сбоев',fmt0(T.faults),T.faults>0]].map(([l,v,w])=>`<div class="${w?'wr':''}"><span>${l}</span><b class="num">${v}</b></div>`).join('')}</div>`;
+  /* операторы */
+  const ops=[...new Set(E.map(e=>e.op).filter(Boolean))].map(id=>{ const X=E.filter(e=>e.op===id), t=cnTot(X); return { id, t, eff:t.work>0&&t.plan>0?t.plan/t.work:null, sm:cnSetMed(X), h:t.run+t.setup }; }).sort((a,b)=>b.h-a.h);
+  const mxh=Math.max(0,...ops.map(o=>o.h));
+  const opsH=ops.length?cnBars(ops.map(o=>[esc(cnName(o.id)),o.h,cnH(o.h)]),mxh)+`<div class="cnt">${ops.map(o=>`<div class="cnr"><b>${esc(cnName(o.id))}</b><span>${fmt0(o.t.parts)} дет.</span><span class="${o.eff!=null&&o.eff<0.7?'bad':o.eff>=0.95?'ok':''}">эфф. ${cnP(o.eff)}</span><span>уст. ${cnS(o.sm)}</span><span class="${o.t.redo>0.2?'bad':''}">перед. ${cnP(o.t.redo)}</span></div>`).join('')}</div>`:UI.note('Нет данных за период');
+  /* операции: kind + setup */
+  const g={}; P.forEach(e=>{ const k=(e.kind||'')+'|'+(e.setup||''); (g[k]=g[k]||[]).push(e); });
+  const opRows=Object.keys(g).map(k=>{ const X=g[k], pt=X.map(cnPt); return { k, kind:X[0].kind, su:X[0].setup, n:X.length, med:cnMed(pt), avg:cnAvg(pt),
+    hole:cnMed(X.filter(e=>+e.holes>0).map(e=>(+e.runSec||0)/e.holes)), set:cnMed(X.filter(e=>+e.m0>0).map(e=>(+e.setupSec||0)/e.m0)), mm:cnMed(X.filter(e=>+e.millMm>0).map(e=>(+e.runSec||0)/(e.millMm/1000))), tot:pt.reduce((s,x)=>s+x,0) }; }).sort((a,b)=>b.tot-a.tot);
+  const opsT=opRows.length?`<div class="cnt">${opRows.map(o=>`<div class="cnr"><b>${esc(cnKind(o.kind))}${o.su?' · '+esc(CN_SU[o.su]||o.su):''}</b><span>${o.n} дет.</span><span>мед. ${cnS(o.med)}</span><span>ср. ${cnS(o.avg)}</span>${o.hole!=null?`<span>отв. ${cnS(o.hole)}</span>`:''}${o.set!=null?`<span>уст. ${cnS(o.set)}</span>`:''}${o.mm!=null?`<span>1 м фрез. ${cnS(o.mm)}</span>`:''}</div>`).join('')}</div>`:UI.note('Нет деталей за период');
+  const top=P.slice().sort((a,b)=>cnPt(b)-cnPt(a)).slice(0,5).map(e=>`<div class="cnr"><b>${esc(e.partName||e.part||'—')}</b><span>${esc(cnKind(e.kind))}</span><span>${esc(cnOpN(e))}</span><span class="num">${cnS(cnPt(e))}</span><span class="mute">${esc(e.order||'')}</span></div>`).join('');
+  /* лучше / хуже нормы: оператор × операция, от 3 деталей, отклонение медианы от медианы операции */
+  const dev=[]; ops.forEach(o=>Object.keys(g).forEach(k=>{ const X=g[k].filter(e=>e.op===o.id); if(X.length<3) return; const all=cnMed(g[k].map(cnPt)), m=cnMed(X.map(cnPt)); if(all>0) dev.push({ who:cnName(o.id), k:cnKind(g[k][0].kind)+(g[k][0].setup?' · '+(CN_SU[g[k][0].setup]||g[k][0].setup):''), d:m/all-1, n:X.length }); }));
+  dev.sort((a,b)=>a.d-b.d);
+  const devH=dev.length?`<div class="cnt">${dev.map(x=>`<div class="cnr"><b>${esc(x.who)}</b><span>${esc(x.k)}</span><span class="${x.d<=-0.1?'ok':x.d>=0.1?'bad':''}">${x.d>0?'+':''}${Math.round(x.d*100)} %</span><span class="mute">${x.n} дет.</span></div>`).join('')}</div>`:UI.note('Нужно от 3 деталей оператора по операции');
+  /* план против факта — программы */
+  const runs=E.filter(e=>e.t==='run'&&+e.planSec>0&&+e.runSec>0), pl=cnSum(runs,'planSec'), fa=cnSum(runs,'runSec');
+  const pf=runs.length?`<div class="rgk sm"><div><span>План</span><b class="num">${cnH(pl)}</b></div><div><span>Факт</span><b class="num">${cnH(fa)}</b></div><div class="${fa/pl>1.15?'wr':'ok'}"><span>Факт / план</span><b class="num">${cnP(fa/pl)}</b></div></div><div class="cnt">${runs.slice(0,12).map(e=>{ const d=e.runSec/e.planSec-1; return `<div class="cnr"><b>${esc(e.partName||e.module||e.part||'программа')}</b><span class="mute">${esc(rgD(e.ts0))}</span><span>${cnS(+e.planSec)} → ${cnS(+e.runSec)}</span><span class="${d>0.15?'bad':d<-0.05?'ok':''}">${d>0?'+':''}${Math.round(d*100)} %</span></div>`; }).join('')}</div>`:UI.note('Нет программ с планом за период');
+  /* ручные операции */
+  const M=E.filter(e=>e.t==='manual'), mg={}; M.forEach(e=>{ const k=cnKind(e.kind); (mg[k]=mg[k]||[]).push(e); });
+  const man=M.length?`<div class="cnt">${Object.keys(mg).map(k=>{ const X=mg[k], d=X.map(e=>+e.dur||cnPt(e)); return `<div class="cnr"><b>${esc(k)}</b><span>${X.length} раз</span><span>всего ${cnH(d.reduce((s,x)=>s+x,0))}</span><span>мед. ${cnS(cnMed(d))}</span><span class="mute">${esc([...new Set(X.map(cnOpN))].join(', '))}</span></div>`; }).join('')}</div>`:UI.note('Ручных операций за период нет');
+  /* нормы: медиана за 30 дней, все операторы */
+  const t30=cnAdd((CN.d.today||to),-29), N={}; A.filter(e=>e.t==='part'&&cnDay(e)>=t30).forEach(e=>{ const k=cnKind(e.kind)+(e.setup?' · '+(CN_SU[e.setup]||e.setup):'')+(cnSize(e)?' · '+cnSize(e):''); (N[k]=N[k]||[]).push(cnPt(e)); });
+  const nr=Object.keys(N).sort().map(k=>`<div class="cnr"><b>${esc(k)}</b><span class="num">${cnS(cnMed(N[k]))}</span><span class="mute">${N[k].length} дет.</span></div>`).join('');
+  const foot=`<div class="small mute" style="margin-top:6px">${esc(rgD(from))} – ${esc(rgD(to))} · событий ${fmt0(E.length)}${CN.d.more?' · ⚠ показаны последние 10 000':''}${CN.t?' · обновлено '+new Date(CN.t).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):''}${CN.err?' · ⚠ '+esc(CN.err):''}</div>`;
+  return UI.sec('Станок', head+now+kp
+    +UI.fold('Операторы',opsH,true,ops.length?ops.length+' чел.':'')
+    +UI.fold('Операции',opsT+(top?`<div class="small mute cnh">Самые долгие детали</div><div class="cnt">${top}</div>`:''),false,opRows.length?opRows.length+' видов':'')
+    +UI.fold('Лучше / хуже нормы',devH,false,dev.length?String(dev.length):'')
+    +UI.fold('Тренд по дням',cnTrend(E,from,to))
+    +UI.fold('План против факта',pf,false,runs.length?cnP(fa/pl):'')
+    +UI.fold('Ручные операции',man,false,M.length?String(M.length):'')
+    +UI.fold('Нормы (медиана 30 дней)',nr||UI.note('Нет деталей за 30 дней'),false,Object.keys(N).length?String(Object.keys(N).length):'')+foot,
+    `<button class="btn ghost small" data-cact="reload" aria-label="Обновить">⟳</button>`); }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-cact]'); if(!b) return; const a=b.dataset.cact;
+  if(a==='per'){ CN.per=b.dataset.v; if(CN.per==='own'&&!CN.from){ const r=[cnAdd((CN.d&&CN.d.today)||cnIso(new Date()),-29),(CN.d&&CN.d.today)||cnIso(new Date())]; CN.from=r[0]; CN.to=r[1]; } render(); return; }
+  if(a==='reload'){ cnLoad(); toast('Станок: обновляю'); } });
+document.addEventListener('change',e=>{ const s=e.target.closest('[data-cf]'); if(!s) return; CN[s.dataset.cf]=s.value; s.blur(); render(); });
+(()=>{ const st=document.createElement('style'); st.textContent='.cnf{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:6px}.cnf select,.cnf2 input{width:100%;min-width:0;box-sizing:border-box;font-size:13px}.cnf2{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px}'
+  +'.cnnow{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px}.cnnow>div{background:var(--bg);border-radius:8px;padding:5px 8px;display:flex;flex-direction:column;min-width:0}.cnnow b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+  +'.rgk.cn6{grid-template-columns:repeat(3,1fr)}.cnb{display:grid;grid-template-columns:88px 1fr 56px;gap:6px;align-items:center;font-size:12px;margin:3px 0}.cnbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cnbt{background:var(--bg);border-radius:4px;height:12px;overflow:hidden}.cnbt i{display:block;height:100%;background:var(--acc)}.cnbv{text-align:right}'
+  +'.cnt{display:flex;flex-direction:column;margin-top:4px}.cnr{display:flex;flex-wrap:wrap;gap:3px 10px;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line)}.cnr b{flex:1 1 100%;font-size:13px;font-weight:600}.cnr .ok{color:var(--ok);font-weight:600}.cnr .bad{color:var(--bad);font-weight:600}.cnh{margin-top:8px}'
+  +'.cntr{width:100%;height:120px;color:var(--mute);background:var(--bg);border-radius:8px}.cnlg{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}.cnlg i{display:inline-block;width:10px;height:3px;margin-right:4px;vertical-align:middle}';
+  document.head.appendChild(st); })();
+/* ===== END BLOCK: СТАНОК ===== */
 /* ============ BLOCK: EVENTS ============ */
 /* геопозиция: через Telegram LocationManager — разрешение спрашивается один раз и запоминается Telegram; браузерный запрос — только вне Telegram */
 function geo(){ if(AND) return Promise.resolve('');   // в Android-приложении точку не берём
@@ -2418,7 +2520,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1795258503';
+const BUILD='1795275897';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 

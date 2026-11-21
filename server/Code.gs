@@ -803,3 +803,47 @@ Object.assign(API, (function(){ const L0 = API.finList, A0 = API.finAdd;
       regPut_(me, key, b, v); return { key }; })
   }; })());
 /* ===== END BLOCK: FIN2 ===== */
+
+/* ============ BLOCK: CNC — журнал станка: операции, время от контроллера, статистика руководителю (Дмитрий 21.11.2026, договор job/TO_JOB_cnc.md) ============
+   Лист «Журнал станка» — только дописывается. cncLog пишет ПК станка (любой привязанный ключ, как drillEvents); дубли по eid не пишутся.
+   cncStat — только руководитель / администратор: события за период (по умолчанию 30 дней), новые первыми, до 10 000 строк; статистику считает клиент.
+   drillEvents / «Журнал присадки» не трогаются. cncLog счётчик изменений не поднимает (данные boot не меняются — клиенты не перечитывают таблицу). */
+SH.cnc = 'Журнал станка';
+const CNC_H = ['Получено', 'eid', 'Тип', 'ПК', 'Оператор (id)', 'Оператор (имя)', 'Начало', 'Конец', 'Длит., с', 'Заказ', 'Проект', 'Модуль', 'Деталь (key)', 'Название', 'Операция', 'Установка', 'Система', 'Пласть',
+  'Отверстий', 'Фрезеровка, мм', 'Материал', 'L', 'W', 'Т', 'Станок, с', 'Установки, с', 'M0', 'Простой, с', 'План, с', 'Итог', 'Источник', 'Переделка', 'Данные (JSON)', 'Отправил'];
+/* поле события → столбец (после «Получено»); n — число, s — текст, b — да/нет, j — JSON */
+const CNC_F = [['eid', 's'], ['t', 's'], ['pc', 's'], ['op', 's'], ['opName', 's'], ['ts0', 's'], ['ts1', 's'], ['dur', 'n'], ['order', 's'], ['project', 's'], ['module', 's'], ['part', 's'], ['partName', 's'],
+  ['kind', 's'], ['setup', 's'], ['sys', 's'], ['side', 's'], ['holes', 'n'], ['millMm', 'n'], ['mat', 's'], ['L', 'n'], ['W', 'n'], ['th', 'n'], ['runSec', 'n'], ['setupSec', 'n'], ['m0', 'n'], ['idleSec', 'n'],
+  ['planSec', 'n'], ['result', 's'], ['source', 's'], ['redo', 'b'], ['x', 'j']];
+const CNC_T = ['shift', 'run', 'setup', 'part', 'manual', 'fault'];
+function cncSh_(){ let s = sh_(SH.cnc); if (!s){ s = book_().insertSheet(SH.cnc); s.appendRow(CNC_H); s.setFrozenRows(1); } return s; }
+function cncCell_(v, k){ if (v === undefined || v === null || v === '') return '';
+  if (k === 'n'){ const n = +String(v).replace(',', '.'); return isFinite(n) ? n : ''; }
+  if (k === 'b') return v === true || v === 'да' || v === 1 || v === 'true' ? 'да' : '';
+  if (k === 'j') return typeof v === 'string' ? v : JSON.stringify(v);
+  return "'" + String(v); }   /* текст — с апострофом: таблица не превращает время / номера в даты и числа */
+function cncRow_(r){ const e = { at: String(r[0]).replace(/^'/, '') };
+  CNC_F.forEach(([f, k], i) => { const v = r[i + 1]; if (k === 'b'){ e[f] = String(v) === 'да'; return; } if (v === '' || v == null) return;
+    if (k === 'n') e[f] = +v; else if (k === 'b') e[f] = String(v) === 'да'; else if (k === 'j'){ try { e[f] = JSON.parse(String(v)); } catch (err) { e[f] = String(v); } }
+    else e[f] = String(v).replace(/^'/, ''); });
+  e.by = String(r[CNC_F.length + 1] || ''); return e; }
+Object.assign(RO_, { cncStat: 1, cncLog: 1 });
+Object.assign(API, {
+  cncLog(me, b){ const ev = (b.events || []).slice(0, 300); if (!ev.length) return { accepted: 0, duplicates: 0 };
+    const s = cncSh_(), seen = {}; if (s.getLastRow() > 1) s.getRange(2, 2, s.getLastRow() - 1, 1).getValues().forEach(r => seen[String(r[0]).replace(/^'/, '')] = 1);
+    const rows = [], at = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss'), bad = [];
+    ev.forEach(e => { const id = String(e && e.eid || '').trim(); if (!id){ bad.push('без eid'); return; } if (seen[id]) return; seen[id] = 1;
+      if (e.t && CNC_T.indexOf(String(e.t)) < 0) bad.push(id + ': тип ' + e.t);
+      rows.push(["'" + at].concat(CNC_F.map(([f, k]) => cncCell_(f === 'eid' ? id : e[f], k)), [me.id])); });
+    if (rows.length) s.getRange(s.getLastRow() + 1, 1, rows.length, CNC_H.length).setValues(rows);
+    return { accepted: rows.length, duplicates: ev.length - rows.length - bad.filter(x => x === 'без eid').length, warnings: bad }; },
+  /* b.from / b.to — 'YYYY-MM-DD' (по дате начала; нет начала — по дате получения); b.project / b.order / b.op / b.pc — точное совпадение */
+  cncStat: bossOnly_(function(me, b){ cncSh_(); const today = today_(), D = /^\d{4}-\d\d-\d\d$/;
+    const from = D.test(String(b.from || '')) ? String(b.from) : addDays_(today, -30), to = D.test(String(b.to || '')) ? String(b.to) : today;
+    const F = ['project', 'order', 'op', 'pc'].filter(k => String(b[k] || '').trim()), LIM = 10000;
+    const all = read_(SH.cnc, 2, CNC_H.length).map(cncRow_).filter(e => { const d = String(e.ts0 || e.at || '').slice(0, 10); return d >= from && d <= to && F.every(k => String(e[k] || '') === String(b[k]).trim()); });
+    all.sort((a, x) => String(x.ts0 || x.at) < String(a.ts0 || a.at) ? -1 : String(x.ts0 || x.at) > String(a.ts0 || a.at) ? 1 : 0);
+    const staff = read_(SH.staff, 2, 7).filter(r => String(r[0]).trim()).map(r => ({ id: String(r[0]), name: String(r[1]), role: String(r[4]).trim() }));
+    return { events: all.slice(0, LIM), more: all.length > LIM, total: all.length, from, to, staff, today }; })
+});
+/* ===== END BLOCK: CNC ===== */

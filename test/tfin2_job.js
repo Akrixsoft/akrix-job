@@ -1,0 +1,28 @@
+// Тест BLOCK FIN2 (сервер Job, v1075): реестр — статусы, фиксация общая / цех на первом поступлении, формула остатка, «сдан» → «8. Выполнен», regSet. node test/tfin2_job.js server/Code.gs
+const { ctx, BOOK, props } = require('./mock.js'); const res = [];
+const ck = (n, c, d) => { res.push(!!c); console.log((c ? 'OK   ' : 'FAIL ') + n, c ? '' : JSON.stringify(d)); };
+const st = BOOK.insertSheet('Сотрудники'); st.appendRow(['id', 'имя', 'tg', 'tgid', 'роль', '', 'доступ']); st.appendRow(['s1', 'Дмитрий', '', '', 'руководитель', '', 'да']); st.appendRow(['s2', 'Гия', '', '', 'сборщик', '', 'да']);
+const KB = 'a'.repeat(48), KS = 'b'.repeat(48); props['AK_' + KB] = 's1'; props['AK_' + KS] = 's2';
+const or = BOOK.insertSheet('Заказы'); or.appendRow(['h']);
+const row = (id, cl, pr, cost, done, status, proj) => { const r = new Array(27).fill(''); r[0] = "'" + id; r[1] = cl; r[2] = pr; r[5] = cost; r[9] = done; r[11] = status; r[26] = proj; return r; };
+or.appendRow(row('К 2111', 'Костя', 'Кухня', 9000, '2026-12-15', 'в работе', 'PRJ1')); or.appendRow(row('Л 1811', 'Лиси', 'Кухня', 12400, '2026-11-18', 'сдан', '')); or.appendRow(row('Н 1411', 'Надя', 'Шкаф', 4900, '2026-11-14', 'в работе', ''));
+const call = b => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(b) }, parameter: {} }).t);
+const reg = k => call({ action: 'finList', key: KB }).data.reg.find(x => x.key === k);
+let r = call({ action: 'finList', key: KB }); ck('finList: reg + список статусов, лист «Реестр заказов» создан', r.ok && Array.isArray(r.data.reg) && r.data.ST.length === 14 && BOOK.s['Реестр заказов'], r);
+let x = reg('o:Л 1811'); ck('сдан в Job → «8. Выполнен» (только чтение), лист «Заказы» не изменён', x.status === '8. Выполнен' && x.lock && or.d[2][11] === 'сдан', x);
+x = reg('p:PRJ1'); ck('до поступлений: не в калькуляции, общей нет', !x.inCalc && x.tot == null && x.status === '', x);
+r = call({ action: 'regSet', key: KS, project: 'PRJ1', status: '3. Проектирование' }); ck('regSet не руководителем — отказ', !r.ok, r);
+r = call({ action: 'regSet', key: KB, project: 'PRJ1', status: 'Готово' }); ck('неизвестный статус — отказ', !r.ok, r);
+call({ action: 'regSet', key: KB, project: 'PRJ1', status: '3. Проектирование', client: 'Костя', name: 'Тамар Мепе' });
+call({ action: 'finAdd', key: KB, type: 'аванс', sum: 5000, project: 'PRJ1', order: 'К 2111', fixTot: 11700, fixCeh: 9000, date: '2026-11-21' });
+x = reg('p:PRJ1'); ck('первый аванс → фиксация общая 11 700 / цех 9 000 (авто), в калькуляции, остаток 6 700, статус сохранён', x.tot === 11700 && x.ceh === 9000 && x.src === 'авто' && x.fixed === '2026-11-21' && x.inCalc && x.rest === 6700 && x.status === '3. Проектирование', x);
+call({ action: 'finAdd', key: KB, type: 'доплата', sum: 1000, project: 'PRJ1', fixTot: 99999, fixCeh: 1 });
+x = reg('p:PRJ1'); ck('второе поступление — фиксация не меняется; оплата 1 000, остаток 5 700', x.tot === 11700 && x.ceh === 9000 && x.pay === 1000 && x.rest === 5700, x);
+call({ action: 'finAdd', key: KB, type: 'доп. работы', sum: 300, project: 'PRJ1' }); x = reg('p:PRJ1'); ck('доп. работы — плюсом к общей', x.tot === 12000 && x.rest === 6000, x);
+call({ action: 'regSet', key: KB, project: 'PRJ1', status: 'Отложен' }); x = reg('p:PRJ1'); ck('статус из списка нулевых → остаток 0', x.rest === 0, x);
+call({ action: 'regSet', key: KB, project: 'PRJ1', total: 12500, ceh: '' }); x = reg('p:PRJ1'); ck('ручная котировка главнее: общая 12 500 (+300), цех очищен, источник ручн', x.base === 12500 && x.tot === 12800 && x.ceh == null && x.src === 'ручн', x);
+call({ action: 'finAdd', key: KB, type: 'доплата', sum: 4900, order: 'Н 1411', client: 'Надя' }); x = reg('o:Н 1411'); ck('заказ не из конструктора: первое поступление без fix — общая и цех = стоимость заказа Job', x.tot === 4900 && x.ceh === 4900 && x.rest === 0 && x.inCalc, x);
+call({ action: 'regSet', key: KB, order: 'К 2111', status: '5. Раскрой' }); ck('регистрация по заказу с проектом → ключ проекта', reg('p:PRJ1').status === '5. Раскрой' && !reg('o:К 2111'));
+call({ action: 'regSet', key: KB, project: 'NEW1', status: '1. Расчет стоимости', client: 'Анна', name: 'Шкаф' }); x = reg('p:NEW1'); ck('проект без записей — строка реестра по статусу', x && x.client === 'Анна' && x.status === '1. Расчет стоимости' && !x.inCalc, x);
+ck('финList по проекту — только его строка', call({ action: 'finList', key: KB, project: 'PRJ1' }).data.reg.length === 1);
+console.log('ИТОГ', res.filter(Boolean).length, '/', res.length); process.exit(res.every(Boolean) ? 0 : 1);
