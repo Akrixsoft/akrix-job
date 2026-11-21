@@ -2063,6 +2063,7 @@ const RG_V=[['all','Все',()=>true],['rest','Есть остаток',r=>r.inC
 function vReg(){
   if(!RG.d){ if(!RG.busy) regLoad(); return UI.sec('Реестр', UI.note(RG.err?'⚠ '+esc(RG.err):'Загрузка…')); }
   if(!RG.busy&&Date.now()-RG.t>60000) setTimeout(regLoad,0);
+  if(!RG.d.reg) return UI.sec('Реестр', UI.note('Сервер Job ещё без реестра — нужно развернуть новую версию веб-приложения (BLOCK FIN2).'));
   const L=RG.d.reg||[], ST=RG.d.ST||[], f=(RG_V.find(x=>x[0]===RG.view)||[])[2]||(r=>(r.status||'')===RG.view.slice(2));
   const rows=L.filter(f).sort((a,b)=>(a.done||'9')<(b.done||'9')?-1:(a.done||'9')>(b.done||'9')?1:0), C=rows.filter(r=>r.inCalc), sm=k=>C.reduce((s,r)=>s+(+r[k]||0),0);
   const cnt=g=>L.filter(g).length, chips=RG_V.map(([k,n,g])=>`<button class="rgch ${RG.view===k?'on':''}" data-ract="view" data-v="${k}">${n} <b>${cnt(g)}</b></button>`).join('')
