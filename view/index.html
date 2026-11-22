@@ -1,5 +1,5 @@
 <!doctype html><html><head>
-<!-- Akrix view: конструктор v1090, сборка 2026-11-22 23:47, 77c4c9cc9b --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
+<!-- Akrix view: конструктор v1091, сборка 2026-11-23 00:19, 665cefa769 --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
 #skProp .uf-zr{flex-wrap:wrap;row-gap:4px}
 #skProp .pr-s[data-c] > b::before{display:none!important}#skProp .pr-s[data-c]:not([data-c="cost"]) > b{color:inherit!important}#skProp .uf-bt{flex-wrap:wrap;row-gap:4px}   /* v852: заголовки как в новых панелях, кнопки с переносом */
 #skProp .pr-h .nav-lk{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:var(--acc,#2E6B57)}#skProp .pr-h .nav-lk:hover{color:var(--sel,#c00)}#skProp .nav-sost .nav-b button{padding:2px 8px;font-size:12px}   /* v853 */
@@ -1079,7 +1079,7 @@ body.ms-on{overflow:hidden}
   <div class="hd-tools" id="hdTools"></div>   <!-- v138: место под кнопки и команды -->
   <button id="btnCnc" title="Akrix CNC · Drilling — присадка у станка, внутри Akrix (детали — «⇩ Drilling» в окне свойств)" aria-label="Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><rect x="3" y="15" width="18" height="5" rx="1" fill="#16A34A" opacity=".25" stroke="#16A34A"/><path d="M12 3v9m-3-6h6m-5 6 2 3 2-3" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v664 -->
   <button id="btnCns" title="Набор для Drilling — выбрать модули, ящики, типы деталей и передать в Drilling" aria-label="Набор для Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><path d="M4 6h10M4 12h10M4 18h7" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round"/><path d="m15 15 2.5 2.5L21 13" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v665 -->
-  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1090</span>   <!-- v615: номер — inst.sh -->
+  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1091</span>   <!-- v615: номер — inst.sh -->
   <button id="btnCfg" title="Настройки: общие, холст, проект, петли, горячие клавиши, данные" aria-label="Настройки">⚙</button>
   <button id="btnCx" title="Режим конструктора интерфейса: двигать, масштабировать, добавлять объекты, скетч">🛠</button>
   <button id="btnTheme" hidden title="Тема — светлая" aria-label="Тема">☀</button>
@@ -35751,6 +35751,38 @@ document.addEventListener('change', e => { const s = e.target && e.target.closes
 (() => { const st = document.createElement('style'); st.textContent = '.cnst-ref{font-weight:400;font-size:12px;margin-left:10px;color:#666}.cnst-ref select{font-size:12px}.cnst-go tr.ref td{background:#F0F7FF}.cnst-go .ok{color:#3B6D11}.cnst-gp td:first-child{white-space:nowrap}'; document.head.appendChild(st); })();
 /* ═══ [BLOCK] CNST3 — окно 📊: перерывы оператора не идут в переходы (t:gap x.brk вычитается), v1083 (Дмитрий 21.11 23:33) ═══ */
 { const l0 = cnstLoad; cnstLoad = async function () { const r = await l0.apply(this, arguments); try { const D = CNST.d; if (D && !D._brk) { D._brk = 1; D.ev.forEach(e => { if (e.t === 'gap' && e.x && +e.x.brk > 0) { e._dur0 = +e.dur || 0; e.dur = Math.max(0, e._dur0 - (+e.x.brk)); } }); cnstUi(); } } catch (e) { console.error('cnst brk', e); } return r; }; }
+/* ═══ [BLOCK] v1091 НАСТРОЙКИ ЭТОГО ПК — ВЫГРУЗКА / ЗАГРУЗКА (PCSET) ═══ */
+/* ─── [BLOCK] PCSET — настройки этого ПК: выгрузка / загрузка одним файлом (Дмитрий 22.11: перенос ноутбук → цех2, стройка; во всех приложениях Akrix) ─── */
+/* Всё, что приложения держат в браузере этого ПК (localStorage: настройки, связь со станком, библиотеки, фрезы, Job, память окон), — одним JSON.
+   Не переносится: открытый проект и его резерв, журналы станка (отправить в Job до переноса), очередь автоприсадки, история помощника, кэши.
+   Ключ Claude API — только с галкой. Загрузка — поверх (ключи файла заменяют свои), затем перезапуск приложения. */
+window.AKXPC=window.AKXPC||(()=>{
+  const EX=[/^predcalc\.v1$/,/^akFinCache$/,/backup/i,/^akx_(cnl|djl|cnl_cur|aw_resume)$/,/^akx_awai_(h:|log$|use$)/,/^akx_claude_key$/];
+  const pc=()=>{try{return (JSON.parse(localStorage.getItem('akx_job')||'{}')||{}).pc||'';}catch(e){return '';}};
+  const dump=key=>{const o={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k==='akx_claude_key'?!key:EX.some(r=>r.test(k)))continue;o[k]=localStorage.getItem(k);}return o;};
+  const exp=(app,key)=>{const keys=dump(key),t=new Date(),d={app:'akrix-pc-settings',v:1,from:app,pc:pc(),t:t.toISOString(),n:Object.keys(keys).length,keys};
+    const b=new Blob([JSON.stringify(d)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);
+    a.download='akrix-pc-settings-'+(d.pc||'pc')+'-'+t.toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);return d.n;};
+  const imp=(txt)=>{let d;try{d=JSON.parse(txt);}catch(e){return {err:'Не файл настроек'};}if(!d||d.app!=='akrix-pc-settings'||!d.keys)return {err:'Не файл настроек Akrix'};let n=0,bad=0;
+    Object.entries(d.keys).forEach(([k,v])=>{if(k!=='akx_claude_key'&&EX.some(r=>r.test(k)))return;try{localStorage.setItem(k,String(v));n++;}catch(e){bad++;}});return {n,bad,d};};
+  const restart=()=>{try{(window.top||window).location.reload();}catch(e){location.reload();}};
+  /* строка в окне настроек: ⇩ выгрузить · ☐ с ключом · ⇧ загрузить */
+  const row=(app,host,after)=>{if(!host||host.querySelector('.akx-pc'))return;const d=document.createElement('div');d.className='akx-pc';
+    d.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0;padding:6px 8px;border:1px solid #c9c9c9;border-radius:6px;background:#fafafa;font-size:13px';
+    d.innerHTML='<b style="margin-right:4px">Настройки этого ПК</b><button type="button" data-pc="exp" title="Все настройки приложений на этом ПК — одним файлом (для другого компьютера)">⇩ Выгрузить</button>'+
+      '<label title="Ключ Claude API в файле — только если файл не уходит в чужие руки"><input type="checkbox" data-pc="key"> с ключом Claude API</label>'+
+      '<button type="button" data-pc="imp" title="Загрузить файл настроек с другого ПК — заменит настройки этого ПК, затем перезапуск">⇧ Загрузить</button><input type="file" accept=".json,application/json" data-pc="file" hidden><span data-pc="st" style="color:#555"></span>';
+    if(after&&after.parentNode)after.after(d);else host.appendChild(d);const $=s=>d.querySelector('[data-pc="'+s+'"]'),st=$('st');
+    $('exp').onclick=()=>{const n=exp(app,$('key').checked);st.textContent='Выгружено ключей: '+n+(pc()?' · ПК '+pc():'');};
+    $('imp').onclick=()=>$('file').click();
+    $('file').onchange=async()=>{const f=$('file').files[0];if(!f)return;const r=imp(await f.text());$('file').value='';if(r.err){st.style.color='#b42318';st.textContent=r.err;return;}
+      st.style.color='#15803D';st.innerHTML='Загружено ключей: '+r.n+(r.d.pc?' (с ПК '+String(r.d.pc).replace(/</g,'&lt;')+')':'')+' — <button type="button" data-pc="rs">↻ Перезапустить приложение</button>';
+      st.querySelector('[data-pc="rs"]').onclick=restart;};
+    return d;};
+  return {EX,dump,exp,imp,row,pc};
+})();
+
+{ const u0 = cfgUi; cfgUi = function () { const r = u0.apply(this, arguments); try { const s = document.querySelector('#cfgBox .cfg-sec[data-sec="gen"] .cfg-sb'); if (s) AKXPC.row('furniture', s); } catch (e) { console.error('cfg pcset', e); } return r; }; }
 /* ═══ [BLOCK] VIEW — просмотр чертежа на телефоне (Akrix Job, этап 1; Дмитрий 22.11.2026, job/PLAN_mount_view.md) ═══
    Только сборка akrix-job/view/ (view_build.py): код конструктора как есть, правка отключена.
    Проект — с сервера Job (projGet по заказу / проекту, текущая версия из akrix-projects); копия на телефоне (localStorage akxView:<ключ>) — открывается сразу и без сети.
