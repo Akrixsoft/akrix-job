@@ -753,6 +753,7 @@ function build(D){
       if(offHere.length) l.only=C[mc.code].ops.map(x=>x[0]).filter(x=>!offHere.includes(x));
       o.lines.push(l); });
     ORDERS.push(o); });
+  ORDERS.forEach(o=>{ o.project=String((D.prj||{})[o.id]||''); });   /* VIEW 22.11: заказ ↔ проект конструктора (чертёж) */
   const ord=id=>ORDERS.find(o=>o.id===String(id).trim()), lineOf=(o,g)=>o&&o.lines.find(l=>l.cat===g);
   D.extras.forEach(r=>{ const l=lineOf(ord(r[0]),r[1]); if(l&&r[2]) l.extra.push({id:'x'+r[5], name:String(r[2]), pct:r[3]===''?null:num(r[3]), row:r[5]}); });
   const units={}; D.modules.forEach(r=>{ const k=String(r[0]).trim()+'|'+r[1]; (units[k]=units[k]||[]).push([String(r[2]), num(r[3])||1]); });
@@ -1272,6 +1273,7 @@ function orderCard(o, boss){
       ${svgChev}
     </summary>
     <div class="fb">
+      ${vwBtn(o)}
       ${late&&o.hard?`<div class="flag" style="color:var(--bad);background:var(--bad-soft)">Заказ не успевает к сроку цеха</div>`:''}
       <div class="legend num">${o.hard?'<span class="hard">❗ жёсткий срок</span>':''}${o.cehDays?`<span>цех: день ${o.cehElapsed} из ${o.cehDays}</span>`:'<span>срок цеха не задан</span>'}<span>план ${fmt0(st.plan)}% · факт ${fmt0(st.fact)}%</span>${boss?`<span>фонд ${fmt0(st.fund)} ₾ · выполнено ${fmt0(st.done)} ₾</span>`:''}</div>
       ${UI.list(dls)}
@@ -1961,6 +1963,16 @@ function vFixHub(){ const op=FIXES.filter(f=>f.st==='открыта'); if(!op.le
   const by={}; op.forEach(f=>{ (by[oClient(f.order)]=by[oClient(f.order)]||[]).push(f); });
   return UI.sec('', UI.fold('Доделки', Object.entries(by).map(([c,l])=>`<div class="wgh">${esc(c)}</div>`+l.map(f=>fixRow(f,true)).join('')).join(''), S.fixHubOpen, `<span class="chip warn">${op.length}</span>`)); }
 /* ===== END BLOCK: ДОДЕЛКИ ===== */
+/* ===== BLOCK: VIEW — чертёж конструктора на телефоне (Дмитрий 22.11.2026, job/PLAN_mount_view.md, этап 1) =====
+   📐 Чертёж — в карточке заказа и на вкладке «Монтаж», если заказ связан с проектом конструктора (D.prj с сервера).
+   Открывает view/?order=… (код конструктора в режиме просмотра); адрес сервера и подпись / ключ — в localStorage akxViewAuth (та же страница GitHub Pages).
+   Подпись — «версия от …» копии на телефоне (view держит копию последней версии; обновляет сама при открытии). */
+function vwCopyT(id){ try{ const c=JSON.parse(localStorage.getItem('akxView:o:'+id)||'null'); return c&&(c.saved||c.committed)||''; }catch(e){ return ''; } }
+function vwBtn(o){ if(!o||!o.project) return ''; const t=vwCopyT(o.id), m=String(t).match(/^\d{4}-(\d\d)-(\d\d) (\d\d:\d\d)/);
+  return `<button class="btn ghost small vwb" data-act="vwOpen" data-o="${esc(o.id)}" style="margin:6px 0;width:100%">📐 Чертёж${m?` <span class="small mute">· копия от ${m[2]}.${m[1]} ${m[3]}</span>`:''}</button>`; }
+function vwOpen(id){ try{ localStorage.setItem('akxViewAuth', JSON.stringify({ api:API_URL, init:(TG&&TG.initData)||window.DEV_INIT||'', key:(TG&&TG.initData)?'':KEY, t:Date.now() })); }catch(e){}
+  location.href='view/?order='+encodeURIComponent(id); }
+/* ===== END BLOCK: VIEW ===== */
 function vMountTab(){
   const ml=mountList(), list=ml.filter(x=>!x.fixOnly).map(x=>x.o);
   if(S.mountOrder&&!ml.some(x=>x.id===S.mountOrder)&&DONE.some(d=>d.id===S.mountOrder)) return vMountDone(S.mountOrder);
@@ -1976,7 +1988,7 @@ function vMountTab(){
   const pick=mPick(o.id);
   const prep=hasK&&opK?UI.sec('Подготовка к монтажу', vKitMount(o,oi,line,opK,selfK), chip((line.prog.kompl||0)>=100?'ok':'n',(line.prog.kompl||0)>=100?'собрано':'собираем')):'';
   const mnt=hasM&&opM?UI.sec('Монтаж', vKitMount(o,oi,line,opM,selfM), chip(stage[0],stage[1])):'';
-  return `<section class="tile w mhead"><div class="th"><div><h3><b>${esc(o.client)}</b></h3><div class="small mute">${esc(o.product)} ${oCode(o)}${o.shipIn!=null?` · отгрузка через ${o.shipIn} дн.`:''}</div></div>${chip(stage[0],stage[1])}</div>${pick}</section>`+
+  return `<section class="tile w mhead"><div class="th"><div><h3><b>${esc(o.client)}</b></h3><div class="small mute">${esc(o.product)} ${oCode(o)}${o.shipIn!=null?` · отгрузка через ${o.shipIn} дн.`:''}</div></div>${chip(stage[0],stage[1])}</div>${pick}${vwBtn(o)}</section>`+
     `<div class="mtab">${o.mountAt?mnt+prep:prep+mnt}${vFixes(o.id,true)}</div>`+vDoneMounts();
 }
 function mPick(cur){ const ml=mountList(); return ml.length>1||!ml.some(x=>x.id===cur)?`<div class="seg mseg">${ml.map(x=>{ const n=fixOpen(x.id).length; return `<button data-act="mountPick" data-o="${esc(x.id)}" aria-pressed="${x.id===cur}">${esc(x.client)}${n?` <span class="fxn">🔧${n}</span>`:''}</button>`; }).join('')}</div>`:''; }
@@ -2398,6 +2410,7 @@ document.addEventListener('click',e=>{
     api('mountStart',{order:o.id}).then(r=>{ o.mountAt=r.at; }).catch(fail); toast('Монтаж начат · список сохранён'); }
   if(a==='noteAdd'){ const o=ORDERS[+b.dataset.o], t=document.getElementById('note-t-'+b.dataset.o).value.trim(), nx=document.getElementById('note-n-'+b.dataset.o).checked; if(!t){ toast('Впиши заметку'); return; }
     o.notes.push({who:ME, at:hm(nowMin()), text:t, next:nx}); api('noteAdd',{order:o.id, text:t, next:nx}).catch(fail); toast('Заметка добавлена'); renderKeep(`[data-act="noteAdd"][data-o="${b.dataset.o}"]`, b); return; }
+  if(a==='vwOpen'){ vwOpen(b.dataset.o); return; }   /* VIEW 22.11 */
   if(a==='mountPick'){ S.mountOrder=b.dataset.o; S.fixAddOpen=null; render(); window.scrollTo(0,0); return; }
   if(a==='taskTap'){ S.openTask = S.openTask===b.dataset.t ? null : b.dataset.t; S.tasksOpen=true; renderKeep(`[data-act="taskTap"][data-t="${b.dataset.t}"]`, b); return; }
   if(a==='wsel'){ const k=b.dataset.k; if(b.checked) S.wsel.add(k); else S.wsel.delete(k); render(); return; }

@@ -847,3 +847,40 @@ Object.assign(API, {
     return { events: all.slice(0, LIM), more: all.length > LIM, total: all.length, from, to, staff, today }; })
 });
 /* ===== END BLOCK: CNC ===== */
+
+/* ============ BLOCK: VIEW — чертёж конструктора для просмотра в Job / на монтаже (Дмитрий 22.11.2026, job/PLAN_mount_view.md, этап 1) ============
+   projGet {project | order, sha?} → текущая версия проекта из GitHub Akrixsoft/akrix-projects (основной ПК синхронизирует раз в 2 мин).
+   Файл: projects/<имя>_<id>.json или projects/<id>.json; «версия от» — t из projects/<id>.meta.json (время сохранения), иначе дата последнего коммита файла.
+   Токен GitHub — только на чтение, свойство скрипта GH_TOKEN (вставляет Дмитрий). Доступ — любой подключённый сотрудник.
+   sha совпал с копией на телефоне — данные не передаются (same: true). Счётчик изменений не поднимает. */
+RO_.projGet = 1;
+const VIEW_REPO = 'Akrixsoft/akrix-projects';
+function ghGet_(path, raw){ const t = PropertiesService.getScriptProperties().getProperty('GH_TOKEN');
+  if (!t) throw new Error('Чертёж недоступен: на сервере Job нет токена GitHub (свойство скрипта GH_TOKEN)');
+  const r = UrlFetchApp.fetch('https://api.github.com/repos/' + VIEW_REPO + '/' + path, { muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + t, Accept: raw ? 'application/vnd.github.raw' : 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } });
+  const c = r.getResponseCode(); if (c === 404) return null; if (c !== 200) throw new Error('GitHub ' + c + ' — чертёж не получен');
+  const s = r.getContentText('UTF-8'); return raw ? s : JSON.parse(s); }
+function viewList_(){ const ca = CacheService.getScriptCache(), k = 'viewLs', c = ca.get(k); if (c) return JSON.parse(c);
+  const l = (ghGet_('contents/projects') || []).filter(f => f.type === 'file' && /\.json$/.test(f.name) && !/\.meta\.json$/.test(f.name)).map(f => [f.name, f.sha]);
+  try { ca.put(k, JSON.stringify(l), 120); } catch (e) {} return l; }
+Object.assign(API, (function(){ const B0 = API.boot;   /* boot + prj: заказ → id проекта (столбец 27) — кнопка 📐 только у связанных заказов */
+  return { boot(me, b){ const d = B0(me, b), o = {}; try { read_(SH.orders, 2, 27).forEach(r => { const id = String(r[0]).trim(), p = String(r[26] || '').trim(); if (id && p) o[id] = p; }); } catch (e) {} d.prj = o; return d; } }; })());
+Object.assign(API, {
+  projGet(me, b){ let pid = String(b.project || '').trim(), oid = String(b.order || '').trim();
+    if (!pid){ if (!oid) throw new Error('Нет заказа'); pid = String(sh_(SH.orders).getRange(findOrderRow_(oid), 27).getValues()[0][0] || '').trim();
+      if (!pid) throw new Error('Заказ ' + oid + ' не связан с проектом конструктора'); }
+    if (!/^[A-Za-z0-9-]{1,40}$/.test(pid)) throw new Error('Неверный id проекта');
+    const f = viewList_().filter(x => x[0] === pid + '.json' || x[0].slice(-(pid.length + 6)) === '_' + pid + '.json')[0];
+    if (!f) throw new Error('Проекта нет в общей папке (akrix-projects) — основной ПК ещё не синхронизировал');
+    const ca = CacheService.getScriptCache(), vk = 'viewV_' + f[1]; let v = ca.get(vk);
+    if (v) v = JSON.parse(v); else {
+      const m = ghGet_('contents/projects/' + pid + '.meta.json', true); let saved = ''; try { const t = m && +JSON.parse(m).t; if (t > 0) saved = Utilities.formatDate(new Date(t), TZ, 'yyyy-MM-dd HH:mm'); } catch (e) {}
+      const cm = ghGet_('commits?per_page=1&path=' + encodeURIComponent('projects/' + f[0])), cd = cm && cm[0] && cm[0].commit && cm[0].commit.committer && cm[0].commit.committer.date;
+      v = { saved, committed: cd ? Utilities.formatDate(new Date(cd), TZ, 'yyyy-MM-dd HH:mm') : '' }; try { ca.put(vk, JSON.stringify(v), 21600); } catch (e) {} }
+    const o = { project: pid, order: oid, file: f[0], sha: f[1], saved: v.saved, committed: v.committed };
+    if (b.sha && String(b.sha) === f[1]){ o.same = true; return o; }
+    const d = ghGet_('contents/projects/' + encodeURIComponent(f[0]), true); if (d == null) throw new Error('Файл проекта не найден');
+    o.data = d; return o; }
+});
+/* ===== END BLOCK: VIEW ===== */
