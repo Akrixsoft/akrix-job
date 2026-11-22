@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2e8b3a"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
+<title>Akrix Пульт</title>
+<style>
+/* ═══ [BLOCK] Akrix Пульт — телефон ↔ станок через облако Akrix Job (23.11.2026) ═══ */
+:root{--g:#2e8b3a;--gd:#1f6b2a;--r:#b42318;--b:#2f6fd0;--bg:#f4f5f3}
+*{box-sizing:border-box}body{margin:0;font:16px/1.35 system-ui,sans-serif;background:var(--bg);color:#222;padding-bottom:env(safe-area-inset-bottom)}
+.hd{position:sticky;top:0;z-index:5;background:var(--g);color:#fff;display:flex;align-items:center;gap:8px;padding:10px 12px}
+.hd b{font-size:18px}.hd .m{flex:1;font-size:13px;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hd .dot{width:11px;height:11px;border-radius:50%;background:#aaa}.hd .dot.on{background:#7CFC7C}.hd .dot.old{background:#f2c200}
+.hd button{border:0;background:rgba(255,255,255,.2);color:#fff;border-radius:6px;font-size:15px;padding:4px 9px}
+.sc{padding:12px}.card{background:#fff;border-radius:10px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.12);margin-bottom:12px}
+.tt{font-weight:700;font-size:18px}.in{color:#333;margin-top:6px;white-space:pre-wrap;font-size:15px}.ph{font-size:13px;color:#666;margin-top:4px}
+.big{display:block;width:100%;border:0;border-radius:10px;padding:18px;font:700 22px system-ui,sans-serif;color:#fff;background:var(--g);margin-top:10px}
+.big.st{background:var(--b)}.row{display:flex;gap:10px;margin-top:10px}.row button{flex:1;border:0;border-radius:10px;padding:16px;font:700 19px system-ui,sans-serif;color:#fff}
+.pa{background:#777}.sp{background:var(--r)}.wait{opacity:.5}button[disabled]{pointer-events:none}.fb{font-size:13px;color:var(--b);margin-top:6px;min-height:18px}
+.lg{display:flex;flex-direction:column;gap:6px;max-height:42vh;overflow:auto}.mm{padding:7px 9px;border-radius:8px;background:#f1f3f0;font-size:15px}.mm.op{background:#e8f0fb;align-self:flex-end}.mm.sys,.mm.dev{background:none;color:#666;font-size:13px}
+.pp{border:2px solid var(--b);border-radius:9px;padding:9px;margin-top:8px;background:#f6f9ff}.pp .w{font-weight:700}.pp .mt{font-size:14px;margin-top:4px}.pp .bt{display:flex;gap:8px;margin-top:8px}
+.pp .bt button{flex:1;border-radius:8px;padding:12px;font:700 18px system-ui,sans-serif;border:1px solid var(--gd);background:var(--g);color:#fff}.pp .bt .no{background:#fff;color:var(--r);border-color:var(--r)}
+.op button{margin:6px 6px 0 0;padding:10px 14px;border:1px solid var(--b);background:#fff;color:var(--b);border-radius:8px;font-size:16px}
+.ib{display:flex;gap:8px;margin-top:10px}.ib input{flex:1;font-size:17px;padding:12px;border:1px solid #bbb;border-radius:9px}.ib button{width:52px;border:1px solid #bbb;border-radius:9px;background:#fff;font-size:22px}
+.ib .mic.on{background:var(--r);color:#fff}.ib .go{background:var(--g);color:#fff;border-color:var(--gd)}
+.pair input{width:100%;font-size:28px;letter-spacing:6px;text-align:center;padding:12px;border:1px solid #bbb;border-radius:10px}.err{color:var(--r);margin-top:8px;font-size:14px}
+.ms button{display:block;width:100%;margin-top:8px;padding:16px;border-radius:10px;border:1px solid var(--g);background:#fff;font:700 19px system-ui;color:var(--gd)}
+.me{font-size:13px;color:#555;margin-top:8px}.me select{font-size:15px;padding:4px}
+</style></head><body>
+<div class="hd"><b>Akrix Пульт</b><span class="m" id="hm"></span><span class="dot" id="dot" title="связь со станком"></span><button id="mn" title="Станок / выйти">☰</button></div>
+<div class="sc" id="sc"></div>
+<script>
+const P={
+  url:'https://script.google.com/macros/s/AKfycbzBsEFoQZgEeBymc72HM36xPsMtc-0Atob6ePsnacI3SPxcTkZ4MdluzBvpOsqqOhP6/exec',
+  get key(){return localStorage.getItem('pult_key')||'';},get pc(){return localStorage.getItem('pult_pc')||'';},
+  me:null,machines:[],st:null,age:null,log:[],since:0,busy:false,fb:'',fbT:0,rec:null,draft:'',t:null,pend:null,
+  esc(t){return String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));},
+  async post(b){const r=await fetch(this.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)});return await r.json();},
+  id(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);},
+  /* опрос: пока страница видна — каждые 1,5 с */
+  async tick(cmds){if(!this.key||(this.busy&&!cmds))return;this.busy=true;
+    try{const r=await this.post({action:'pultPhone',key:this.key,pc:this.pc,since:this.since,cmds:cmds||[]});
+      if(!r.ok){if(/подключ|код/i.test(r.error||'')){localStorage.removeItem('pult_key');}this.err=r.error;this.render();return;}
+      const d=r.data;this.err='';this.me=d.me;if(this.pend&&cmds&&cmds.some(c=>c.id===this.pend.id)&&this.pend.s==='send')this.pend.s='cloud';this.machines=d.machines||[];if(this.pc){this.st=d.state;this.age=d.age;(d.log||[]).forEach(m=>{this.log.push(m);this.since=Math.max(this.since,m.t);});if(this.log.length>80)this.log.splice(0,this.log.length-80);}
+      this.chk();this.render();}
+    catch(e){this.err='нет связи с Akrix Job';if(this.pend&&cmds&&this.pend.s==='send'){this.pend.s='fail';this.pend.m='нет связи — не отправлено';this.pend.t2=Date.now();}this.render();}finally{this.busy=false;}},
+  loop(){clearTimeout(this.t);if(document.visibilityState==='visible')this.tick();this.t=setTimeout(()=>this.loop(),1000);},
+  /* итог команды: станок отвечает в состоянии (res) — выполнено / не выполнено; 10 с без ответа — «нет ответа станка» */
+  chk(){const p=this.pend;if(!p)return;const R=(this.st&&this.st.res)||[],x=R.find(z=>z.id===p.id);if(x&&p.s!=='ok'&&p.s!=='fail'){p.s=x.ok?'ok':'fail';p.m=x.m;p.t2=Date.now();}
+    if((p.s==='send'||p.s==='cloud')&&Date.now()-p.t>10000){p.s='fail';p.m='нет ответа станка';p.t2=Date.now();}if((p.s==='ok'||p.s==='fail')&&Date.now()-p.t2>3000)this.pend=null;},
+  locked(){return !!(this.pend&&(this.pend.s==='send'||this.pend.s==='cloud'));},
+  send(k,v){if(k!=='say'&&this.locked())return;const c={id:this.id(),k,v:v==null?'':v,stg:this.st&&this.st.stg||''};
+    if(k!=='say')this.pend={id:c.id,k,lbl:this.lbl(k,v),s:'send',t:Date.now()};else{this.fb='сообщение отправлено';this.fbT=Date.now();}this.render();this.tick([c]);},
+  lbl(k,v){return ({go:'▶ Пуск',pause:'❚❚ Пауза',stop:'■ Стоп',probe:'Проба Z',step:'✓ '+(this.st&&this.st.stepLbl||''),ok:'✓ Применить',no:'✗ Нет',opt:v,op:'оператор'})[k]||k;},
+  async pair(){const i=document.getElementById('pc-code'),c=(i&&i.value||'').replace(/\D/g,'');if(c.length!==6){this.err='Код — 6 цифр';this.render();return;}
+    try{const r=await this.post({action:'pair',code:c});const d=r&&r.data||{};if(r.ok&&d.key){localStorage.setItem('pult_key',d.key);this.err='';this.tick();}else{this.err=d.error||r.error||'Код не подошёл';}}catch(e){this.err='нет связи с Akrix Job';}this.render();},
+  mic(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){this.fb='голосовой ввод в этом браузере недоступен';this.render();return;}
+    if(this.rec){try{this.rec.stop();}catch(e){}return;}const r=new SR();r.lang='ru-RU';r.interimResults=true;this.rec=r;let fin='';
+    r.onresult=e=>{let t='';for(let i=0;i<e.results.length;i++){t+=e.results[i][0].transcript;if(e.results[i].isFinal)fin=t;}const I=document.getElementById('pi');if(I)I.value=t;this.draft=t;};
+    r.onend=()=>{this.rec=null;if(fin.trim()){this.send('say',fin.trim());this.draft='';}this.render();};r.onerror=()=>{};try{r.start();}catch(e){this.rec=null;}this.render();},
+  render(){const S=document.getElementById('sc'),st=this.st,dot=document.getElementById('dot');
+    document.getElementById('hm').textContent=(this.pc||'')+(this.me?' · '+this.me.name:'');dot.className='dot'+(st&&this.age!=null?(this.age<6000?' on':' old'):'');
+    if(this.fb&&Date.now()-this.fbT>9000)this.fb='';
+    if(!this.key){S.innerHTML='<div class="card pair"><div class="tt">Подключить телефон</div><div class="in">В Akrix Job (Telegram) получи код для приложения и введи его здесь — один раз.</div>'+
+      '<input id="pc-code" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code"><button class="big" onclick="P.pair()">Подключить</button>'+(this.err?'<div class="err">'+this.esc(this.err)+'</div>':'')+'</div>';return;}
+    if(!this.pc){S.innerHTML='<div class="card ms"><div class="tt">Станок</div>'+(this.machines.length?this.machines.map(m=>'<button data-pc="'+this.esc(m)+'">'+this.esc(m)+'</button>').join(''):'<div class="in">Нет станков на связи — открой Drilling на компьютере у станка (Akrix Job подключён).</div>')+(this.err?'<div class="err">'+this.esc(this.err)+'</div>':'')+'</div>';
+      S.querySelectorAll('[data-pc]').forEach(b=>b.onclick=()=>{localStorage.setItem('pult_pc',b.dataset.pc);this.log=[];this.since=0;this.tick();});return;}
+    const foc=document.activeElement&&document.activeElement.id==='pi',val=(document.getElementById('pi')||{}).value||this.draft||'';
+    let h='<div class="card">';
+    if(!st)h+='<div class="tt">Станок не на связи</div><div class="in">Открой Drilling на компьютере «'+this.esc(this.pc)+'».</div>';
+    else{h+='<div class="tt">'+this.esc(st.title||'Автоприсадка не идёт')+'</div>'+(st.qn?'<div class="ph">этап '+st.qi+' из '+st.qn+' · '+this.esc(st.phTxt||'')+'</div>':'')+(st.inst?'<div class="in">'+this.esc(st.inst)+'</div>':'');
+      if(st.multi)h+='<div class="in">'+st.multi.map((x,i)=>(i+1)+'. '+this.esc(x)).join('\n')+'</div>';
+      if(st.can){const L=this.locked(),P=this.pend,dis=k=>L?' disabled':'',lab=(k,t)=>P&&P.k===k?(P.s==='send'?'⏳ отправка…':P.s==='cloud'?'⏳ станку…':P.s==='ok'?'✓ '+t:'✗ '+t):t;
+        if(st.can.step)h+='<button class="big st'+(L?' wait':'')+'" data-k="step" data-v="'+this.esc(st.step)+'"'+dis()+'>'+lab('step','✓ '+this.esc(st.stepLbl||''))+'</button>';
+        if(st.can.probe)h+='<button class="big st'+(L?' wait':'')+'" data-k="probe"'+dis()+'>'+lab('probe','Проба Z')+'</button>';
+        if(st.can.go)h+='<button class="big'+(L?' wait':'')+'" data-k="go"'+dis()+'>'+lab('go','▶ '+(st.ph==='hold'||st.ph==='pause'?'Продолжить':'Пуск'))+'</button>';
+        h+='<div class="row"><button class="pa'+(st.can.pause&&!L?'':' wait')+'" data-k="pause"'+(st.can.pause&&!L?'':' disabled')+'>'+lab('pause','❚❚ Пауза')+'</button><button class="sp'+(st.can.stop&&!L?'':' wait')+'" data-k="stop"'+(st.can.stop&&!L?'':' disabled')+'>'+lab('stop','■ Стоп')+'</button></div>';
+        if(P)h+='<div class="fb" style="color:'+(P.s==='fail'?'var(--r)':P.s==='ok'?'var(--g)':'var(--b)')+'">'+this.esc(P.lbl)+' — '+(P.s==='send'?'отправка…':P.s==='cloud'?'передано, ждём станок…':P.s==='ok'?'выполнено'+(P.m?': '+P.m:''):'не выполнено: '+(P.m||''))+'</div>';}
+      if(st.op!==undefined&&this.me&&st.op!==this.me.id&&(st.ops||[]).some(o=>o.id===this.me.id))h+='<div class="me">Оператор станка: '+this.esc(st.opName||'—')+' · <button data-k="op" data-v="'+this.esc(this.me.id)+'">Я — '+this.esc(this.me.name)+'</button></div>';}
+    h+='<div class="fb">'+this.esc(this.fb)+'</div></div>';
+    const ai=st&&st.ai||{};h+='<div class="card"><div class="tt" style="font-size:16px">🤖 Помощник'+(ai.busy?' <span style="font-weight:400;color:#666">думает…</span>':'')+'</div><div class="lg" id="lg">'+
+      this.log.slice(-30).map(m=>'<div class="mm '+this.esc(m.w)+'">'+(m.w==='ai'?'🤖 ':'')+this.esc(m.x)+'</div>').join('')+'</div>';
+    if(ai.pend)h+='<div class="pp"><div class="w">'+this.esc(ai.pend.why)+'</div><div class="mt">смен X '+ai.pend.b.x+' → '+ai.pend.n.x+' · свёрл '+ai.pend.b.dr+' → '+ai.pend.n.dr+' · шпинделя '+ai.pend.b.sp+' → '+ai.pend.n.sp+'</div><div class="bt"><button data-k="ok">✓ Применить</button><button class="no" data-k="no">✗ Нет</button></div></div>';
+    if(ai.opts)h+='<div class="op"><div class="w">'+this.esc(ai.opts.q)+'</div>'+ai.opts.o.map((o,i)=>'<button data-k="opt" data-v="'+this.esc(o)+'">'+this.esc(o)+'</button>').join('')+'</div>';
+    h+='<div class="ib"><button class="mic'+(this.rec?' on':'')+'" id="pm">🎤</button><input id="pi" placeholder="Сказать помощнику" autocomplete="off"><button class="go" id="pg">➤</button></div></div>';
+    if(this.err)h+='<div class="err">'+this.esc(this.err)+'</div>';
+    S.innerHTML=h;const I=document.getElementById('pi');I.value=val;if(foc){I.focus();try{I.setSelectionRange(val.length,val.length);}catch(e){}}
+    I.oninput=()=>{this.draft=I.value;};I.onkeydown=e=>{if(e.key==='Enter'&&I.value.trim()){const v=I.value.trim();I.value='';this.draft='';this.send('say',v);}};
+    document.getElementById('pg').onclick=()=>{if(I.value.trim()){const v=I.value.trim();I.value='';this.draft='';this.send('say',v);}};document.getElementById('pm').onclick=()=>this.mic();
+    S.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>this.send(b.dataset.k,b.dataset.v));const L=document.getElementById('lg');if(L)L.scrollTop=L.scrollHeight;}
+};
+document.getElementById('mn').onclick=e=>{const b=e.currentTarget;if(P.pc){localStorage.removeItem('pult_pc');P.st=null;P.render();P.tick();return;}if(!P.key)return;if(!b.dataset.arm){b.dataset.arm=1;b.textContent='Отключить?';setTimeout(()=>{b.dataset.arm='';b.textContent='☰';},3000);return;}localStorage.removeItem('pult_key');b.dataset.arm='';b.textContent='☰';P.render();};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')P.tick();});
+P.render();P.loop();
+</script></body></html>

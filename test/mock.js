@@ -12,7 +12,7 @@ const CACHE = {}; const BOOK = { s: {}, getSheetByName(n){ return this.s[n] || n
 const env = { SpreadsheetApp: { getActiveSpreadsheet: () => BOOK }, PropertiesService: { getScriptProperties: () => ({ getProperty: k => props[k] ?? null, setProperty: (k, v) => { props[k] = v; }, deleteProperty: k => { delete props[k]; } }) },
   LockService: { getScriptLock: () => ({ waitLock(){}, releaseLock(){} }) }, ContentService: { createTextOutput: t => ({ t, setMimeType(){ return this; } }), MimeType: { JSON: 1 } }, HtmlService: { createHtmlOutput: t => t },
   Utilities: { formatDate: (d, tz, f) => { const z = n => String(n).padStart(2, '0'); return f.replace('yyyy', d.getFullYear()).replace('yy', String(d.getFullYear()).slice(2)).replace('MM', z(d.getMonth() + 1)).replace('dd', z(d.getDate())).replace('HH', z(d.getHours())).replace('mm', z(d.getMinutes())).replace('ss', z(d.getSeconds())); },
-    getUuid: () => 'x', computeHmacSha256Signature: () => [], newBlob: () => ({ getBytes: () => [] }) }, ScriptApp: { getProjectTriggers: () => [] }, Logger: { log(){} }, UrlFetchApp: {},
+    getUuid: () => 'x', sleep: ms => { const t = Date.now(); while (Date.now() - t < ms); },   /* PULT 23.11: длинный опрос */ computeHmacSha256Signature: () => [], newBlob: () => ({ getBytes: () => [] }) }, ScriptApp: { getProjectTriggers: () => [] }, Logger: { log(){} }, UrlFetchApp: {},
   CacheService: { getScriptCache: () => ({ get: k => CACHE[k] ?? null, put: (k, v) => { CACHE[k] = v; } }) } };   // VIEW 22.11: кэш скрипта
 const ctx = new Function(...Object.keys(env), GS + '\n;return { doPost, SH, API, RO_ };')(...Object.values(env));
 module.exports = { ctx, BOOK, props, env, CACHE };

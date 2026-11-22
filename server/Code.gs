@@ -99,6 +99,7 @@ function doPost(e){
     const b = JSON.parse(e.postData.contents);
     if (b.action === 'ver') return ContentService.createTextOutput(JSON.stringify({ ok: true, ver: ver_() })).setMimeType(ContentService.MimeType.JSON);   // быстрый опрос: менялось ли что-нибудь
     if (b.action === 'pair') return ContentService.createTextOutput(JSON.stringify({ ok: true, data: pair_(b.code) })).setMimeType(ContentService.MimeType.JSON);
+    if (b.action === 'pultMachine' || b.action === 'pultPhone'){ try { return pultJson_({ ok: true, data: pult_(b) }); } catch (err) { return pultJson_({ ok: false, error: String(err && err.message || err) }); } }   /* PULT 23.11: без общей блокировки и bump_ */
     const me = b.key && !b.init ? whoByKey_(b.key) : whoAmI_(verify_(b.init));
     const fn = API[b.action]; if (!fn) throw new Error('Нет действия ' + b.action);
     if (fn.boss && !me.boss) throw new Error('Только для руководителя');
@@ -884,3 +885,37 @@ Object.assign(API, {
     o.data = d; return o; }
 });
 /* ===== END BLOCK: VIEW ===== */
+
+/* ============ BLOCK: PULT — пульт станка с телефона (Akrix Пульт ↔ Drilling), 23.11.2026 ============
+   Почта — CacheService (быстро, без листов); станок — длинный опрос (wait), команды доходят за доли секунды, БЕЗ общей блокировки и БЕЗ bump_() (иначе все клиенты Job перечитывают таблицу).
+   Кто: whoByKey_ (ключ из «pair» — код Job в Telegram), кэш 10 мин. Станок (Drilling): pultMachine — состояние + сообщения помощника, забирает команды.
+   Телефон: pultPhone — команды, получает состояние и сообщения. Команда живёт 30 с; станок отбрасывает старше 8 с и повторы по id (у себя). */
+function pultJson_(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+function pultWho_(key){ const ca = CacheService.getScriptCache(), k = 'PW_' + key, c = ca.get(k); if (c) return JSON.parse(c);
+  const me = whoByKey_(key); ca.put(k, JSON.stringify(me), 600); return me; }
+function pultGet_(ca, k, d){ try { const v = ca.get(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+function pult_(b){ const ca = CacheService.getScriptCache(), now = Date.now(), me = pultWho_(b.key), pc = String(b.pc || '').trim().slice(0, 40);
+  if (b.action === 'pultMachine'){ if (!pc) throw new Error('Нет имени ПК (Drilling → Akrix Job)');
+    ca.put('PS_' + pc, JSON.stringify({ st: b.state || {}, t: now }), 300);
+    const L = pultGet_(ca, 'PL', {}); if (!L[pc] || now - L[pc] > 30000){ L[pc] = now; ca.put('PL', JSON.stringify(L), 21600); }
+    if (b.out && b.out.length){ const lg = pultGet_(ca, 'PO_' + pc, []); b.out.slice(0, 20).forEach(m => lg.push({ w: String(m.w || '').slice(0, 8), x: String(m.x || '').slice(0, 1500), t: now }));
+      ca.put('PO_' + pc, JSON.stringify(lg.slice(-60)), 21600); }
+    /* длинный опрос (23.11): пока телефон на связи — ждём команду до b.wait мс (≤ 8 с), проверка кэша каждые 200 мс — команда доходит за доли секунды */
+    let q = pultGet_(ca, 'PQ_' + pc, []).filter(c => now - c.t < 30000 && (b.seen || []).indexOf(c.id) < 0);
+    const wait = Math.min(8000, Math.max(0, +b.wait || 0)), t0 = Date.now();
+    while (!q.length && wait && Date.now() - t0 < wait){ Utilities.sleep(200); q = pultGet_(ca, 'PQ_' + pc, []).filter(c => Date.now() - c.t < 30000 && (b.seen || []).indexOf(c.id) < 0); }
+    const n2 = Date.now();
+    return { cmds: q.map(c => Object.assign({}, c, { age: n2 - c.t })), phone: +(ca.get('PP_' + pc) || 0) ? n2 - +ca.get('PP_' + pc) : null, now: n2 }; }
+  if (b.action === 'pultPhone'){ const L = pultGet_(ca, 'PL', {}), machines = Object.keys(L).filter(k => now - L[k] < 6 * 3600000);
+    if (!pc) return { me: { id: me.id, name: me.name }, machines, now };
+    ca.put('PP_' + pc, String(now), 600);
+    if (b.cmds && b.cmds.length){ const q = pultGet_(ca, 'PQ_' + pc, []).filter(c => now - c.t < 30000);
+      b.cmds.slice(0, 10).forEach(c => q.push({ id: String(c.id || '').slice(0, 40), k: String(c.k || '').slice(0, 16), v: c.v == null ? '' : String(c.v).slice(0, 2000), stg: c.stg == null ? '' : String(c.stg).slice(0, 40), op: me.id, opName: me.name, t: now }));
+      ca.put('PQ_' + pc, JSON.stringify(q.slice(-30)), 600); }
+    const s = pultGet_(ca, 'PS_' + pc, null);
+    return { me: { id: me.id, name: me.name }, machines, state: s ? s.st : null, age: s ? now - s.t : null, log: pultGet_(ca, 'PO_' + pc, []).filter(m => m.t > (+b.since || 0)), now }; }
+  throw new Error('Нет действия ' + b.action); }
+/* в doPost — сразу после строки с b.action === 'pair' (до общей блокировки):
+    if (b.action === 'pultMachine' || b.action === 'pultPhone'){ try { return pultJson_({ ok: true, data: pult_(b) }); } catch (err) { return pultJson_({ ok: false, error: String(err && err.message || err) }); } }
+*/
+/* ===== END BLOCK: PULT ===== */
