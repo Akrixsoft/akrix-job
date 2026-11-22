@@ -1728,8 +1728,21 @@ function vAndroid(){ if(AND) return ''; const c=S.pairCode;
     <div class="${AND?'':'grid2'}">${AND?'':'<button class="btn ghost" data-act="apkGet">Скачать APK</button>'}<button class="btn" data-act="pairCode" ${AND?'style="width:100%"':''}>${c?'Новый код':'Получить код'}</button></div>
     ${c?`<div class="pcode num">${c.slice(0,3)} ${c.slice(3)}</div><div class="small mute" style="text-align:center">Введи код в приложении · действует 10 минут</div>`:''}`, S.andOpen||!!c, '')); }
 /* ===== END BLOCK: ANDROID ===== */
+/* ===== BLOCK: ЯРЛЫКИ — значок Job и пульт станка на главный экран (Дмитрий 23.11.2026) =====
+   Пульт открывается в браузере телефона (из Telegram — внешней ссылкой) с одноразовым кодом: #code= → пульт подключается сам; значок — 📌 в пульте или меню браузера. */
+const PULT_URL='https://akrixsoft.github.io/akrix-job/pult.html';
+function vShortcuts(){ const hs=TG&&TG.addToHomeScreen&&TG.isVersionAtLeast&&TG.isVersionAtLeast('8.0');
+  return UI.sec('', UI.fold('📌 Ярлыки на главный экран', `<div class="wgh">Akrix Job</div>
+    ${hs?`<button class="btn ghost" data-act="hsAdd" style="width:100%">Добавить значок Job</button>`:`<div class="small mute">Значок Job добавляется из Telegram-версии приложения.</div>`}
+    <div class="wgh" style="padding-top:10px">📱 Пульт станка</div>
+    <button class="btn" data-act="pultOpen" style="width:100%">Открыть пульт</button>
+    <div class="small mute" style="margin-top:6px">Откроется в браузере телефона и подключится сам. Значок — кнопка 📌 в шапке пульта или меню браузера ⋮ → «Добавить на главный экран».</div>`, !!S.scOpen, '')); }
+function pultOpen(b){ const go=u=>{ if(TG&&TG.openLink&&TG.initData) TG.openLink(u); else window.open(u,'_blank'); };
+  if(!(TG&&TG.initData)&&!window.MOCK_API){ go(PULT_URL); return; }   /* Android-приложение / браузер: код — из Telegram-версии */
+  if(b) b.disabled=true; api('pairCode').then(r=>go(PULT_URL+'#code='+r.code)).catch(e=>{ if(b) b.disabled=false; fail(e); }); }
+/* ===== END BLOCK: ЯРЛЫКИ ===== */
 /* настройки — отдельный экран по ⚙ в шапке: уведомления бота и подключение телефона, чтобы не мешали в разделах */
-function vSettings(){ return `<button class="btn small ghost" data-act="settings" style="margin-bottom:8px">← Назад</button>`+UI.h('Настройки')+(IS_BOSS?vNotifySet():vNotifyEmp())+vAndroid(); }
+function vSettings(){ return `<button class="btn small ghost" data-act="settings" style="margin-bottom:8px">← Назад</button>`+UI.h('Настройки')+(IS_BOSS?vNotifySet():vNotifyEmp())+vShortcuts()+vAndroid(); }
 function vNotifyEmp(){ return UI.sec('', UI.fold('Мои уведомления', `<div class="nlist">${empRows()}</div>`+UI.note('Сними галку — бот перестанет присылать это сообщение. Вне смены всё приходит беззвучно.'), S.nsetOpen, `<span class="small mute num">${Object.keys(ETYPES).length-MYOFF.length} из ${Object.keys(ETYPES).length}</span>`)); }
 function vBossStaff(){
   if(S.skills) return vSkills();
@@ -2286,6 +2299,7 @@ document.addEventListener('click',e=>{
     api('fixDone',{row:f.row}).catch(fail); toast('Сделано'+(f.pay&&f.who?' · '+fmt0(f.pay)+' ₾ — '+(PEOPLE[f.who]||f.who):'')); }
   if(a==='fixUndo'){ const f=FIXES.find(x=>x.row===+b.dataset.row); if(!f) return; f.st='открыта'; MARKS=MARKS.filter(m=>m[4]!=='fix'+f.row); api('fixUndo',{row:f.row}).catch(fail); }
   if(a==='fixDel'){ const f=FIXES.find(x=>x.row===+b.dataset.row); if(!f) return; FIXES=FIXES.filter(x=>x!==f); MARKS=MARKS.filter(m=>m[4]!=='fix'+f.row); api('fixDel',{row:f.row}).catch(fail); toast('Удалено'); }
+  if(a==='pultOpen'){ S.scOpen=true; pultOpen(b); return; }   /* ЯРЛЫКИ 23.11 */
   if(a==='apkGet'){ if(TG&&TG.openLink&&TG.initData) TG.openLink(APK_URL); else window.open(APK_URL,'_blank'); return; }
   if(a==='pairCode'){ if(AND&&!(TG&&TG.initData)){ toast('Код выдаётся в Telegram-версии Akrix Job'); return; } b.disabled=true; api('pairCode').then(r=>{ S.pairCode=r.code; render(); }).catch(fail); return; }
   if(a==='workStart'&&!b.dataset.plan){ if(!S.onShift){ toast('Сначала начни смену'); return; } pickOpen(b.dataset.o, b.dataset.op); }

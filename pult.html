@@ -3,6 +3,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#2e8b3a"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
 <title>Akrix Пульт</title>
+<link rel="manifest" href="pult.webmanifest"><link rel="icon" href="pult-192.png"><link rel="apple-touch-icon" href="pult-192.png">
 <style>
 /* ═══ [BLOCK] Akrix Пульт — телефон ↔ станок через облако Akrix Job (23.11.2026) ═══ */
 :root{--g:#2e8b3a;--gd:#1f6b2a;--r:#b42318;--b:#2f6fd0;--bg:#f4f5f3}
@@ -25,7 +26,7 @@
 .ms button{display:block;width:100%;margin-top:8px;padding:16px;border-radius:10px;border:1px solid var(--g);background:#fff;font:700 19px system-ui;color:var(--gd)}
 .me{font-size:13px;color:#555;margin-top:8px}.me select{font-size:15px;padding:4px}
 </style></head><body>
-<div class="hd"><b>Akrix Пульт</b><span class="m" id="hm"></span><span class="dot" id="dot" title="связь со станком"></span><button id="mn" title="Станок / выйти">☰</button></div>
+<div class="hd"><b>Akrix Пульт</b><span class="m" id="hm"></span><span class="dot" id="dot" title="связь со станком"></span><button id="ins" hidden title="Значок на главный экран">📌</button><button id="mn" title="Станок / выйти">☰</button></div>
 <div class="sc" id="sc"></div>
 <script>
 const P={
@@ -90,4 +91,9 @@ const P={
 document.getElementById('mn').onclick=e=>{const b=e.currentTarget;if(P.pc){localStorage.removeItem('pult_pc');P.st=null;P.render();P.tick();return;}if(!P.key)return;if(!b.dataset.arm){b.dataset.arm=1;b.textContent='Отключить?';setTimeout(()=>{b.dataset.arm='';b.textContent='☰';},3000);return;}localStorage.removeItem('pult_key');b.dataset.arm='';b.textContent='☰';P.render();};
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')P.tick();});
 P.render();P.loop();
+/* ─── [SUB] из Akrix Job (23.11.2026): #code=NNNNNN — подключение без ввода кода; 📌 — значок на главный экран (Chrome / Android) ─── */
+(function(){const m=location.hash.match(/code=(\d{6})/);if(m){history.replaceState(null,'',location.pathname+location.search);if(!P.key){const i=document.getElementById('pc-code');if(i){i.value=m[1];P.pair();}}}
+  let dp=null;const ib=document.getElementById('ins');addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;ib.hidden=false;});
+  ib.onclick=async()=>{if(!dp)return;dp.prompt();try{await dp.userChoice;}catch(e){}dp=null;ib.hidden=true;};addEventListener('appinstalled',()=>{ib.hidden=true;});
+  if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('pult-sw.js',{scope:'./pult'}).catch(()=>{});})();
 </script></body></html>
