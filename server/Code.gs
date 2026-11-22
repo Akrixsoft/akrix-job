@@ -919,3 +919,28 @@ function pult_(b){ const ca = CacheService.getScriptCache(), now = Date.now(), m
     if (b.action === 'pultMachine' || b.action === 'pultPhone'){ try { return pultJson_({ ok: true, data: pult_(b) }); } catch (err) { return pultJson_({ ok: false, error: String(err && err.message || err) }); } }
 */
 /* ===== END BLOCK: PULT ===== */
+
+/* ============ BLOCK: STAFF — доступ сотрудников из режима руководителя (Дмитрий 23.11.2026) ============
+   Лист «Сотрудники»: A id · B имя · C Telegram @ник · D Telegram ID (заполняется при первом входе) · E роль · G доступ («нет» — выключен).
+   staffAll — список для экрана «Люди → Доступ»; staffAdd — новая строка (ник или числовой Telegram ID); staffSet — роль / ник / имя / доступ. Только руководитель / администратор. */
+RO_.staffAll = 1;
+function stTg_(v){ const s = String(v || '').trim().replace(/^https?:\/\/t\.me\//i, '').replace(/^@/, '').trim(); return /^\d{5,15}$/.test(s) ? { id: s } : /^[A-Za-z0-9_]{4,32}$/.test(s) ? { un: s } : s ? null : {}; }
+function stRows_(){ return read_(SH.staff, 2, 7).filter(r => String(r[0]).trim()); }
+Object.assign(API, {
+  staffAll: bossOnly_(function(me){ return { staff: stRows_().map(r => ({ id: String(r[0]).trim(), name: String(r[1]), tg: String(r[2] || '').replace(/^@/, '').trim(), tgid: !!String(r[3] || '').trim(), role: String(r[4]).trim(), active: String(r[6]).trim() !== 'нет' })), me: me.id }; }),
+  staffAdd: bossOnly_(function(me, b){ const name = String(b.name || '').trim().slice(0, 60), role = String(b.role || '').trim().slice(0, 40) || 'сборщик', t = stTg_(b.tg);
+    if (!name) throw new Error('Укажи имя'); if (!t || (!t.un && !t.id)) throw new Error('Telegram: ник (@ivan_petrov) или числовой ID');
+    const rows = stRows_();
+    if (t.un && rows.some(r => String(r[2] || '').replace('@', '').trim().toLowerCase() === t.un.toLowerCase())) throw new Error('@' + t.un + ' уже есть в списке');
+    if (t.id && rows.some(r => String(r[3] || '').trim() === t.id)) throw new Error('Telegram ID ' + t.id + ' уже есть в списке');
+    const n = Math.max(0, ...rows.map(r => { const m = String(r[0]).trim().match(/^s(\d+)$/); return m ? +m[1] : 0; })) + 1, ids = rows.map(r => String(r[0]).trim()); let k = n; while (ids.indexOf('s' + k) >= 0) k++; const id = 's' + k;
+    const s = sh_(SH.staff), row = s.getLastRow() + 1; s.getRange(row, 1, 1, 7).setValues([[id, name, t.un ? '@' + t.un : '', t.id ? "'" + t.id : '', role, '', 'да']]);
+    return { id, name, role, tg: t.un || '', tgid: t.id || '' }; }),
+  staffSet: bossOnly_(function(me, b){ const r = stRows_().find(x => String(x[0]).trim() === String(b.id || '').trim()); if (!r) throw new Error('Нет сотрудника'); const s = sh_(SH.staff), row = r[7];
+    if (b.active != null){ if (String(r[0]).trim() === me.id && !b.active) throw new Error('Себе доступ не выключить'); s.getRange(row, 7).setValue(b.active ? 'да' : 'нет'); }
+    if (b.role != null){ const v = String(b.role).trim().slice(0, 40); if (!v) throw new Error('Роль пустая'); if (String(r[0]).trim() === me.id && BOSS_ROLES.indexOf(v) < 0) throw new Error('Себе роль руководителя не снять'); s.getRange(row, 5).setValue(v); }
+    if (b.name != null){ const v = String(b.name).trim().slice(0, 60); if (!v) throw new Error('Имя пустое'); s.getRange(row, 2).setValue(v); }
+    if (b.tg != null){ const t = stTg_(b.tg); if (!t) throw new Error('Telegram: ник или числовой ID'); if (t.un != null || !b.tg) s.getRange(row, 3).setValue(t.un ? '@' + t.un : ''); if (t.id) s.getRange(row, 4).setValue("'" + t.id); }
+    return { id: String(r[0]).trim() }; })
+});
+/* ===== END BLOCK: STAFF ===== */

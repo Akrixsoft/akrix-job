@@ -1,0 +1,20 @@
+// Тест BLOCK STAFF (сервер Job, 23.11.2026): staffAll / staffAdd / staffSet — только руководитель; ник / ID, дубли, id s<N>, вход нового по нику, выключение и роль; себя не выключить. node test/tstaff_job.js server/Code.gs
+const { ctx, BOOK, props } = require('./mock.js'); const res = [];
+const ck = (n, c, d) => { res.push(!!c); console.log((c ? 'OK   ' : 'FAIL ') + n, c ? '' : JSON.stringify(d)); };
+const st = BOOK.insertSheet('Сотрудники'); st.appendRow(['id', 'имя', 'tg', 'tgid', 'роль', '', 'доступ']); st.appendRow(['s1', 'Дмитрий', '@dima', '111', 'руководитель', '', 'да']); st.appendRow(['s2', 'Гия', '@gia', '', 'сборщик', '', 'да']);
+const KB = 'a'.repeat(48), KS = 'b'.repeat(48); props['AK_' + KB] = 's1'; props['AK_' + KS] = 's2';
+const call = b => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(b) }, parameter: {} }).t);
+let r = call({ action: 'staffAdd', key: KS, name: 'Х', tg: '@xx_yy' }); ck('сотрудник — отказ', !r.ok && /руководител/.test(r.error), r);
+r = call({ action: 'staffAll', key: KB }); ck('staffAll: 2 человека, me = s1, Гия «ждёт входа» (нет tgid)', r.ok && r.data.staff.length === 2 && r.data.me === 's1' && r.data.staff[1].tg === 'gia' && !r.data.staff[1].tgid, r);
+r = call({ action: 'staffAdd', key: KB, name: 'Лука', tg: 'https://t.me/Luka_M', role: 'помощник' });
+ck('staffAdd по ссылке t.me → id s3, @Luka_M, помощник, доступ «да»', r.ok && r.data.id === 's3' && st.d[3][2] === '@Luka_M' && st.d[3][4] === 'помощник' && st.d[3][6] === 'да', [r, st.d[3]]);
+r = call({ action: 'staffAdd', key: KB, name: 'Двойник', tg: '@luka_m' }); ck('тот же ник (другой регистр) — отказ', !r.ok && /уже есть/.test(r.error), r);
+r = call({ action: 'staffAdd', key: KB, name: 'Без ника', tg: '5551234567' }); ck('числовой ID → столбец D, роль по умолчанию сборщик', r.ok && st.d[4][3] === "'5551234567" && st.d[4][2] === '' && st.d[4][4] === 'сборщик', st.d[4]);
+r = call({ action: 'staffAdd', key: KB, name: '', tg: '@abcd' }); ck('без имени — отказ', !r.ok, r);
+r = call({ action: 'staffAdd', key: KB, name: 'Q', tg: '@a b' }); ck('неверный ник — отказ', !r.ok && /Telegram/.test(r.error), r);
+r = call({ action: 'staffSet', key: KB, id: 's2', active: false }); ck('выключить Гию → «нет»; его ключ больше не работает', r.ok && st.d[2][6] === 'нет' && !call({ action: 'staffAll', key: KS }).ok && /не подключён/.test(call({ action: 'mini', key: KS }).error || ''), st.d[2]);
+r = call({ action: 'staffSet', key: KB, id: 's2', active: true, role: 'мастер' }); ck('включить и роль «мастер»', r.ok && st.d[2][6] === 'да' && st.d[2][4] === 'мастер', st.d[2]);
+r = call({ action: 'staffSet', key: KB, id: 's1', active: false }); ck('себя не выключить', !r.ok && /Себе/.test(r.error), r);
+r = call({ action: 'staffSet', key: KB, id: 's1', role: 'сборщик' }); ck('себе роль руководителя не снять', !r.ok && /Себе/.test(r.error), r);
+r = call({ action: 'staffAll', key: KB }); ck('итого 4 человека', r.data.staff.length === 4, r);
+console.log(res.filter(Boolean).length + '/' + res.length); process.exit(res.every(Boolean) ? 0 : 1);

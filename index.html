@@ -1728,6 +1728,37 @@ function vAndroid(){ if(AND) return ''; const c=S.pairCode;
     <div class="${AND?'':'grid2'}">${AND?'':'<button class="btn ghost" data-act="apkGet">Скачать APK</button>'}<button class="btn" data-act="pairCode" ${AND?'style="width:100%"':''}>${c?'Новый код':'Получить код'}</button></div>
     ${c?`<div class="pcode num">${c.slice(0,3)} ${c.slice(3)}</div><div class="small mute" style="text-align:center">Введи код в приложении · действует 10 минут</div>`:''}`, S.andOpen||!!c, '')); }
 /* ===== END BLOCK: ANDROID ===== */
+/* ===== BLOCK: STAFF — доступ сотрудников: добавить человека, роль, выключить доступ (Дмитрий 23.11.2026) =====
+   «Люди» → «👤 Доступ сотрудников». Новый человек: имя + Telegram (ник или числовой ID) + роль → строка в листе «Сотрудники»; он открывает бота → Akrix Job — и входит.
+   Список — с сервера (staffAll) при раскрытии; выключить доступ — со второго нажатия. */
+const ST={ d:null, busy:false, err:'', arm:'', last:null };
+const ST_ROLES=()=>[...new Set(['сборщик','помощник','руководитель','администратор'].concat(Object.values(ROLE).filter(Boolean)))];
+function stLoad(){ if(ST.busy) return; ST.busy=true; api('staffAll').then(d=>{ ST.d=d; ST.err=''; }).catch(e=>{ ST.err=e.message||String(e); }).finally(()=>{ ST.busy=false; render(); }); }
+function vStaffAccess(){ if(!S.stOpen) return UI.sec('', `<button class="btn ghost" data-act="stOpen" style="width:100%">👤 Доступ сотрудников · добавить человека</button>`);
+  if(!ST.d&&!ST.busy&&!ST.err) setTimeout(stLoad,0);
+  const roles=ST_ROLES(), L=(ST.d&&ST.d.staff)||[], link='https://t.me/'+BOT;
+  const add=`<div class="wgh">Новый сотрудник</div>
+    <input id="st-n" type="text" placeholder="Имя" autocomplete="off" style="width:100%;margin:4px 0">
+    <input id="st-t" type="text" placeholder="Telegram: @ник или числовой ID" autocomplete="off" autocapitalize="off" style="width:100%;margin:4px 0">
+    <select id="st-r" style="width:100%;margin:4px 0">${roles.map(r=>`<option${r==='сборщик'?' selected':''}>${esc(r)}</option>`).join('')}</select>
+    <button class="btn" data-act="stAdd" style="width:100%;margin-top:4px" ${ST.busy?'disabled':''}>Добавить и дать доступ</button>
+    ${ST.last?`<div class="flag" style="margin-top:8px">✅ ${esc(ST.last.name)} добавлен (${esc(ST.last.role)}). Пусть откроет бота <b>@${esc(BOT)}</b> → кнопка «Akrix Job».
+      <button class="btn small" data-act="stShare" style="width:100%;margin-top:6px">Отправить ему ссылку на бота</button></div>`:''}
+    ${ST.err?`<div class="small" style="color:var(--bad);margin-top:6px">⚠ ${esc(ST.err)}</div>`:''}`;
+  const rows=L.map(p=>{ const me=ST.d&&p.id===ST.d.me, st=!p.active?['bad','выключен']:p.tgid?['ok','входил']:['warn','ждёт входа'];
+    return `<div class="row"><div class="rm"><div class="rt">${esc(p.name)} ${chip(st[0],st[1])}</div><div class="rs">${p.tg?'@'+esc(p.tg)+' · ':''}
+      <select data-strole="${esc(p.id)}" ${me?'disabled':''}>${[...new Set(roles.concat(p.role?[p.role]:[]))].map(r=>`<option${r===p.role?' selected':''}>${esc(r)}</option>`).join('')}</select></div></div>
+      <div class="rr">${me?'<span class="small mute">это ты</span>':p.active?`<button class="btn small ghost ${ST.arm===p.id?'warnbtn':''}" data-act="stOff" data-p="${esc(p.id)}">${ST.arm===p.id?'Точно выключить?':'Выключить'}</button>`:`<button class="btn small" data-act="stOn" data-p="${esc(p.id)}">Включить</button>`}</div></div>`; }).join('');
+  return UI.sec('👤 Доступ сотрудников', add+`<div class="wgh" style="padding-top:12px">Все сотрудники</div>`+(ST.busy&&!ST.d?UI.note('Загрузка…'):UI.list(rows||'')),
+    `<button class="btn small ghost" data-act="stOpen">Свернуть</button>`); }
+function stAdd(){ const n=(document.getElementById('st-n')||{}).value||'', t=(document.getElementById('st-t')||{}).value||'', r=(document.getElementById('st-r')||{}).value||'';
+  ST.busy=true; ST.err=''; render(); api('staffAdd',{name:n, tg:t, role:r}).then(d=>{ ST.last=d; ST.d=null; ST.busy=false; stLoad(); toast('Добавлен: '+d.name); })
+    .catch(e=>{ ST.busy=false; ST.err=e.message||String(e); render(); const a=document.getElementById('st-n'), b=document.getElementById('st-t'); if(a) a.value=n; if(b) b.value=t; }); }
+function stSet(p, ch, msg){ api('staffSet',Object.assign({id:p},ch)).then(()=>{ toast(msg); ST.d=null; ST.arm=''; stLoad(); }).catch(e=>{ ST.err=e.message||String(e); render(); }); }
+function stShare(){ const u='https://t.me/share/url?url='+encodeURIComponent('https://t.me/'+BOT)+'&text='+encodeURIComponent('Akrix Job — открой бота и нажми кнопку «Akrix Job»');
+  if(TG&&TG.openTelegramLink&&TG.initData) TG.openTelegramLink(u); else window.open(u,'_blank'); }
+document.addEventListener('change',e=>{ const s=e.target.closest('[data-strole]'); if(!s) return; stSet(s.dataset.strole,{role:s.value},'Роль: '+s.value); });
+/* ===== END BLOCK: STAFF ===== */
 /* ===== BLOCK: ЯРЛЫКИ — значок Job и пульт станка на главный экран (Дмитрий 23.11.2026) =====
    Пульт открывается в браузере телефона (из Telegram — внешней ссылкой) с одноразовым кодом: #code= → пульт подключается сам; значок — 📌 в пульте или меню браузера. */
 const PULT_URL='https://akrixsoft.github.io/akrix-job/pult.html';
@@ -1759,7 +1790,7 @@ function vBossStaff(){
   const table=`<div class="t1c"><div class="t1r th">${[['name','Сотрудник'],['h','ч нед'],['ph','₾/ч'],['pay','к выпл.'],['open','в работе']].map(([k,n])=>`<button class="lnk" data-act="sSort" data-k="${k}">${n}${(S.sSort||'name')===k?' ▾':''}</button>`).join('')}</div>${rows}
     <div class="t1r tt"><span>Итого</span><span class="num">${fmt(T[0])}</span><span></span><span class="num">${fmt0(T[2])}</span><span class="num">${fmt0(T[3])}</span></div></div>
     <div class="small mute" style="margin:4px 2px 10px">Неделя с ${dShort(iso(from))} · норма ${RATE_H} ₾/ч · ● на смене · ⚑ флаги. Тап по строке — карточка сотрудника.</div>`;
-  return UI.h('Люди')+vPayRequests()+UI.sec('', table)+vStatementDocs()+vReportsList()+`<button class="btn small ghost" data-act="skOpen" style="margin-bottom:10px">Карта навыков</button>`;
+  return UI.h('Люди')+vPayRequests()+UI.sec('', table)+vStaffAccess()+vStatementDocs()+vReportsList()+`<button class="btn small ghost" data-act="skOpen" style="margin-bottom:10px">Карта навыков</button>`;
 }
 function staffOrder(){ const from=weekStart(), e=earnedBy(from), hh=hoursBy(from), k=S.sSort||'name';
   const L=[...new Set(WORKERS.concat(PAYS.map(x=>x.who)))].filter(p=>PEOPLE[p]);
@@ -2299,6 +2330,10 @@ document.addEventListener('click',e=>{
     api('fixDone',{row:f.row}).catch(fail); toast('Сделано'+(f.pay&&f.who?' · '+fmt0(f.pay)+' ₾ — '+(PEOPLE[f.who]||f.who):'')); }
   if(a==='fixUndo'){ const f=FIXES.find(x=>x.row===+b.dataset.row); if(!f) return; f.st='открыта'; MARKS=MARKS.filter(m=>m[4]!=='fix'+f.row); api('fixUndo',{row:f.row}).catch(fail); }
   if(a==='fixDel'){ const f=FIXES.find(x=>x.row===+b.dataset.row); if(!f) return; FIXES=FIXES.filter(x=>x!==f); MARKS=MARKS.filter(m=>m[4]!=='fix'+f.row); api('fixDel',{row:f.row}).catch(fail); toast('Удалено'); }
+  if(a==='stOpen'){ S.stOpen=!S.stOpen; if(S.stOpen){ ST.d=null; ST.last=null; ST.err=''; } render(); return; }   /* STAFF 23.11 */
+  if(a==='stAdd'){ stAdd(); return; } if(a==='stShare'){ stShare(); return; }
+  if(a==='stOff'){ const p=b.dataset.p; if(ST.arm!==p){ ST.arm=p; render(); setTimeout(()=>{ if(ST.arm===p){ ST.arm=''; render(); } },3000); return; } stSet(p,{active:false},'Доступ выключен'); return; }
+  if(a==='stOn'){ stSet(b.dataset.p,{active:true},'Доступ включён'); return; }
   if(a==='pultOpen'){ S.scOpen=true; pultOpen(b); return; }   /* ЯРЛЫКИ 23.11 */
   if(a==='apkGet'){ if(TG&&TG.openLink&&TG.initData) TG.openLink(APK_URL); else window.open(APK_URL,'_blank'); return; }
   if(a==='pairCode'){ if(AND&&!(TG&&TG.initData)){ toast('Код выдаётся в Telegram-версии Akrix Job'); return; } b.disabled=true; api('pairCode').then(r=>{ S.pairCode=r.code; render(); }).catch(fail); return; }
