@@ -1,5 +1,5 @@
 <!doctype html><html><head>
-<!-- Akrix view: конструктор v1094, сборка 2026-11-23 13:02, 4b5fe35f16 --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
+<!-- Akrix view: конструктор v1094, сборка 2026-11-23 13:21, e1d2e97a20 --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
 #skProp .uf-zr{flex-wrap:wrap;row-gap:4px}
 #skProp .pr-s[data-c] > b::before{display:none!important}#skProp .pr-s[data-c]:not([data-c="cost"]) > b{color:inherit!important}#skProp .uf-bt{flex-wrap:wrap;row-gap:4px}   /* v852: заголовки как в новых панелях, кнопки с переносом */
 #skProp .pr-h .nav-lk{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:var(--acc,#2E6B57)}#skProp .pr-h .nav-lk:hover{color:var(--sel,#c00)}#skProp .nav-sost .nav-b button{padding:2px 8px;font-size:12px}   /* v853 */
@@ -35889,23 +35889,25 @@ const VW = { on: true, key: '', q: {}, cp: null, st: '', err: '', busy: false, p
 (function vwCss() {
   const s = document.createElement('style'); s.id = 'vwCss';
   s.textContent = `body.akx-view{overflow:hidden;touch-action:none;overscroll-behavior:none}
-body.akx-view>*:not(main):not(#vwBar):not(#vwCard):not(#vwPr):not(#toast){display:none!important}
+body.akx-view>*:not(main):not(#vwDock):not(#vwCard):not(#toast){display:none!important}
 body.akx-view main>*:not(#prodCard){display:none!important} body.akx-view #prodCard>*:not(#sketch){display:none!important}
 body.akx-view #sketch>*:not(.sk-wrap){display:none!important} body.akx-view .sk-wrap>*:not(.sk-cv){display:none!important}
 body.akx-view main,body.akx-view #prodCard,body.akx-view #sketch,body.akx-view .sk-wrap{margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;background:#fff!important}
-body.akx-view .sk-cv{position:fixed!important;left:0;right:0;top:var(--vwT,52px);bottom:0;padding:0 12px!important;overflow:hidden;background:#fff}
+body.akx-view .sk-cv{position:fixed!important;left:0;right:0;top:var(--vwT,0px);bottom:var(--vwB,100px);padding:0 12px!important;overflow:hidden;background:#fff}
 body.akx-view .sk-cv>*:not(#skc):not(#skGL){display:none!important} body.akx-view #skc{touch-action:none}
-#vwBar{position:fixed;left:0;right:0;top:0;height:52px;z-index:50;display:flex;align-items:center;gap:6px;padding:0 8px;background:#fff;border-bottom:1px solid #E2DED6;font:14px system-ui,sans-serif;color:#1F2933}
-#vwBar button{width:40px;height:40px;border:1px solid #D8D2C6;border-radius:9px;background:#FAF8F4;font-size:19px;line-height:1;padding:0;flex:none}
+#vwDock{position:fixed;left:0;right:0;bottom:0;z-index:50;background:#fff;border-top:1px solid #E2DED6;padding-bottom:var(--vwSB,0px);font:14px system-ui,sans-serif;color:#1F2933}
+#vwPr{display:flex;gap:6px;overflow-x:auto;padding:6px 8px 0;font-size:13px} #vwPr:empty{display:none}
+#vwPr button{flex:none;height:32px;padding:0 12px;border:1px solid #D8D2C6;border-radius:16px;background:#FAF8F4} #vwPr button.on{background:#FDECC8;border-color:#E3A83B;font-weight:600}
+#vwBar .vw-t{display:flex;gap:8px;align-items:baseline;padding:6px 10px 0;min-width:0;line-height:1.2} #vwBar .vw-t b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+#vwBar .vw-t span{flex:none;font-size:12px;color:#5B6B76;white-space:nowrap;max-width:60%;overflow:hidden;text-overflow:ellipsis} #vwBar .vw-t span.err{color:#B42318}
+#vwBar .vw-b{display:flex;align-items:center;gap:6px;padding:6px 8px 8px} #vwBar .vw-b i{flex:1}
+#vwBar button{height:42px;min-width:42px;border:1px solid #D8D2C6;border-radius:9px;background:#FAF8F4;font-size:18px;line-height:1;padding:0 8px;flex:none}
 #vwBar button.on{background:#FDECC8;border-color:#E3A83B}
-#vwBar .vw-t{flex:1;min-width:0;line-height:1.15} #vwBar .vw-t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
-#vwBar .vw-t span{display:block;font-size:12px;color:#5B6B76;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} #vwBar .vw-t span.err{color:#B42318}
-#vwPr{position:fixed;left:0;right:0;top:52px;z-index:49;display:flex;gap:6px;overflow-x:auto;padding:6px 8px;background:#fff;border-bottom:1px solid #E2DED6;font:13px system-ui,sans-serif}
-#vwPr button{flex:none;height:30px;padding:0 12px;border:1px solid #D8D2C6;border-radius:15px;background:#FAF8F4} #vwPr button.on{background:#FDECC8;border-color:#E3A83B;font-weight:600}
-#vwCard{position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:51;background:#fff;border:1px solid #E3A83B;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.18);padding:10px 12px;font:14px system-ui,sans-serif;color:#1F2933}
+#vwBar button.vz{font-size:13px;font-weight:600;padding:0 9px} #vwBar button.vz.z2{background:#C8102E;border-color:#C8102E;color:#fff} #vwBar button.vz.z1{background:#FBE3E6;border-color:#C8102E;color:#C8102E;border-style:dashed} #vwBar button.vz.z0{color:#9AA5AD;text-decoration:line-through}
+#vwCard{position:fixed;left:8px;right:8px;bottom:calc(var(--vwB,100px) + 8px);z-index:51;background:#fff;border:1px solid #E3A83B;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.18);padding:10px 12px;font:14px system-ui,sans-serif;color:#1F2933}
 #vwCard .vw-h{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px} #vwCard .vw-h span{flex:1} #vwCard .vw-h button{width:34px;height:34px;border:1px solid #D8D2C6;border-radius:8px;background:#FAF8F4;font-size:16px}
 #vwCard .vw-d{display:flex;gap:14px;margin-top:6px;font-variant-numeric:tabular-nums;flex-wrap:wrap} #vwCard .vw-d div{line-height:1.2} #vwCard .vw-d i{display:block;font-style:normal;font-size:11px;color:#5B6B76} #vwCard .vw-d b{font-size:18px}
-#vwMsg{position:fixed;left:16px;right:16px;top:45%;text-align:center;font:15px system-ui,sans-serif;color:#5B6B76;z-index:48}`;
+#vwMsg{position:fixed;left:16px;right:16px;top:40%;text-align:center;font:15px system-ui,sans-serif;color:#5B6B76;z-index:48}`;
   document.head.appendChild(s); document.body.classList.add('akx-view');
 })();
 /* ─── [SUB] VW: адрес, ключ доступа, копия ─── */
@@ -35946,10 +35948,11 @@ async function vwLoad() {
 }
 /* ─── [SUB] VW: шапка, изделия, карточка модуля ─── */
 const vwD = s => { const m = String(s || '').match(/^(\d{4})-(\d\d)-(\d\d) (\d\d:\d\d)/); return m ? m[3] + '.' + m[2] + '.' + m[1].slice(2) + ' ' + m[4] : (s || ''); };
-function vwBarUi() {
-  let b = $('vwBar'); if (!b) { b = document.createElement('div'); b.id = 'vwBar'; document.body.appendChild(b);
-    b.innerHTML = `<button data-vw="back" title="Назад в Akrix Job">←</button><div class="vw-t"><b data-vw-n></b><span data-vw-s></span></div><button data-vw="3d" title="3D / виды">3D</button><button data-vw="fit" title="Вписать в экран">⤢</button><button data-vw="re" title="Обновить чертёж">⟳</button>`;
-    b.onclick = e => { const a = e.target.closest('[data-vw]'); if (!a) return; const k = a.dataset.vw;
+function vwDock() { let d = $('vwDock'); if (!d) { d = document.createElement('div'); d.id = 'vwDock'; d.innerHTML = '<div id="vwPr"></div><div id="vwBar"></div>'; document.body.appendChild(d); } return d; }
+function vwBarUi() {   /* панель — внизу над системной полосой телефона (Дмитрий 23.11): название · версия, ← · зоны вида сверху · 3D · ⤢ · ⟳ */
+  vwDock(); const b = $('vwBar'); if (!b.dataset.on) { b.dataset.on = 1;
+    b.innerHTML = `<div class="vw-t"><b data-vw-n></b><span data-vw-s></span></div><div class="vw-b"><button data-vw="back" title="Назад в Akrix Job">←</button><span data-vw-z style="display:flex;gap:6px"></span><i></i><button data-vw="3d" title="3D / виды">3D</button><button data-vw="fit" title="Вписать в экран">⤢</button><button data-vw="re" title="Обновить чертёж">⟳</button></div>`;
+    b.onclick = e => { const a = e.target.closest('[data-vw],[data-vz]'); if (!a) return; if (a.dataset.vz != null) { vwZone(a.dataset.vz); return; } const k = a.dataset.vw;
       if (k === 'back') { if (history.length > 1) history.back(); else location.href = '../'; }
       if (k === '3d') { try { isoToggle(!SK.iso); } catch (x) { SK.iso = !SK.iso; } vwFit(); vwBarUi(); }
       if (k === 'fit') vwFit(); if (k === 're') vwLoad(); }; }
@@ -35958,15 +35961,33 @@ function vwBarUi() {
   const s = b.querySelector('[data-vw-s]'), v = c ? 'версия от ' + vwD(c.saved || c.committed) : '';
   s.className = VW.err ? 'err' : ''; s.textContent = VW.busy ? (v ? v + ' · проверка…' : 'загрузка…') : VW.err ? (c ? '⚠ нет связи — копия, ' + v : '⚠ ' + VW.err) : v;
   s.title = VW.err || ''; const i3 = b.querySelector('[data-vw="3d"]'); i3.classList.toggle('on', !!SK.iso); i3.textContent = SK.iso ? '2D' : '3D';
+  vwZoneUi(); vwLayout();
 }
-function vwPrUi() {   /* изделия проекта — чипы (одно изделие — без строки) */
-  let r = $('vwPr'); const L = (typeof P !== 'undefined' && P.products) || [];
-  if (L.length < 2) { if (r) r.remove(); document.body.style.setProperty('--vwT', '52px'); return; }
-  if (!r) { r = document.createElement('div'); r.id = 'vwPr'; document.body.appendChild(r);
-    r.onclick = e => { const a = e.target.closest('[data-pi]'); if (!a) return; P.active = +a.dataset.pi; SK.ms = []; SK.sel = null; VW.sel = null; renderAll(); vwFit(); vwPrUi(); vwCardUi(); }; }
-  r.innerHTML = L.map((p, i) => `<button data-pi="${i}" class="${i === P.active ? 'on' : ''}">${esc(p.name || 'Изделие ' + (i + 1))}</button>`).join('');
-  document.body.style.setProperty('--vwT', (52 + r.offsetHeight) + 'px');
+/* зоны вида сверху (Низ / Верх …) — кнопками панели вместо значков на холсте; та же логика, что клик по значку в конструкторе (видно → полупрозрачно → скрыто), без записи */
+function vwZoneUi() { const z = $('vwBar') && $('vwBar').querySelector('[data-vw-z]'); if (!z) return; if (SK.iso || !VW.cp) { z.innerHTML = ''; return; }
+  let n = 1; try { n = zvLv().length; } catch (e) { z.innerHTML = ''; return; }
+  z.innerHTML = [...Array(n + 1)].map((_, i) => { const k = zvKey(i, n), st = zvSt(k); return `<button class="vz z${st}" data-vz="${k}" title="${esc(zvNm(i, n))}: ${ZV_N[st]}">${zvIco(i, n)} ${esc(zvNm(i, n))}${['  ✕', ' ◐', ''][st]}</button>`; }).join(''); }
+function vwZone(k) { const st = (zvSt(k) + 2) % 3; P.set.zv = { ...(P.set.zv || {}), [k]: st }; if (st === 2) delete P.set.zv[k]; skDraw(); vwZoneUi(); }
+function vwPrUi() {   /* изделия проекта — чипы над панелью (одно изделие — без строки) */
+  vwDock(); const r = $('vwPr'), L = (typeof P !== 'undefined' && P.products) || [];
+  if (!r.dataset.on) { r.dataset.on = 1; r.onclick = e => { const a = e.target.closest('[data-pi]'); if (!a) return; P.active = +a.dataset.pi; SK.ms = []; SK.sel = null; VW.sel = null; renderAll(); vwFit(); vwPrUi(); vwCardUi(); }; }
+  r.innerHTML = L.length < 2 ? '' : L.map((p, i) => `<button data-pi="${i}" class="${i === P.active ? 'on' : ''}">${esc(p.name || 'Изделие ' + (i + 1))}</button>`).join('');
+  vwBarUi();
 }
+/* отступы: сверху — кнопки Telegram (Закрыть, ⌄ ⋮) в полноэкранном режиме; снизу — системная полоса кнопок телефона */
+function vwLayout() { const T = window.Telegram && Telegram.WebApp, sa = (T && T.safeAreaInset) || {}, ca = (T && T.contentSafeAreaInset) || {}, rs = document.body.style;
+  rs.setProperty('--vwT', `max(env(safe-area-inset-top), ${(+sa.top || 0) + (+ca.top || 0)}px)`); rs.setProperty('--vwSB', `max(env(safe-area-inset-bottom), ${(+sa.bottom || 0) + (+ca.bottom || 0)}px)`);
+  const d = $('vwDock'); if (d) { const h = d.offsetHeight + 'px'; if (rs.getPropertyValue('--vwB') !== h) { rs.setProperty('--vwB', h); if (VW.cp) setTimeout(vwFit, 30); } } }
+skCanvas = function () {   /* размер холста — по рамке между отступом сверху и панелью снизу (а не до низа окна) */
+  const c = $('skc'), pr = c.parentElement, cw = Math.max(200, pr.clientWidth - 24), ch = Math.max(200, Math.floor(pr.clientHeight)), dpr = window.devicePixelRatio || 1;
+  if (c.width !== Math.round(cw * dpr) || c.height !== Math.round(ch * dpr)) { c.width = cw * dpr; c.height = ch * dpr; c.style.width = cw + 'px'; c.style.height = ch + 'px'; }
+  return { c, cw, ch, dpr }; };
+zvDraw = function () { SK.zvR = []; };   /* значки зон на холсте не рисуются — они в панели */
+(function vwTg() {   /* Telegram: отступы безопасной зоны, без сворачивания мини-приложения свайпом вниз (жесты по чертежу) */
+  const go = () => { const T = window.Telegram && Telegram.WebApp; if (!T) return; try { T.ready(); } catch (e) {} try { T.disableVerticalSwipes && T.disableVerticalSwipes(); } catch (e) {}
+    ['safeAreaChanged', 'contentSafeAreaChanged', 'viewportChanged', 'fullscreenChanged'].forEach(ev => { try { T.onEvent(ev, vwLayout); } catch (e) {} }); vwLayout(); };
+  if (window.Telegram && Telegram.WebApp) go(); else { const sc = document.createElement('script'); sc.src = 'https://telegram.org/js/telegram-web-app.js'; sc.async = true; sc.onload = go; document.head.appendChild(sc); }
+})();
 function vwSelRead() {   /* выделенное кодом конструктора → модуль (корпус) */
   const sk = prod().sk, s = SK.sel; if (!s || s.m == null || SK.ms.length !== 1) return null; const m = sk.mods[s.m]; return m ? { m, nm: skSelNm(sk) } : null; }
 function vwCardUi() {
@@ -36006,7 +36027,7 @@ const vwOnCv = e => e.target && e.target.id === 'skc';
 }, { capture: true, passive: false }));
 window.addEventListener('beforeunload', e => { if (VW.on) e.stopImmediatePropagation(); }, { capture: true });   /* без «Не сохранено» при выходе */
 window.addEventListener('keydown', e => { if (VW.on && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) e.stopImmediatePropagation(); }, { capture: true });   /* горячие клавиши правки — выкл. */
-addEventListener('resize', () => { if (VW.on) { vwPrUi(); setTimeout(vwFit, 60); } });
+addEventListener('resize', () => { if (VW.on) { vwLayout(); setTimeout(vwFit, 60); } });
 /* ─── [SUB] VW: старт — после INIT конструктора ─── */
 async function vwStart() {
   try { if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js'); } catch (e) {}   /* страница — офлайн */
