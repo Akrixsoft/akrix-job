@@ -1,5 +1,5 @@
 <!doctype html><html><head>
-<!-- Akrix view: конструктор v1094, сборка 2026-11-23 13:21, e1d2e97a20 --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
+<!-- Akrix view: конструктор v1095, сборка 2026-11-23 16:43, 3e62b09a34 --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
 #skProp .uf-zr{flex-wrap:wrap;row-gap:4px}
 #skProp .pr-s[data-c] > b::before{display:none!important}#skProp .pr-s[data-c]:not([data-c="cost"]) > b{color:inherit!important}#skProp .uf-bt{flex-wrap:wrap;row-gap:4px}   /* v852: заголовки как в новых панелях, кнопки с переносом */
 #skProp .pr-h .nav-lk{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:var(--acc,#2E6B57)}#skProp .pr-h .nav-lk:hover{color:var(--sel,#c00)}#skProp .nav-sost .nav-b button{padding:2px 8px;font-size:12px}   /* v853 */
@@ -1079,7 +1079,7 @@ body.ms-on{overflow:hidden}
   <div class="hd-tools" id="hdTools"></div>   <!-- v138: место под кнопки и команды -->
   <button id="btnCnc" title="Akrix CNC · Drilling — присадка у станка, внутри Akrix (детали — «⇩ Drilling» в окне свойств)" aria-label="Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><rect x="3" y="15" width="18" height="5" rx="1" fill="#16A34A" opacity=".25" stroke="#16A34A"/><path d="M12 3v9m-3-6h6m-5 6 2 3 2-3" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v664 -->
   <button id="btnCns" title="Набор для Drilling — выбрать модули, ящики, типы деталей и передать в Drilling" aria-label="Набор для Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><path d="M4 6h10M4 12h10M4 18h7" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round"/><path d="m15 15 2.5 2.5L21 13" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v665 -->
-  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1094</span>   <!-- v615: номер — inst.sh -->
+  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1095</span>   <!-- v615: номер — inst.sh -->
   <button id="btnCfg" title="Настройки: общие, холст, проект, петли, горячие клавиши, данные" aria-label="Настройки">⚙</button>
   <button id="btnCx" title="Режим конструктора интерфейса: двигать, масштабировать, добавлять объекты, скетч">🛠</button>
   <button id="btnTheme" hidden title="Тема — светлая" aria-label="Тема">☀</button>
@@ -35879,6 +35879,49 @@ function fxBotHid(sk, m, wk) { const g = skGeo(m), B = g.parts.find(p => p.id ==
     for (let i = n0; i < out.length; i++) { const j = out[i]; if (j.c !== 'bk' || j.a !== 'B' || j.k !== 'scr') continue; const o = (m.hw || {})[j.jk] || {}; if (o.k) continue;
       if (vis === null) vis = !fxBotHid(sk, m, wk); if (!vis) break; out[i] = { ...j, k: 'mf', dw: o.dw === false ? [] : fxDw(j.pos), cam: o.cam || 'A', bv: 1 }; } } catch (e) { console.error('fxBot', e); } }; }
 /* ═══ [/BLOCK] v1094 ═══ */
+/* ═══ [BLOCK] v1095 УДАЛИТЬ СТЫК; ТИП СТЫКА МЕЖДУ СТЕНАМИ — ОДИН ДЛЯ ОБЕИХ СТЕН (Дмитрий 23.11, Горгасали, 61: Д4 → С1·Д25) ═══ */
+/* ─── [SUB] DEL — удалённый стык: o.del = 1 (sk.hw[jk] — стык деталей, m.hw[jk] — каркас). Нет в стыках, на видах, в присадке и Drilling.
+   Удалить — «✕ Удалить стык» в окне стыка (2-й клик — подтверждение). Вернуть — ↺ в списке «Стыки детали» / «Удалённые стыки» окна, или Ctrl+Z. ─── */
+const hwxAllD = hwxAll;   /* все стыки, с удалёнными — для списка «вернуть» */
+{ const f0 = hwxAll; hwxAll = function (sk) { const L = f0.apply(this, arguments); try { const H = sk.hw || {}; return L.filter(X => !(H[X.jk] || {}).del); } catch (e) { console.error('del hwx', e); return L; } }; }
+{ const f0 = fxJoints; fxJoints = function (sk, m) { const J = f0.apply(this, arguments); try { const H = m.hw || {}; return J.filter(j => !(H[j.jk] || {}).del); } catch (e) { console.error('del fx', e); return J; } }; }
+function delHwx(sk, jk) { sk.hw = { ...(sk.hw || {}) }; sk.hw[jk] = { del: 1 }; }
+function delUn(H, jk) { if (!H || !H[jk]) return; const o = { ...H[jk] }; delete o.del; if (Object.keys(o).length) H[jk] = o; else delete H[jk]; }
+/* удалённые стыки детали key: стыки деталей + каркас модуля детали */
+function delPartL(sk, key) { const H = sk.hw || {}, out = [];
+  try { hwxAllD(sk).forEach(X => { if ((H[X.jk] || {}).del && (X.a === key || X.b === key)) out.push({ t: 'x', jk: X.jk, nm: hwxNm(sk, X.a === key ? X.b : X.a) }); }); } catch (e) {}
+  const [mid, pid] = String(key).split(':'), m = pid && sk.mods.find(q => q.id === mid);
+  if (m && m.hw) Object.keys(m.hw).forEach(jk => { if (!m.hw[jk].del) return; const [a, b] = jk.split('>'); if (a !== pid && b !== pid) return; out.push({ t: 'm', mid, jk, nm: `М${mNo(m)} ${hwNm(m, a === pid ? b : a)}` }); });
+  return out; }
+function delRowH(L) { return L.length ? `<div class="del-l" data-dl="1"><div class="jd-lh dim">Удалённые стыки:</div>${L.map((z, i) => `<div class="jd-li dim"><s>→ ${esc(z.nm)}</s><button type="button" data-dlr="${i}" title="Вернуть стык (снова по правилу)">↺</button></div>`).join('')}</div>` : ''; }
+function delRowBind(el, sk, L) { el.querySelectorAll('[data-dlr]').forEach(b => b.onclick = () => { const z = L[+b.dataset.dlr]; if (!z) return;
+  if (z.t === 'x') { sk.hw = { ...(sk.hw || {}) }; delUn(sk.hw, z.jk); } else { const m = sk.mods.find(q => q.id === z.mid); if (m) { m.hw = { ...(m.hw || {}) }; delUn(m.hw, z.jk); hwClean(m); } }
+  hwDone('Стык возвращён'); }); }
+/* окно стыка деталей (#skHw) */
+{ const f0 = hwPop; hwPop = function (sk, J) { const r = f0.apply(this, arguments); try { delPop(sk, J); } catch (e) { console.error('del pop', e); } return r; }; }
+function delPop(sk, J) { const box = $('skHw'); if (!box || box.hidden || box.querySelector('[data-dl]')) return; const qs = hwSel(sk, J); if (qs.length !== 1) return; const q = qs[0];
+  const ref = box.querySelector('[data-hw=auto]'), row = ref && ref.closest('.hw-r'); if (!row) return;
+  if (!(q.X && q.X.mj) && !q.j.x) { const b = document.createElement('button'); b.type = 'button'; b.className = 'del-b'; b.dataset.dl = 'x'; b.textContent = '✕ Удалить стык'; b.title = 'Стыка нет: ни крепежа, ни присадки, ни подсветки. Вернуть — ↺ в «Удалённые стыки» или Ctrl+Z. Второй клик — подтверждение';
+    b.style.marginLeft = 'auto'; row.appendChild(b);
+    b.onclick = () => arm(b, () => { if (q.X) delHwx(sk, q.jk); else { q.m.hw = { ...(q.m.hw || {}) }; q.m.hw[q.jk] = { del: 1 }; hwClean(q.m); } SK.hwj = []; SK.hwi = []; hwDone('Стык удалён — вернуть: ↺ «Удалённые стыки» или Ctrl+Z'); }, 'Удалить? ещё раз'); }
+  let key = null; try { key = jdPartKey(q); } catch (e) {} if (!key) return; const L = delPartL(sk, key); if (!L.length) return;
+  const t = document.createElement('div'); t.innerHTML = delRowH(L); const n = t.firstElementChild, ls = box.querySelector('[data-jd=ls]'); (ls || row).after(n); delRowBind(n, sk, L); }
+/* окно стыка каркаса (#fxjWin) */
+{ const f0 = fxjUi; fxjUi = function () { const r = f0.apply(this, arguments); try { delFxj(); } catch (e) { console.error('del fxj', e); } return r; }; }
+function delFxj() { const w = $('fxjWin'), C = fxjCur(); if (!w || w.querySelector('[data-dl]')) return; const sk = prod().sk;
+  if (C && !C.j.x) { const d = document.createElement('div'); d.className = 'fxj-r'; d.dataset.dl = 'x'; d.innerHTML = '<button type="button" class="del-b" data-dl="xb" title="Стыка нет: ни крепежа, ни присадки. Вернуть — ↺ в «Удалённые стыки» или Ctrl+Z. Второй клик — подтверждение">✕ Удалить стык</button>';
+    w.appendChild(d); const b = d.querySelector('button'); b.onclick = () => arm(b, () => { const { m, j } = C; m.hw = { ...(m.hw || {}) }; m.hw[j.jk] = { del: 1 }; SK.fxj = null; fxFin(); toast('Стык удалён — вернуть: ↺ «Удалённые стыки» или Ctrl+Z'); }, 'Удалить? ещё раз'); }
+  const q = SK.fxj; if (!q || !q.mid || !q.pid) return; const L = delPartL(sk, q.mid + ':' + q.pid); if (!L.length) return; const t = document.createElement('div'); t.innerHTML = delRowH(L); const n = t.firstElementChild; w.appendChild(n); delRowBind(n, sk, L); }
+(() => { const st = document.createElement('style'); st.textContent = '.del-l{margin-top:6px;padding-top:4px;border-top:1px dashed var(--line)}.del-l .jd-li{display:flex;align-items:center;gap:6px;font-size:12px}.del-l button{margin-left:auto;padding:0 6px}'; document.head.appendChild(st); })();
+/* ─── [SUB] XW — правило «саморез» для стыка между стенами: данные каждой детали — из её стены. Было: деталь другой стены искалась среди модулей текущей →
+   с одной стены стык — саморез, с другой — Minifix (Д4 → С1·Д25: Д4 — полоса обхода стены С2), присадка двух деталей и чертёж / станок расходились. ─── */
+/* полосы обхода (hwxWrapRefs): кэш 300 мс был общим на все стены — со стены С1 возвращался набор стены С2 и наоборот (тип стыка менялся от порядка вызовов). Кэш — по стене. */
+const HWR_W = new Map();
+hwxWrapRefs = function (sk) { const k = String(wlCurK(sk) ?? ''), t = Date.now(), c = HWR_W.get(k); if (c && c.sk === sk && t - c.t < 300) return c.s;
+  let s = new Set(); try { s = new Set(hwxWrap(sk, hwxBodies(sk), new Set()).map(X => X.a)); } catch (e) {} HWR_W.set(k, { t, s, sk }); return s; };
+{ const s0 = hwxScrRule; hwxScrRule = function (sk, X) { const r = s0.apply(this, arguments); if (r) return r; try {
+    for (const Q of [X.A, X.B]) if (Q && !Q.own && Q.wk != null && wlWith(sk, Q.wk, () => s0(sk, X))) return true; } catch (e) { console.error('scr xw', e); } return r; }; }
+/* ═══ [/BLOCK] v1095 ═══ */
 /* ═══ [BLOCK] VIEW — просмотр чертежа на телефоне (Akrix Job, этап 1; Дмитрий 22.11.2026, job/PLAN_mount_view.md) ═══
    Только сборка akrix-job/view/ (view_build.py): код конструктора как есть, правка отключена.
    Проект — с сервера Job (projGet по заказу / проекту, текущая версия из akrix-projects); копия на телефоне (localStorage akxView:<ключ>) — открывается сразу и без сети.
