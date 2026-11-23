@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="theme-color" content="#2e8b3a"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
 <title>Akrix Пульт</title>
 <link rel="manifest" href="pult.webmanifest"><link rel="icon" href="pult-192.png"><link rel="apple-touch-icon" href="pult-192.png">
@@ -25,6 +25,13 @@
 .pair input{width:100%;font-size:28px;letter-spacing:6px;text-align:center;padding:12px;border:1px solid #bbb;border-radius:10px}.err{color:var(--r);margin-top:8px;font-size:14px}
 .ms button{display:block;width:100%;margin-top:8px;padding:16px;border-radius:10px;border:1px solid var(--g);background:#fff;font:700 19px system-ui;color:var(--gd)}
 .me{font-size:13px;color:#555;margin-top:8px}.me select{font-size:15px;padding:4px}
+/* 23.11 15:55: главный экран — раскладка чата без прокрутки страницы: статус сверху, лента помощника — единственная прокрутка, поле ввода внизу над клавиатурой (страница не прыгает при обновлениях) */
+body.mn{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:none}
+body.mn .sc{flex:1;min-height:0;display:flex;flex-direction:column;padding:8px 12px}
+body.mn #pv{flex:none;max-height:45%;overflow:auto;overflow-anchor:none}body.mn #pv .card{margin-bottom:8px}
+body.mn .ac{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:0}
+body.mn #pa{flex:1;min-height:0;display:flex;flex-direction:column}body.mn .lg{flex:1;min-height:0;max-height:none;overflow-anchor:none}
+body.mn .ib{flex:none}body.mn #pe:empty{display:none}
 </style></head><body>
 <div class="hd"><b>Akrix Пульт</b><span class="m" id="hm"></span><span class="dot" id="dot" title="связь со станком"></span><button id="ins" hidden title="Значок на главный экран">📌</button><button id="mn" title="Станок / выйти">☰</button></div>
 <div class="sc" id="sc"></div>
@@ -62,12 +69,13 @@ const P={
     if(this.fb&&Date.now()-this.fbT>9000)this.fb='';
     /* 23.11: экраны подключения / станка — разметка только при изменении (поле не пересоздаётся) */
     const put=(E,x)=>{if(E._h!==x){E._h=x;E.innerHTML=x;return true;}return false;};
+    document.body.classList.toggle('mn',!!(this.key&&this.pc));
     if(!this.key){S.dataset.m='';put(S,'<div class="card pair"><div class="tt">Подключить телефон</div><div class="in">В Akrix Job (Telegram) получи код для приложения и введи его здесь — один раз.</div>'+
       '<input id="pc-code" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code"><button class="big" onclick="P.pair()">Подключить</button>'+(this.err?'<div class="err">'+this.esc(this.err)+'</div>':'')+'</div>');return;}
     if(!this.pc){S.dataset.m='';if(put(S,'<div class="card ms"><div class="tt">Станок</div>'+(this.machines.length?this.machines.map(m=>'<button data-pc="'+this.esc(m)+'">'+this.esc(m)+'</button>').join(''):'<div class="in">Нет станков на связи — открой Drilling на компьютере у станка (Akrix Job подключён).</div>')+(this.err?'<div class="err">'+this.esc(this.err)+'</div>':'')+'</div>'))
       S.querySelectorAll('[data-pc]').forEach(b=>b.onclick=()=>{localStorage.setItem('pult_pc',b.dataset.pc);this.log=[];this.since=0;this.tick();});return;}
     /* 23.11: главный экран — каркас один раз; поле ввода «Сказать помощнику» постоянное (голосовой ввод клавиатуры, выделение, клавиатура не прыгает) */
-    if(S.dataset.m!=='main'){S.dataset.m='main';S._h=null;S.innerHTML='<div id="pv"></div><div class="card"><div id="pa"></div><div class="ib"><button class="mic" id="pm">🎤</button><input id="pi" placeholder="Сказать помощнику" autocomplete="off"><button class="go" id="pg">➤</button></div></div><div id="pe"></div>';
+    if(S.dataset.m!=='main'){S.dataset.m='main';S._h=null;S.innerHTML='<div id="pv"></div><div class="card ac"><div id="pa"></div><div class="ib"><button class="mic" id="pm">🎤</button><input id="pi" placeholder="Сказать помощнику" autocomplete="off"><button class="go" id="pg">➤</button></div></div><div id="pe"></div>';
       const I=document.getElementById('pi');I.value=this.draft||'';
       const say=()=>{if(I.value.trim()){const v=I.value.trim();I.value='';this.draft='';this.send('say',v);}};
       I.oninput=()=>{this.draft=I.value;};I.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)say();};
@@ -89,7 +97,7 @@ const P={
       this.log.slice(-30).map(m=>'<div class="mm '+this.esc(m.w)+'">'+(m.w==='ai'?'🤖 ':'')+this.esc(m.x)+'</div>').join('')+'</div>';
     if(ai.pend)h+='<div class="pp"><div class="w">'+this.esc(ai.pend.why)+'</div><div class="mt">смен X '+ai.pend.b.x+' → '+ai.pend.n.x+' · свёрл '+ai.pend.b.dr+' → '+ai.pend.n.dr+' · шпинделя '+ai.pend.b.sp+' → '+ai.pend.n.sp+'</div><div class="bt"><button data-k="ok">✓ Применить</button><button class="no" data-k="no">✗ Нет</button></div></div>';
     if(ai.opts)h+='<div class="op"><div class="w">'+this.esc(ai.opts.q)+'</div>'+ai.opts.o.map((o,i)=>'<button data-k="opt" data-v="'+this.esc(o)+'">'+this.esc(o)+'</button>').join('')+'</div>';
-    const PA=document.getElementById('pa');if(put(PA,h)){PA.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>this.send(b.dataset.k,b.dataset.v));const L=document.getElementById('lg');if(L)L.scrollTop=L.scrollHeight;}
+    const PA=document.getElementById('pa'),L0=document.getElementById('lg'),bot=!L0||L0.scrollHeight-L0.scrollTop-L0.clientHeight<40,top0=L0?L0.scrollTop:0;if(put(PA,h)){PA.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>this.send(b.dataset.k,b.dataset.v));const L=document.getElementById('lg');if(L)L.scrollTop=bot?L.scrollHeight:top0;}
     document.getElementById('pm').classList.toggle('on',!!this.rec);
     put(document.getElementById('pe'),this.err?'<div class="err">'+this.esc(this.err)+'</div>':'');}
 };
