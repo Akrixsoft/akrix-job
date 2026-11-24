@@ -1,5 +1,5 @@
 <!doctype html><html><head>
-<!-- Akrix view: конструктор v1102, сборка 2026-11-24 11:07, ff6dbc2ed8 --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
+<!-- Akrix view: конструктор v1103, сборка 2026-11-24 11:35, 26c206a9ed --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
 #skProp .uf-zr{flex-wrap:wrap;row-gap:4px}
 #skProp .pr-s[data-c] > b::before{display:none!important}#skProp .pr-s[data-c]:not([data-c="cost"]) > b{color:inherit!important}#skProp .uf-bt{flex-wrap:wrap;row-gap:4px}   /* v852: заголовки как в новых панелях, кнопки с переносом */
 #skProp .pr-h .nav-lk{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:var(--acc,#2E6B57)}#skProp .pr-h .nav-lk:hover{color:var(--sel,#c00)}#skProp .nav-sost .nav-b button{padding:2px 8px;font-size:12px}   /* v853 */
@@ -1079,7 +1079,7 @@ body.ms-on{overflow:hidden}
   <div class="hd-tools" id="hdTools"></div>   <!-- v138: место под кнопки и команды -->
   <button id="btnCnc" title="Akrix CNC · Drilling — присадка у станка, внутри Akrix (детали — «⇩ Drilling» в окне свойств)" aria-label="Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><rect x="3" y="15" width="18" height="5" rx="1" fill="#16A34A" opacity=".25" stroke="#16A34A"/><path d="M12 3v9m-3-6h6m-5 6 2 3 2-3" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v664 -->
   <button id="btnCns" title="Набор для Drilling — выбрать модули, ящики, типы деталей и передать в Drilling" aria-label="Набор для Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><path d="M4 6h10M4 12h10M4 18h7" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round"/><path d="m15 15 2.5 2.5L21 13" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v665 -->
-  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1102</span>   <!-- v615: номер — inst.sh -->
+  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1103</span>   <!-- v615: номер — inst.sh -->
   <button id="btnCfg" title="Настройки: общие, холст, проект, петли, горячие клавиши, данные" aria-label="Настройки">⚙</button>
   <button id="btnCx" title="Режим конструктора интерфейса: двигать, масштабировать, добавлять объекты, скетч">🛠</button>
   <button id="btnTheme" hidden title="Тема — светлая" aria-label="Тема">☀</button>
@@ -15429,7 +15429,7 @@ window.addEventListener('keydown', e => { if (!icSetOn() || /INPUT|SELECT|TEXTAR
 /* ─── [SUB] v680: КУБ ВИДА — справа сверху холста изометрии; поворот куба = поворот вида (isoPrj); грань: клик — вид с неё, протяжка — вращение ─── */
 const CB_F = [['LEFT', -1, 0, 0, 90, 0], ['RIGHT', 1, 0, 0, 270, 0], ['BOTTOM', 0, -1, 0, null, -90], ['TOP', 0, 1, 0, null, 90], ['BACK', 0, 0, -1, 180, 0], ['FRONT', 0, 0, 1, 0, 0]];   /* [подпись, нормаль, поворот a, наклон b] — индексы как ISO_F */
 function cbDraw(g, cw) {
-  const P3 = isoPrj(), R0 = 26, cx = cw - 64, cy = 66, cs = [...Array(8)].map((_, i) => P3(i & 1 ? 1 : -1, i & 2 ? 1 : -1, i & 4 ? 1 : -1)), S = p => [cx + p[0] * R0, cy - p[1] * R0], F = [];
+  const P3 = isoPrj(), R0 = 26, cx = cw - 64, cy = 84, cs = [...Array(8)].map((_, i) => P3(i & 1 ? 1 : -1, i & 2 ? 1 : -1, i & 4 ? 1 : -1)), S = p => [cx + p[0] * R0, cy - p[1] * R0], F = [];
   ISO_F.forEach(([ix, n], fi) => { const d = P3(...n)[2]; if (d <= 1e-6) return; F.push({ k: fi, d, pts: ix.map(i => S(cs[i])) }); }); F.sort((a, b) => a.d - b.d);
   g.save(); g.lineJoin = 'round';
   F.forEach(f => { g.beginPath(); f.pts.forEach(([x, y], k) => k ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fillStyle = SK.cbHov === f.k ? '#CFE3F3' : '#F3F6F8'; g.globalAlpha = 0.95; g.fill(); g.globalAlpha = 1;
@@ -18614,7 +18614,7 @@ function wlGhostC(sk) {   /* модули других стен на плане 
   return out;
 }
 const isoHid = sk => new Set((sk.isoH || []).map(String));   /* v532: стены, скрытые в 3D */
-const isoBoxes = sk => { if (!wlOn(sk)) return isoFl0(sk, sk3D(sk));   /* v1027: пол под изделием */ const H = isoHid(sk), aw = String(wlAw(sk)); if (!H.size) return [...sk3D(sk), ...wlGhost(sk), ...(wlVis() ? wlRoom3D(sk) : [])];
+let isoBoxes = sk => { if (!wlOn(sk)) return isoFl0(sk, sk3D(sk));   /* v1027: пол под изделием */ const H = isoHid(sk), aw = String(wlAw(sk)); if (!H.size) return [...sk3D(sk), ...wlGhost(sk), ...(wlVis() ? wlRoom3D(sk) : [])];
   return [...(H.has(aw) ? [] : sk3D(sk)), ...wlGhost(sk).filter(q => !H.has(String(q.wk))), ...(wlVis() ? wlRoom3D(sk).filter(q => !H.has(String(q.rw ?? q.ew ?? ''))) : [])]; };   /* v532 */
 /* ─── габариты ─── */
 function wlNbW(sk) {   /* ширина разреза соседей (по связям) на главном виде: [слева, справа] */
@@ -36034,6 +36034,83 @@ function dwpBox(sk) { const s = SK.sel, m = s && s.d != null && SK.ms.length <= 
     return { part: 1, H: r1(B[3] - B[1]), W: r1(B[2] - B[0]), D: r1(B[5] - B[4]), ro: { H: true, W: true, D: true }, tip: { H: 'Высота. ' + t, W: 'Ширина. ' + t, D: 'Глубина. ' + t }, set: () => {} }; }; }
 { const f0 = skSelRect; skSelRect = function (sk) { if (!SK.pvw || SK.pvw === 'f') { const P = dwpBox(sk); if (P) return [P.B[0], P.B[1], P.B[2], P.B[3]]; } return f0.apply(this, arguments); }; }
 /* ═══ [/BLOCK] v1102 ═══ */
+/* ═══ [BLOCK] WTW — v1103: стена объекта в свойствах (перенос на другую стену с сохранением положения в помещении) + 3D: видимость зон «Низ / Верх» над кубом ═══ */
+/* ─── [SUB] WTW: перенос выделенного на стену kt. Положение в помещении сохраняется. Детали и филлеры — стены под любым углом, кратным 90°;
+   корпуса, фасады, техника — только стена того же направления (повернуть корпус нельзя). С объектом едут его фасады (src) и вложенные (own) ─── */
+const wtR1 = v => Math.round(v * 10) / 10;
+function wtSet(sk) {   /* выделенное + группа филлера + зависимые (src / own) */
+  const S = new Set(SK.ms.map(i => sk.mods[i]).filter(Boolean)); if (!S.size) return [];
+  [...S].forEach(m => { if (m.fil) sk.mods.forEach(q => { if (q.fil && q.fil.g === m.fil.g) S.add(q); }); });
+  let ch = true; while (ch) { ch = false; const ids = new Set([...S].map(o => o.id)); sk.mods.forEach(q => { if (!S.has(q) && ((q.src && ids.has(q.src)) || (q.own && ids.has(q.own)))) { S.add(q); ch = true; } }); }
+  return [...S];
+}
+function wtDir(sk, kf, kt) { const d = wlDirXf(sk, kf, kt, [1, 0, 0]); return { r0: Math.abs(d[0] - 1) < 1e-6 && Math.abs(d[2]) < 1e-6, q90: Math.abs(d[0]) < 1e-6 || Math.abs(d[2]) < 1e-6, sw: Math.abs(d[0]) < 0.5 }; }
+const wtKind = m => m.fil ? 'q' : m.k === 'part' && !rotOn(m) && !m.ct && !m.rw && !m.gp ? 'q' : 'r';   /* q — поворот на 90° возможен; r — только перенос */
+function wtWhy(sk, kt) {   /* '' — можно; иначе причина */
+  const aw = String(wlAw(sk)); if (String(kt) === aw) return ''; const S = wtSet(sk); if (!S.length) return 'нет выделения'; const D = wtDir(sk, aw, kt);
+  if (!D.q90) return 'стена не под углом, кратным 90°'; if (D.r0) return '';
+  return S.some(m => wtKind(m) === 'r') ? 'стена другого направления: корпус / фасад / технику не повернуть — только детали и филлеры' : '';
+}
+function wtFil(sk, o, aw, kt) {   /* группа филлера → стена kt: поворот сечения (rs / fs / fq) и место подбираются так, чтобы планки остались на месте */
+  const B = filBoxes(sk, o).map(b => wlBoxXf(sk, aw, kt, b)); if (B.some(b => b.c8)) return false;
+  const key = bs => bs.map(b => [b.x0, b.x1, b.y0, b.y1, b.z0, b.z1].map(v => Math.round(v * 2) / 2).join(',')).sort().join('|'), T = key(B);
+  const x = Math.min(...B.map(b => b.x0)), zf = Math.max(...B.map(b => b.z1)), rs0 = o.rs, fs0 = o.fs, fq0 = o.fq, x0 = o.x, zf0 = o.zf;
+  for (let rs = 0; rs < 4; rs++) for (const fs of [0, 1]) for (const fq of [0, 1]) {
+    o.rs = rs; o.fs = fs ? 1 : undefined; o.fq = fq ? 1 : undefined; o.x = wtR1(x); o.zf = wtR1(zf);
+    if (key(filBoxes(sk, o)) === T) { if (!rs) delete o.rs; if (!fs) delete o.fs; if (!fq) delete o.fq; o.w = String(kt); return true; } }
+  o.rs = rs0; o.fs = fs0; o.fq = fq0; o.x = x0; o.zf = zf0; ['rs', 'fs', 'fq'].forEach(k => { if (o[k] === undefined) delete o[k]; }); return false;
+}
+function wtPart(sk, m, aw, kt, D) {   /* отдельная деталь: брус → стена kt (ось толщины следует за поворотом) */
+  const q = wlBoxXf(sk, aw, kt, { x0: m.x, x1: m.x + mW(m), y0: m.y, y1: m.y + mH(m), z0: mZ(m), z1: mZ(m) + num(m.D) }); if (q.c8) return false;
+  m.x = wtR1(q.x0); m.z = wtR1(q.z0); m.W = String(wtR1(q.x1 - q.x0)); m.D = String(wtR1(q.z1 - q.z0)); m.pw = num(m.W);
+  if (D.sw) m.pn = (m.pn || 'z') === 'z' ? 'x' : m.pn === 'x' ? 'z' : m.pn; return true;
+}
+function wtMove(sk, kt) {   /* перенос выделенного на стену kt; возвращает число объектов */
+  kt = String(kt); const aw = String(wlAw(sk)); if (kt === aw || wtWhy(sk, kt)) return 0; const S = wtSet(sk), D = wtDir(sk, aw, kt), [ox, oz] = wlXf(sk, aw, kt, 0, 0), ids = new Set(S.map(o => o.id));
+  const G = [...new Set(S.filter(m => m.fil).map(m => m.fil.g))].map(g => filG(sk, g)).filter(Boolean), gOk = {};
+  G.forEach(o => { gOk[o.id] = D.r0 ? (o.x = wtR1(num(o.x) + ox), o.zf = wtR1(num(o.zf) + oz), o.w = kt, true) : wtFil(sk, o, aw, kt); });
+  G.forEach(o => { if (!gOk[o.id]) sk.fil = (sk.fil || []).filter(q => q !== o); });   /* не ложится филлером (горизонтальная планка на поперечную стену) — обычные детали */
+  S.forEach(m => {
+    if (m.own && !ids.has(m.own)) delete m.own;   /* хозяин остался на старой стене */
+    if (m.fil && gOk[m.fil.g]) { const o = filG(sk, m.fil.g), b = filBoxes(sk, o)[m.fil.i]; if (b) { m.pn = b.pn; m.x = wtR1(b.x0); m.y = wtR1(b.y0); m.W = String(wtR1(b.x1 - b.x0)); m.H = String(wtR1(b.y1 - b.y0)); m.pw = num(m.W); m.ph = num(m.H); m.z = wtR1(b.z0); m.D = String(wtR1(b.z1 - b.z0)); m.fil.p = [m.x, m.y, mZ(m), o.ori !== 'h' ? num(m.H) : num(m.W), o.ori !== 'h' ? 'v' : 'h']; } }
+    else { if (m.fil) delete m.fil;
+      if (!D.r0 && wtKind(m) === 'q') wtPart(sk, m, aw, kt, D);
+      else { m.x = wtR1(num(m.x) + ox); const hz = m.z != null && m.z !== ''; if (oz && (hz || !((m.k === 'fac' && m.src) || m.k === 'shape'))) m.z = wtR1(mZ(m) + oz);   /* z задан — сдвигается всегда; не задан у фасада / профиля — от корпуса */ } }
+    if (m.k === 'part') m.ab = asBox(m); });
+  sk.mods = sk.mods.filter(m => !ids.has(m.id)); sk.wm = sk.wm || {}; sk.wm[kt] = [...(sk.wm[kt] || []), ...S];
+  return S.length;
+}
+function wtUi() {   /* строка «Стена» — первой в свойствах выделенного */
+  const pan = $('skProp'), b = pan && pan.querySelector('.pr-b'); if (!b || b.querySelector('[data-wtw]')) return; const sk = prod().sk;
+  if (!sk || !wlOn(sk) || wlAw(sk) == null || wlWalls(sk).length < 2 || !SK.ms.length || SK.g != null) return; if (SK.sel && (SK.sel.d != null || SK.sel.dwp)) return;
+  const aw = String(wlAw(sk)), op = wlWalls(sk).map(w => { const k = String(w.id), why = wtWhy(sk, k); return `<option value="${esc(k)}"${k === aw ? ' selected' : ''}${why ? ' disabled' : ''} title="${esc(why)}">${esc(wlLbl(sk, k))}${why ? ' — нельзя' : ''}</option>`; }).join('');
+  const d = document.createElement('div'); d.className = 'pr-s uf-top'; d.setAttribute('data-wtw', '1');
+  d.innerHTML = `<label title="Перенести на другую стену: положение в помещении, размеры и свойства сохраняются"><span>Стена</span><select data-wtws>${op}</select></label>`; b.insertBefore(d, b.firstChild);
+  d.querySelector('select').onchange = e => { const k = e.target.value, n = wtMove(sk, k); if (!n) { toast(wtWhy(sk, k) || 'Не перенесено'); skPropUi(); return; }
+    SK.ms = []; SK.sel = null; SK.g = null; save(); skDraw(); skModUi(); try { skList(); } catch (er) {} toast(`На стену ${wlLbl(sk, k)}: ${n} об.`); };
+}
+{ const f0 = skPropUi; skPropUi = function () { const r = f0.apply(this, arguments); try { wtUi(); } catch (e) { console.error('wtUi', e); } return r; }; }
+/* ─── [SUB] Z3: 3D — видимость зон по высоте (те же уровни, что на виде сверху: ⚙ → Общие), своё состояние P.set.zv3 {ключ: 0 — скрыто}; кнопки над кубом вида ─── */
+const z3St = k => ((P.set.zv3 || {})[k] === 0 ? 0 : 2);
+function z3Hide(m) { if (!m || !P.set.zv3) return false; const n = zvLv().length; return Math.max(...zvIn(m).map(i => z3St(zvKey(i, n)))) === 0; }
+function z3Any() { const z = P.set.zv3; return !!z && Object.keys(z).some(k => z[k] === 0); }
+{ const f0 = isoBoxes; isoBoxes = function (sk) { const r = f0.apply(this, arguments); if (!SK.iso || !z3Any()) return r; const M = wlOn(sk) ? wlAllM(sk) : {}, aw = wlOn(sk) ? String(wlAw(sk)) : null;
+  return r.filter(b => { if (b.mi != null && b.mi >= 0) return !z3Hide(sk.mods[b.mi]); if (b.gid && b.wk != null && String(b.wk) !== aw) return !z3Hide((M[String(b.wk)] || []).find(o => o.id === b.gid)); return true; }); }; }
+{ const f0 = skDrawIso; skDrawIso = function (sk) { if (!z3Any()) { const r = f0.apply(this, arguments); z3Draw(arguments[1], arguments[2]); return r; }
+  const all = wlOn(sk) ? Object.values(wlAllM(sk)).flat() : sk.mods, H = []; all.forEach(m => { if (z3Hide(m)) { H.push([m, m.hid]); m.hid = true; } });   /* значки, петли, ручки скрытых — не рисуются */
+  try { return f0.apply(this, arguments); } finally { H.forEach(([m, h]) => { if (h === undefined) delete m.hid; else m.hid = h; }); z3Draw(arguments[1], arguments[2]); } }; }
+function z3Draw(c, cw) { if (!c || !SK.iso) return; const g = c.getContext('2d'), Lv = zvLv(), n = Lv.length, sel = '#C0141E', dim = '#6B7280', h = 18; SK.z3R = [];
+  g.save(); g.font = '600 11px ' + getComputedStyle(document.documentElement).getPropertyValue('--cnum'); const T = [...Array(n + 1)].map((_, i) => zvIco(i, n) + ' ' + zvNm(i, n) + (z3St(zvKey(i, n)) ? '' : '  ✕'));
+  const W = T.map(t => g.measureText(t).width + 14); let X = cw - 12 - W.reduce((s, w) => s + w + 6, -6); const Y = 8;
+  T.forEach((t, i) => { const k = zvKey(i, n), st = z3St(k), w = W[i]; g.globalAlpha = 1; g.fillStyle = st ? sel : '#FFFFFF'; g.strokeStyle = st ? sel : dim; g.lineWidth = 1.2;
+    g.beginPath(); g.rect(X, Y, w, h); g.fill(); g.stroke(); g.fillStyle = st ? '#FFFFFF' : dim; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(t, X + 7, Y + h / 2 + 1);
+    if (!st) { g.strokeStyle = dim; g.beginPath(); g.moveTo(X + 4, Y + h / 2); g.lineTo(X + w - 4, Y + h / 2); g.stroke(); } SK.z3R.push([k, X, Y, w, h, i]); X += w + 6; });
+  g.restore(); }
+function z3Down(e, x, y) { if (!SK.iso || e.button !== 0 || !SK.z3R) return false; const q = SK.z3R.find(([, X, Y, w, h]) => x >= X && x <= X + w && y >= Y && y <= Y + h); if (!q) return false;
+  const k = q[0], i = q[5], Lv = zvLv(), n = Lv.length, st = z3St(k) ? 0 : 2; P.set.zv3 = { ...(P.set.zv3 || {}) }; if (st) delete P.set.zv3[k]; else P.set.zv3[k] = 0;
+  SK.ms = SK.ms.filter(mi => !z3Hide(prod().sk.mods[mi])); if (!SK.ms.length) SK.sel = null; save(); skDraw(); toast(`3D · ${zvNm(i, n)} (${i ? Lv[i - 1] : 0}–${i < n ? Lv[i] : '…'} мм): ${st ? 'видно' : 'скрыто'}`); return true; }
+{ const f0 = isoDown; isoDown = function (e, x, y) { if (z3Down(e, x, y)) return; return f0.apply(this, arguments); }; }
+/* ═══ [/BLOCK] WTW v1103 ═══ */
 /* ═══ [BLOCK] VIEW — просмотр чертежа на телефоне (Akrix Job, этап 1; Дмитрий 22.11.2026, job/PLAN_mount_view.md) ═══
    Только сборка akrix-job/view/ (view_build.py): код конструктора как есть, правка отключена.
    Проект — с сервера Job (projGet по заказу / проекту, текущая версия из akrix-projects); копия на телефоне (localStorage akxView:<ключ>) — открывается сразу и без сети.
