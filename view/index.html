@@ -1,5 +1,5 @@
 <!doctype html><html><head>
-<!-- Akrix view: конструктор v1112, сборка 2026-11-24 22:04, 2a740a2454 --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
+<!-- Akrix view: конструктор v1113, сборка 2026-11-24 22:19, 2b6e911fcc --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
 #skProp .uf-zr{flex-wrap:wrap;row-gap:4px}
 #skProp .pr-s[data-c] > b::before{display:none!important}#skProp .pr-s[data-c]:not([data-c="cost"]) > b{color:inherit!important}#skProp .uf-bt{flex-wrap:wrap;row-gap:4px}   /* v852: заголовки как в новых панелях, кнопки с переносом */
 #skProp .pr-h .nav-lk{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:var(--acc,#2E6B57)}#skProp .pr-h .nav-lk:hover{color:var(--sel,#c00)}#skProp .nav-sost .nav-b button{padding:2px 8px;font-size:12px}   /* v853 */
@@ -1080,7 +1080,7 @@ body.ms-on{overflow:hidden}
   <div class="hd-tools" id="hdTools"></div>   <!-- v138: место под кнопки и команды -->
   <button id="btnCnc" title="Akrix CNC · Drilling — присадка у станка, внутри Akrix (детали — «⇩ Drilling» в окне свойств)" aria-label="Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><rect x="3" y="15" width="18" height="5" rx="1" fill="#16A34A" opacity=".25" stroke="#16A34A"/><path d="M12 3v9m-3-6h6m-5 6 2 3 2-3" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v664 -->
   <button id="btnCns" title="Набор для Drilling — выбрать модули, ящики, типы деталей и передать в Drilling" aria-label="Набор для Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><path d="M4 6h10M4 12h10M4 18h7" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round"/><path d="m15 15 2.5 2.5L21 13" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v665 -->
-  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1112</span>   <!-- v615: номер — inst.sh -->
+  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1113</span>   <!-- v615: номер — inst.sh -->
   <button id="btnCfg" title="Настройки: общие, холст, проект, петли, горячие клавиши, данные" aria-label="Настройки">⚙</button>
   <button id="btnCx" title="Режим конструктора интерфейса: двигать, масштабировать, добавлять объекты, скетч">🛠</button>
   <button id="btnTheme" hidden title="Тема — светлая" aria-label="Тема">☀</button>
@@ -36292,6 +36292,17 @@ const rwFrz = sk => { const d = SK.drag; if (!d || d.mode !== 'mod' || !d.st) re
 ['rwSync', 'rowCorner'].forEach(n => { const f0 = window[n]; if (typeof f0 !== 'function') return; window[n] = function (sk) { const F = rwFrz(sk || prod().sk); if (!F.length) return f0.apply(this, arguments);
   const sv = F.map(m => [m, m.rw]); F.forEach(m => { delete m.rw; }); try { return f0.apply(this, arguments); } finally { sv.forEach(([m, o]) => { m.rw = o; }); } }; });
 /* ═══ [/BLOCK] v1112 ═══ */
+/* ═══ [BLOCK] v1113 — цоколь / карниз: перемещение за середину — без изменения габаритов (Дмитрий 24.11) ═══
+   Любой конец и любая растяжка — только ручками. Сдвиг детали ряда (перетаскивание за середину, стрелки): длина та же, ряд не перепривязывает конец к углу:
+   угловая поправка cl / cr переходит в ручной вынос l / r (x0 = B.x0 − l − cl → l' = l + cl − dx, cl' = 0; x1 = B.x1 + r + cr → r' = r + cr + dx, cr' = 0).
+   После сдвига угловая привязка у детали выключена (o.ncr): rowCorner её не трогает — габарит не меняется. */
+{ const f0 = rwSync; rwSync = function (sk) { try { if (!rwFrz(sk).length) sk.mods.forEach(m => { if (m.k !== 'part' || !m.rw || !Array.isArray(m.rw.ls)) return; const o = m.rw, L = o.ls, x0 = num(m.x), x1 = x0 + mW(m);
+      const dx = x0 - L[0]; if (Math.abs(dx) <= 0.05 || Math.abs((x1 - x0) - (L[2] - L[0])) > 0.05) return; const r1 = v => Math.round(v * 10) / 10;   /* сдвиг без смены длины */
+      o.l = r1(num(o.l) + num(o.cl) - dx); o.r = r1(num(o.r) + num(o.cr) + dx); delete o.cl; delete o.cr; o.ncr = 1; o.ls = [r1(L[0] + dx), L[1], r1(L[2] + dx), ...L.slice(3)]; }); } catch (e) { console.error('rwMove', e); }
+  return f0.apply(this, arguments); }; }
+{ const f0 = rowCorner; rowCorner = function (sk) { const F = (sk || prod().sk).mods.filter(m => m.k === 'part' && m.rw && m.rw.ncr); if (!F.length) return f0.apply(this, arguments);
+  const sv = F.map(m => [m, m.rw]); F.forEach(m => { delete m.rw; }); try { return f0.apply(this, arguments); } finally { sv.forEach(([m, o]) => { m.rw = o; }); } }; }
+/* ═══ [/BLOCK] v1113 ═══ */
 /* ═══ [BLOCK] VIEW — просмотр чертежа на телефоне (Akrix Job, этап 1; Дмитрий 22.11.2026, job/PLAN_mount_view.md) ═══
    Только сборка akrix-job/view/ (view_build.py): код конструктора как есть, правка отключена.
    Проект — с сервера Job (projGet по заказу / проекту, текущая версия из akrix-projects); копия на телефоне (localStorage akxView:<ключ>) — открывается сразу и без сети.
