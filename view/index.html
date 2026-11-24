@@ -1,5 +1,5 @@
 <!doctype html><html><head>
-<!-- Akrix view: конструктор v1099, сборка 2026-11-23 19:26, 89dee6de30 --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
+<!-- Akrix view: конструктор v1100, сборка 2026-11-24 10:30, 6b6606a9af --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
 #skProp .uf-zr{flex-wrap:wrap;row-gap:4px}
 #skProp .pr-s[data-c] > b::before{display:none!important}#skProp .pr-s[data-c]:not([data-c="cost"]) > b{color:inherit!important}#skProp .uf-bt{flex-wrap:wrap;row-gap:4px}   /* v852: заголовки как в новых панелях, кнопки с переносом */
 #skProp .pr-h .nav-lk{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:var(--acc,#2E6B57)}#skProp .pr-h .nav-lk:hover{color:var(--sel,#c00)}#skProp .nav-sost .nav-b button{padding:2px 8px;font-size:12px}   /* v853 */
@@ -1079,7 +1079,7 @@ body.ms-on{overflow:hidden}
   <div class="hd-tools" id="hdTools"></div>   <!-- v138: место под кнопки и команды -->
   <button id="btnCnc" title="Akrix CNC · Drilling — присадка у станка, внутри Akrix (детали — «⇩ Drilling» в окне свойств)" aria-label="Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><rect x="3" y="15" width="18" height="5" rx="1" fill="#16A34A" opacity=".25" stroke="#16A34A"/><path d="M12 3v9m-3-6h6m-5 6 2 3 2-3" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v664 -->
   <button id="btnCns" title="Набор для Drilling — выбрать модули, ящики, типы деталей и передать в Drilling" aria-label="Набор для Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><path d="M4 6h10M4 12h10M4 18h7" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round"/><path d="m15 15 2.5 2.5L21 13" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v665 -->
-  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1099</span>   <!-- v615: номер — inst.sh -->
+  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1100</span>   <!-- v615: номер — inst.sh -->
   <button id="btnCfg" title="Настройки: общие, холст, проект, петли, горячие клавиши, данные" aria-label="Настройки">⚙</button>
   <button id="btnCx" title="Режим конструктора интерфейса: двигать, масштабировать, добавлять объекты, скетч">🛠</button>
   <button id="btnTheme" hidden title="Тема — светлая" aria-label="Тема">☀</button>
@@ -30051,7 +30051,7 @@ async function prjOpen(id) {
   await prjFlush('перед открытием другого'); let o; try { o = prjFix(JSON.parse(r.data)); } catch (e) { toast('Проект повреждён — восстановите из снимка 🕘'); return; }
   prjSwap(o, 'Открыт: ' + (o.name || 'без названия')); prjClose();
 }
-async function prjNew() { await prjFlush('перед новым проектом'); const o = newProject(); o.id = uid(); o.set = { ...(o.set || {}), faLr: 1 };   /* v717: отдельный корпус — по бокам 1 */ prjSwap(o, 'Новый проект. Прежний — в 📁 Проекты'); if (PRJ.open) prjUi(); }
+async function prjNew() { await prjFlush('перед новым проектом'); const o = newProject(); o.id = uid(); o.set = { ...(o.set || {}), faLr: 1, mOrd: 1 };   /* v1100: порядок материалов */   /* v717: отдельный корпус — по бокам 1 */ prjSwap(o, 'Новый проект. Прежний — в 📁 Проекты'); if (PRJ.open) prjUi(); }
 function prjSaveAsUi(btn) {   /* v251: имя варианта → копия, открыта она */
   const old = $('prjSaveAs'); if (old) { old.remove(); return; } const d = document.createElement('div'); d.id = 'prjSaveAs'; d.className = 'sk-dd'; document.body.appendChild(d);
   const n0 = (P.name || 'Проект').replace(/ · вариант \d+$/, ''), k = 1 + Math.max(1, ...String(P.name || '').match(/ · вариант (\d+)$/)?.slice(1).map(Number) || [1]);
@@ -31881,7 +31881,7 @@ function zmAsk(o) {
   document.body.appendChild(d); const done = () => { d.remove(); document.removeEventListener('keydown', esc_); }, esc_ = e => { if (e.key === 'Escape') done(); };
   document.addEventListener('keydown', esc_); d.onclick = e => { const b = e.target.closest('[data-zm]'); if (!b) return; done(); if (b.dataset.zm !== 'x') zmTake(o, b.dataset.zm); }; }
 async function zmTake(o, how) {
-  if (how === 'new') { await prjFlush('перед приёмом Замера'); const q = newProject(); q.id = uid(); q.set = { ...(q.set || {}), faLr: 1 }; q.name = o.obj || 'Замер'; prjSwap(q, ''); }
+  if (how === 'new') { await prjFlush('перед приёмом Замера'); const q = newProject(); q.id = uid(); q.set = { ...(q.set || {}), faLr: 1, mOrd: 1 }; q.name = o.obj || 'Замер'; prjSwap(q, ''); }
   else if (P.zam && o.oid && P.zam.oid === String(o.oid) && o.date && P.zam.date && String(o.date) < String(P.zam.date)) { toast(`Замер старее общего плана (${String(o.date).slice(0, 16).replace('T', ' ')} < ${String(P.zam.date).slice(0, 16).replace('T', ' ')}) — не принят`); return; }
   try { prjClose(); } catch (e) { }
   if (!zwSet(o)) { toast('Файл Замера: в нём нет помещений'); return; } P.zam.prd = JSON.parse(JSON.stringify(o.prd || []));
@@ -35947,6 +35947,33 @@ dwInrMig = function (m) { (m.dwi || []).forEach(q => { if (!q.f && !q.tray && !d
       if (n) { skFacSync(sk); SK.ms = []; SK.sel = null; skTrDone(); toast(`Фасад убран — ящик-лоток${n > 1 ? ' · ' + n : ''}. Вернуть — «Тип» в свойствах ящика или Ctrl+Z`); return; } } } catch (e) { console.error('dw tray', e); }
   return d0.apply(this, arguments); }; }
 /* ═══ [/BLOCK] v1099 ═══ */
+/* ═══ [BLOCK] v1100 ДЕТАЛИРОВКА МОДУЛЯ: ПОРЯДОК ПО МАТЕРИАЛАМ, ГРАНИЦА МЕЖДУ МАТЕРИАЛАМИ, ВЫДЕЛЕННАЯ ДЕТАЛЬ — СВЕТЛО-ЖЁЛТАЯ СТРОКА (Дмитрий 24.11) ═══ */
+/* Порядок — по материалам (Дмитрий 24.11, поправка): детали одного материала вместе, материалы по номеру (М), материал ДВП — внизу; внутри материала — фасады сверху, дальше как было.
+   Смена материала — жирная линия над строкой.
+   Деталь, выделенная на холсте (SK.sel: модуль + деталь, фасад, отдельная деталь), — строка светло-жёлтая. */
+function mdtRank(sk, r) { const k = String(r.keys[0] || ''); if (!k.includes(':')) { const o = sk.mods.find(q => q.id === k); if (o && o.k === 'fac') return 0; }
+  if (/:b[DL]$/.test(k) || /ДВП|ХДФ|HDF/i.test(r.nm)) return 2; return 1; }
+function mdtSelKeys(sk) { const s = SK.sel, out = new Set(); if (!s || s.m == null) return out; const o = sk.mods[s.m]; if (!o) return out;
+  if (s.p) out.add(o.id + ':' + s.p); else if (s.e != null && o.els && o.els[s.e]) out.add(o.id + ':e:' + o.els[s.e].id); else if (o.k) out.add(o.id);
+  (SK.ms || []).forEach(i => { const q = sk.mods[i]; if (q && q.k && i !== s.m) out.add(q.id); }); return out; }
+{ const r0 = mdtRows; mdtRows = function (sk, m) { const R = r0.apply(this, arguments); try { const I = new Map(R.map((r, i) => [r, i]));
+    const gR = new Map(); R.forEach(r => { const g = r.mn || 999, k = mdtRank(sk, r); gR.set(g, Math.min(gR.has(g) ? gR.get(g) : 9, k === 2 ? 2 : 1)); });   /* материал — ДВП, если все его детали ДВП */
+    R.sort((a, b) => (gR.get(a.mn || 999) - gR.get(b.mn || 999)) || (a.mn || 999) - (b.mn || 999) || mdtRank(sk, a) - mdtRank(sk, b) || I.get(a) - I.get(b)); } catch (e) { console.error('mdt sort', e); } return R; }; }
+{ const u0 = mdtUi; mdtUi = function () { const r = u0.apply(this, arguments); try { const w = $('mdtBox'); if (!w || w.hidden) return r; const sk = prod().sk, m = sk && sk.mods ? mdtMod(sk) : null; if (!m) return r;
+    const R = mdtRows(sk, m), S = mdtSelKeys(sk); let prev = null;
+    w.querySelectorAll('tbody tr').forEach(tr => { const x = R[+tr.dataset.i]; if (!x) return; const g = String(x.mn || 0); tr.classList.toggle('mdt-g', prev != null && g !== prev); prev = g;
+      tr.classList.toggle('mdt-sel', x.keys.some(k => S.has(k))); }); } catch (e) { console.error('mdt ui', e); } return r; }; }
+{ const d0 = skDraw; skDraw = function () { const r = d0.apply(this, arguments); try { if (MDT.open) { const w = $('mdtBox'); if (w && !w.hidden) { const sk = prod().sk, m = mdtMod(sk); if (m) { const R = mdtRows(sk, m), S = mdtSelKeys(sk);
+      w.querySelectorAll('tbody tr').forEach(tr => { const x = R[+tr.dataset.i]; if (x) tr.classList.toggle('mdt-sel', x.keys.some(k => S.has(k))); }); } } } } catch (e) {} return r; }; }
+(() => { const st = document.createElement('style'); st.textContent = '.mdt-t tr.mdt-g>td{border-top:2px solid var(--ink,#333)}.mdt-t tr.mdt-sel>td{background:#FFF4D6}.mdt-t tr.mdt-sel>td.nm{font-weight:600}'; document.head.appendChild(st); })();
+/* ─── [SUB] Порядок материалов (Дмитрий 24.11): фасад → корпус → ящики → столешницы и панели → прочее → ДВП; номер материала (М) следует порядку списка — везде.
+   Только новые проекты (P.set.mOrd — ставится в «Новый проект» / новый проект из Замера); старые — своя нумерация. Внутри роли — как добавлены. ─── */
+const MORD_R = b => { const r = String(b.role || ''); return r.startsWith('fac:') ? 0 : r === 'body' ? 1 : r === 'dw' ? 2 : r === 'top' || r === 'wpn' ? 3 : r === 'dvp' ? 5 : 4; };
+function blkOrd(p) { if (!(P.set && P.set.mOrd) || !p || !Array.isArray(p.blocks)) return; const B = p.blocks, I = new Map(B.map((b, i) => [b, i]));
+  const S = B.slice().sort((a, b) => MORD_R(a) - MORD_R(b) || I.get(a) - I.get(b)); if (S.some((b, i) => b !== B[i])) { B.length = 0; B.push(...S); } }
+{ const f0 = blkSync; blkSync = function (p) { const r = f0.apply(this, arguments); try { blkOrd(p); } catch (e) { console.error('mord', e); } return r; }; }
+{ const f0 = renderBlocks; renderBlocks = function () { try { blkOrd(prod()); } catch (e) {} return f0.apply(this, arguments); }; }
+/* ═══ [/BLOCK] v1100 ═══ */
 /* ═══ [BLOCK] VIEW — просмотр чертежа на телефоне (Akrix Job, этап 1; Дмитрий 22.11.2026, job/PLAN_mount_view.md) ═══
    Только сборка akrix-job/view/ (view_build.py): код конструктора как есть, правка отключена.
    Проект — с сервера Job (projGet по заказу / проекту, текущая версия из akrix-projects); копия на телефоне (localStorage akxView:<ключ>) — открывается сразу и без сети.
