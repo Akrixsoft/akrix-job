@@ -1,5 +1,5 @@
 <!doctype html><html><head>
-<!-- Akrix view: конструктор v1104, сборка 2026-11-24 12:26, bb1e1d06cb --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
+<!-- Akrix view: конструктор v1105, сборка 2026-11-24 15:05, fdbe228242 --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
 #skProp .uf-zr{flex-wrap:wrap;row-gap:4px}
 #skProp .pr-s[data-c] > b::before{display:none!important}#skProp .pr-s[data-c]:not([data-c="cost"]) > b{color:inherit!important}#skProp .uf-bt{flex-wrap:wrap;row-gap:4px}   /* v852: заголовки как в новых панелях, кнопки с переносом */
 #skProp .pr-h .nav-lk{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:var(--acc,#2E6B57)}#skProp .pr-h .nav-lk:hover{color:var(--sel,#c00)}#skProp .nav-sost .nav-b button{padding:2px 8px;font-size:12px}   /* v853 */
@@ -1079,7 +1079,7 @@ body.ms-on{overflow:hidden}
   <div class="hd-tools" id="hdTools"></div>   <!-- v138: место под кнопки и команды -->
   <button id="btnCnc" title="Akrix CNC · Drilling — присадка у станка, внутри Akrix (детали — «⇩ Drilling» в окне свойств)" aria-label="Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><rect x="3" y="15" width="18" height="5" rx="1" fill="#16A34A" opacity=".25" stroke="#16A34A"/><path d="M12 3v9m-3-6h6m-5 6 2 3 2-3" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v664 -->
   <button id="btnCns" title="Набор для Drilling — выбрать модули, ящики, типы деталей и передать в Drilling" aria-label="Набор для Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><path d="M4 6h10M4 12h10M4 18h7" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round"/><path d="m15 15 2.5 2.5L21 13" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v665 -->
-  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1104</span>   <!-- v615: номер — inst.sh -->
+  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1105</span>   <!-- v615: номер — inst.sh -->
   <button id="btnCfg" title="Настройки: общие, холст, проект, петли, горячие клавиши, данные" aria-label="Настройки">⚙</button>
   <button id="btnCx" title="Режим конструктора интерфейса: двигать, масштабировать, добавлять объекты, скетч">🛠</button>
   <button id="btnTheme" hidden title="Тема — светлая" aria-label="Тема">☀</button>
@@ -7292,7 +7292,7 @@ function productCalc(p) {
   const k = dzK(p), blocks = p.blocks.map(blockCalc).map(c => k === 1 ? c : { ...c, total: c.total * k }), mat = blocks.reduce((a, b, i) => a + (p.blocks[i].inT === false ? 0 : b.total), 0), hw = p.hw.inT === false ? 0 : hwCalc(p).total * k;
   return { blocks, mat, hw, total: mat + hw };
 }
-const jobCostOf = p => p.jobCost > 0 ? +p.jobCost : Math.round(productCalc(p).total / dzK(p));   /* v990: Job — цех без наценки дизайнера, ручной ввод главнее */
+let jobCostOf = p => p.jobCost > 0 ? +p.jobCost : Math.round(productCalc(p).total / dzK(p));   /* v990: Job — цех без наценки дизайнера, ручной ввод главнее */
 const pOrd = p => p.inOrd !== false;   /* v628: изделие в заказе сейчас */
 const matTotal = () => P.products.reduce((a, p) => a + (pOrd(p) ? productCalc(p).mat : 0), 0);
 const hwTotal = () => P.products.reduce((a, p) => a + (pOrd(p) ? productCalc(p).hw : 0), 0);
@@ -36192,6 +36192,26 @@ const ALN_LNI = '<svg viewBox="0 0 24 24"><rect x="3" y="9" width="7" height="9"
 { const g0 = gapTog; gapTog = function () { const r = g0.apply(this, arguments); document.querySelectorAll('#skTl [data-gzg]').forEach(b => b.classList.toggle('on', !!SK.gapM)); return r; }; }
 { const st = document.createElement('style'); st.textContent = '#skTl > [data-g=gz]{order:17}'; document.head.appendChild(st); }   /* место «Зазоров» в левом меню (v872) */
 /* ═══ [/BLOCK] ALN v1104 ═══ */
+/* ═══ [BLOCK] CTR — v1105: цена контракта — галка слева от версии сметы (Дмитрий 24.11) ═══
+   P.ctr = {id, sum, t, ct} — снимок сметы, утверждённый с клиентом. От него — стоимость для Job (распределение по операциям и долям, система %) и «цех» в реестре ₾:
+   доля изделия = смета изделия сейчас / смета всех изделий в заказе сейчас; цех = контракт × доля / наценка дизайнера. Ручная стоимость изделия (Экспорт в Job) — главнее.
+   Колебания цен фурнитуры / размеров после договора на сумму не влияют; «Текущий расчёт» показывает разницу с контрактом. */
+const ctrOn = () => !!(P.ctr && P.ctr.sum > 0);
+function ctrCost(p) { if (!ctrOn()) return null; const L = P.products.filter(pOrd), all = L.reduce((s, q) => s + (productCalc(q).total || 0), 0); if (!(all > 0) || !pOrd(p)) return null;
+  return Math.round(P.ctr.sum * (productCalc(p).total || 0) / all / dzK(p)); }
+{ const f0 = jobCostOf; jobCostOf = p => { if (p.jobCost > 0) return +p.jobCost; const c = ctrCost(p); return c != null ? c : f0(p); }; }
+function ctrSet(id) { const x = (P.tVer || []).find(q => q.id === id); histCommit(); if (!x || (P.ctr && P.ctr.id === id)) delete P.ctr; else P.ctr = { id: x.id, sum: x.sum, t: x.t, ct: x.ct }; save();
+  toast(P.ctr ? `Цена контракта: ${fmt(P.ctr.sum)} ₾ (${tvDt(P.ctr.t)}) — от неё стоимость для Job и цех` : 'Цена контракта снята — стоимость снова по текущей смете'); tvCol(); }
+{ const f0 = tvCol; tvCol = function () { const r = f0.apply(this, arguments); try { const c = $('tvCol'); if (!c) return r; if (P.ctr && !(P.tVer || []).some(q => q.id === P.ctr.id)) delete P.ctr;
+    c.querySelectorAll('.tv-r[data-tvo]').forEach(row => { const id = row.dataset.tvo; if (!id || row.parentElement.classList.contains('tv-w')) return; const on = !!(P.ctr && P.ctr.id === id), w = document.createElement('div'); w.className = 'tv-w' + (on ? ' ctr' : '');
+      w.innerHTML = `<label class="tv-k" title="${on ? 'Цена контракта — снять' : 'Цена контракта: утверждена с клиентом — от неё стоимость для Job (работы, доли) и цех'}"><input type="checkbox" data-tvk="${esc(id)}"${on ? ' checked' : ''}></label>`;
+      row.before(w); w.appendChild(row); if (on) row.insertAdjacentHTML('beforeend', '<span class="tv-ctr">✓ контракт</span>'); });
+    c.querySelectorAll('[data-tvk]').forEach(k => { k.onclick = e => e.stopPropagation(); k.onchange = () => ctrSet(k.dataset.tvk); });
+    const cur = c.querySelector('.tv-cur'); if (cur && ctrOn()) { const d = Math.round(projectTotal() - P.ctr.sum); cur.insertAdjacentHTML('beforeend', `<span class="tv-cd${d ? (d > 0 ? ' up' : ' dn') : ''}" title="Текущий расчёт минус цена контракта — разницу берёт цех">к контракту ${d > 0 ? '+' : d < 0 ? '−' : ''}${fmt(Math.abs(d))} ₾</span>`); }
+  } catch (e) { console.error('ctr', e); } return r; }; }
+{ const st = document.createElement('style'); st.textContent = '#tvCol .tv-w{display:flex;align-items:flex-start;gap:4px}#tvCol .tv-w>.tv-r{flex:1;min-width:0}#tvCol .tv-k{display:flex;padding-top:7px;cursor:pointer}#tvCol .tv-k input{margin:0;width:15px;height:15px;cursor:pointer;accent-color:#2E6B57}'
+  + '#tvCol .tv-w.ctr>.tv-r{border-color:#2E6B57;border-width:2px;padding:4px 6px}#tvCol .tv-ctr{grid-column:1/-1;font-size:11px;font-weight:600;color:#2E6B57}#tvCol .tv-cd{font-size:11px;color:var(--dim,#666)}#tvCol .tv-cd.up{color:#B3261E}#tvCol .tv-cd.dn{color:#2E6B57}'; document.head.appendChild(st); }
+/* ═══ [/BLOCK] CTR v1105 ═══ */
 /* ═══ [BLOCK] VIEW — просмотр чертежа на телефоне (Akrix Job, этап 1; Дмитрий 22.11.2026, job/PLAN_mount_view.md) ═══
    Только сборка akrix-job/view/ (view_build.py): код конструктора как есть, правка отключена.
    Проект — с сервера Job (projGet по заказу / проекту, текущая версия из akrix-projects); копия на телефоне (localStorage akxView:<ключ>) — открывается сразу и без сети.
