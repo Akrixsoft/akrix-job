@@ -1,5 +1,5 @@
 <!doctype html><html><head>
-<!-- Akrix view: конструктор v1110, сборка 2026-11-24 21:07, f8cddbeb17 --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
+<!-- Akrix view: конструктор v1111, сборка 2026-11-24 21:54, 9a5ff24f1c --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
 #skProp .uf-zr{flex-wrap:wrap;row-gap:4px}
 #skProp .pr-s[data-c] > b::before{display:none!important}#skProp .pr-s[data-c]:not([data-c="cost"]) > b{color:inherit!important}#skProp .uf-bt{flex-wrap:wrap;row-gap:4px}   /* v852: заголовки как в новых панелях, кнопки с переносом */
 #skProp .pr-h .nav-lk{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:var(--acc,#2E6B57)}#skProp .pr-h .nav-lk:hover{color:var(--sel,#c00)}#skProp .nav-sost .nav-b button{padding:2px 8px;font-size:12px}   /* v853 */
@@ -1080,7 +1080,7 @@ body.ms-on{overflow:hidden}
   <div class="hd-tools" id="hdTools"></div>   <!-- v138: место под кнопки и команды -->
   <button id="btnCnc" title="Akrix CNC · Drilling — присадка у станка, внутри Akrix (детали — «⇩ Drilling» в окне свойств)" aria-label="Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><rect x="3" y="15" width="18" height="5" rx="1" fill="#16A34A" opacity=".25" stroke="#16A34A"/><path d="M12 3v9m-3-6h6m-5 6 2 3 2-3" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v664 -->
   <button id="btnCns" title="Набор для Drilling — выбрать модули, ящики, типы деталей и передать в Drilling" aria-label="Набор для Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><path d="M4 6h10M4 12h10M4 18h7" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round"/><path d="m15 15 2.5 2.5L21 13" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v665 -->
-  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1110</span>   <!-- v615: номер — inst.sh -->
+  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1111</span>   <!-- v615: номер — inst.sh -->
   <button id="btnCfg" title="Настройки: общие, холст, проект, петли, горячие клавиши, данные" aria-label="Настройки">⚙</button>
   <button id="btnCx" title="Режим конструктора интерфейса: двигать, масштабировать, добавлять объекты, скетч">🛠</button>
   <button id="btnTheme" hidden title="Тема — светлая" aria-label="Тема">☀</button>
@@ -16288,14 +16288,18 @@ function skBindCanvas() {
     else if (d.mode === 'mod') { let dx = (x - d.x0) / SK.v.s, dy = -(y - d.y0) / SK.v.s;
       if (!d.det) { d.det = 1; const ids = new Set(d.st.map(([i]) => sk.mods[i].id)); d.st = d.st.filter(([i]) => !(sk.mods[i].own && ids.has(sk.mods[i].own))); d.st.forEach(([i]) => { const m = sk.mods[i]; if (m.k === 'fac' && m.src && !ids.has(m.src)) skDetach(m); }); }
       const gF = d.st.length && d.st.every(([i]) => faGFx(sk.mods[i])); if (gF) { dx = Math.round(dx); dy = Math.round(dy); }   /* v676 */
-      if (skSnapOn() && !gF) { const q = d.st.map(([i, x0, y0]) => [x0 + dx, y0 + dy, x0 + dx + mW(sk.mods[i]), y0 + dy + mH(sk.mods[i])]);
+      if (gF && d.st.some(([i]) => gapLk(sk, sk.mods[i]))) { dx = 0; dy = 0; if (!d.lkT) { d.lkT = 1; toast('Фасад под замком 🔒'); } }   /* v1111 */
+      else if (gF && skSnapOn() && alnOn()) { const q = d.st.map(([i, x0, y0]) => [x0 + dx, y0 + dy, x0 + dx + mW(sk.mods[i]), y0 + dy + mH(sk.mods[i])]), bb = [Math.min(...q.map(r => r[0])), Math.min(...q.map(r => r[1])), Math.max(...q.map(r => r[2])), Math.max(...q.map(r => r[3]))];
+        if (!d.gf) d.gf = skGrabF([bb[0] - dx, bb[1] - dy, bb[2] - dx, bb[3] - dy], wx(d.x0), wy(d.y0)); const sn = alnGF(sk, bb, new Set(d.st.map(r => r[0])), d.gf); dx = Math.round(dx + sn.dx); dy = Math.round(dy + sn.dy); }   /* v1111: а1 */
+      else if (skSnapOn() && !gF) { const q = d.st.map(([i, x0, y0]) => [x0 + dx, y0 + dy, x0 + dx + mW(sk.mods[i]), y0 + dy + mH(sk.mods[i])]);
         const bb = [Math.min(...q.map(r => r[0])), Math.min(...q.map(r => r[1])), Math.max(...q.map(r => r[2])), Math.max(...q.map(r => r[3]))];
         if (!d.gf) d.gf = skGrabF([bb[0] - dx, bb[1] - dy, bb[2] - dx, bb[3] - dy], wx(d.x0), wy(d.y0));   /* v442 */
         const sn = skSnapBox(bb, skTargets(new Set(d.st.map(r => r[0]))), d.gf); dx += sn.dx; dy += sn.dy; }
       if (d.ax === 'x') { dy = 0; if (SK.snapL) SK.snapL.y = null; } if (d.ax === 'y') { dx = 0; if (SK.snapL) SK.snapL.x = null; }
       d.st.forEach(([i, x0, y0]) => { const m = sk.mods[i]; m.x = x0 + dx; m.y = Math.max(0, y0 + dy); }); skOwnClamp(sk, d); }   /* v240 */
-    else if (d.mode === 'resize') { const m = sk.mods[d.rh.m]; let X = wx(x), Y = wy(y); const gF = faGFx(m) && !d.rh.pp && !d.rh.bk; if (gF) { X = Math.round(X); Y = Math.round(Y); }   /* v676 */
-      if (skSnapOn() && !gF) { const sn = skSnapBox([X, Y, X, Y], d.rh.bk ? skTargets(null, { m: d.rh.m, bk: 1 }) : skTargets(new Set(d.rh.m < 0 ? SK.ms : [d.rh.m])));   /* v507: задняя — к своему каркасу */ X += sn.dx; Y += sn.dy; if (!d.rh.hx) SK.snapL.x = null; if (!d.rh.hy) SK.snapL.y = null; }
+    else if (d.mode === 'resize') { const m = sk.mods[d.rh.m]; let X = wx(x), Y = wy(y); if (m && m.k === 'fac' && gapLk(sk, m)) { if (!d.lkT) { d.lkT = 1; toast('Фасад под замком 🔒'); } return; }   /* v1111 */ const gF = faGFx(m) && !d.rh.pp && !d.rh.bk; if (gF) { X = Math.round(X); Y = Math.round(Y); }   /* v676 */
+      if (gF && skSnapOn() && alnOn()) { const sn = alnGF(sk, [X, Y, X, Y], new Set([d.rh.m]), [d.rh.hx < 0 ? 0 : d.rh.hx > 0 ? 1 : 0.5, d.rh.hy < 0 ? 0 : d.rh.hy > 0 ? 1 : 0.5]); X = Math.round(X + (d.rh.hx ? sn.dx : 0)); Y = Math.round(Y + (d.rh.hy ? sn.dy : 0)); if (SK.snapL) { if (!d.rh.hx) SK.snapL.x = null; if (!d.rh.hy) SK.snapL.y = null; } }   /* v1111: а1 */
+      else if (skSnapOn() && !gF) { const sn = skSnapBox([X, Y, X, Y], d.rh.bk ? skTargets(null, { m: d.rh.m, bk: 1 }) : skTargets(new Set(d.rh.m < 0 ? SK.ms : [d.rh.m])));   /* v507: задняя — к своему каркасу */ X += sn.dx; Y += sn.dy; if (!d.rh.hx) SK.snapL.x = null; if (!d.rh.hy) SK.snapL.y = null; }
       if (d.rh.pp && !d.rh.bk && (/^[LRBT]$/.test(d.rh.pp) || String(d.rh.pp).startsWith('e:'))) [X, Y] = frSnap(m, d.rh.pp, wx(x), wy(y));   /* v1064: к граням любых деталей рядом — от курсора */
       let [x0, y0, x1, y1] = d.r0; if (d.rh.hx < 0) x0 = Math.min(X, x1 - 10); if (d.rh.hx > 0) x1 = Math.max(X, x0 + 10); if (d.rh.hy < 0) y0 = Math.min(Y, y1 - 10); if (d.rh.hy > 0) y1 = Math.max(Y, y0 + 10);
       if (d.rh.pp) { const pid = d.rh.pp, v = skPpV(pid), i0 = v ? 1 : 0, R1 = q => Math.round(q * 10) / 10; if (!d.T0) d.T0 = [...((m.pln || {})[pid] || [0, 0])];   /* v517: деталь каркаса — длина */
@@ -36266,6 +36270,21 @@ alnEqDraw = function () { const W = SK.eqW, s = SK.snapL; if (!W || !s || !SK.dr
 { const w0 = wlSetWall; wlSetWall = function () { const r = w0.apply(this, arguments); tvHist(); return r; }; }
 window.addEventListener('click', e => { const t = e.target && e.target.closest && e.target.closest('#skTl [data-a=eqG], #skTl [data-a=snL]'); if (t) setTimeout(tvHist, 0); }, true);
 /* ═══ [/BLOCK] v1110 ═══ */
+/* ═══ [BLOCK] v1111 — фасады модуля и ящиков: линии выравнивания (решение а1, 24.11) + замок 🔒 ═══
+   Фасады сетки и ящиков (faGFx, правило v676 — целые мм) тянутся / двигаются с линиями своего слоя и равными зазорами; результат — целые мм.
+   а1: у фасадов своей колонки кромка, обращённая к тянущемуся фасаду, не цель (иначе прилипание вплотную — зазор 0); остаются равный зазор,
+   кромки фасадов соседних модулей, кромка корпуса с отступом. Замок 🔒 (gapLk): фасад не тянется, не двигается, зазор не вводится. */
+function alnGF(sk, r, ex, gf) {   /* → {dx, dy} — привязка фасада сетки / ящика: только свой слой (SK.alnO) без обращённых кромок соседей по колонке */
+  const T = skTargets(ex), A = SK.alnO; if (!A) return { dx: 0, dy: 0 }; const O = alnOwn(sk); if (!O) return { dx: 0, dy: 0 };
+  const exId = new Set([...ex].map(i => (sk.mods[i] || {}).id)), F = sk.mods.filter((m, i) => !ex.has(i) && m.k === 'fac' && !m.hid && lyOf(m) === O.ly && !(m.src && exId.has(m.src))), R = F.map(m => [m.x, m.y, m.x + mW(m), m.y + mH(m)]);
+  const M = [...ex].map(i => sk.mods[i]).filter(Boolean), D = M.length ? [Math.min(...M.map(m => m.x)), Math.min(...M.map(m => m.y)), Math.max(...M.map(m => m.x + mW(m))), Math.max(...M.map(m => m.y + mH(m)))] : r;   /* колонка — по самому фасаду (r при растяжке — точка) */
+  const ov = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0), cx = (D[0] + D[2]) / 2, cy = (D[1] + D[3]) / 2, dropY = [], dropX = [];
+  R.forEach(q => { if (ov(q[0], q[2], D[0], D[2]) > 0.5) dropY.push(q[1] >= cy ? q[1] : q[3]); if (ov(q[1], q[3], D[1], D[3]) > 0.5) dropX.push(q[0] >= cx ? q[0] : q[2]); });
+  const keep = (L, D) => L.filter(v => !D.some(w => Math.abs(w - v) < 0.01)); const keepE = (L, D) => L.filter(q => !D.some(w => Math.abs(w - q.v) < 0.5)); SK.alnO = { ...A, x: keep(A.x, dropX), y: keep(A.y, dropY), E: { x: keepE(A.E.x, dropX), y: keepE(A.E.y, dropY) } };   /* любая цель на обращённой кромке соседа — зазор 0 — не цель */
+  return skSnapBox(r, { x: [], y: [], pts: [], ex: [], ey: [], ln: [] }, gf);
+}
+{ const g0 = gapApply; gapApply = function (sk, h) { const f = sk.mods.find(o => o.id === h.f); if (f && h.t !== 'lk' && gapLk(sk, f)) { toast('Фасад под замком 🔒 — снимите замок'); return false; } return g0.apply(this, arguments); }; }
+/* ═══ [/BLOCK] v1111 ═══ */
 /* ═══ [BLOCK] VIEW — просмотр чертежа на телефоне (Akrix Job, этап 1; Дмитрий 22.11.2026, job/PLAN_mount_view.md) ═══
    Только сборка akrix-job/view/ (view_build.py): код конструктора как есть, правка отключена.
    Проект — с сервера Job (projGet по заказу / проекту, текущая версия из akrix-projects); копия на телефоне (localStorage akxView:<ключ>) — открывается сразу и без сети.
