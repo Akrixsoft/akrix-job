@@ -1,5 +1,5 @@
 <!doctype html><html><head>
-<!-- Akrix view: конструктор v1105, сборка 2026-11-24 15:05, fdbe228242 --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
+<!-- Akrix view: конструктор v1110, сборка 2026-11-24 21:07, f8cddbeb17 --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
 #skProp .uf-zr{flex-wrap:wrap;row-gap:4px}
 #skProp .pr-s[data-c] > b::before{display:none!important}#skProp .pr-s[data-c]:not([data-c="cost"]) > b{color:inherit!important}#skProp .uf-bt{flex-wrap:wrap;row-gap:4px}   /* v852: заголовки как в новых панелях, кнопки с переносом */
 #skProp .pr-h .nav-lk{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:var(--acc,#2E6B57)}#skProp .pr-h .nav-lk:hover{color:var(--sel,#c00)}#skProp .nav-sost .nav-b button{padding:2px 8px;font-size:12px}   /* v853 */
@@ -659,6 +659,7 @@ td .gen{color:var(--acc); font-size:9px; margin-left:3px}
 .sk-tl button{width:30px; height:30px; min-height:0; padding:0; display:flex; align-items:center; justify-content:center; border:1px solid transparent; border-radius:4px; background:none; color:var(--ink); font-size:14px; line-height:1}
 .sk-tl button:hover{background:var(--acc-soft)}
 .sk-tl.tl-cmp button{height:26px} .sk-tl.tl-cmp hr{margin:1px 0} .sk-tl.tl-cmp .tl-fill{padding:1px 0; margin:1px 0; gap:1px} .sk-tl.tl-cmp2 button{height:22px} .sk-tl.tl-cmp2 button svg{width:17px; height:17px}   /* v345 */
+.sk-tl.tl-cmp3 .tl-prg{margin-bottom:4px} .sk-tl.tl-cmp3 button{height:21px} .sk-tl.tl-cmp3 hr{margin:0} .sk-tl.tl-scr{overflow-y:auto; overflow-x:hidden; scrollbar-width:none}   /* v1106: экран 1366×768 — панель не выше холста */
 .sk-tl button.on{background:var(--acc-soft); border-color:var(--acc); color:var(--acc)}
 .sk-tl svg{width:25px; height:25px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; pointer-events:none}
 .sk-tl .tl-b.gr::after{content:''; position:absolute; right:2px; bottom:2px; border-left:4px solid transparent; border-bottom:4px solid currentColor; opacity:.6}
@@ -1079,7 +1080,7 @@ body.ms-on{overflow:hidden}
   <div class="hd-tools" id="hdTools"></div>   <!-- v138: место под кнопки и команды -->
   <button id="btnCnc" title="Akrix CNC · Drilling — присадка у станка, внутри Akrix (детали — «⇩ Drilling» в окне свойств)" aria-label="Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><rect x="3" y="15" width="18" height="5" rx="1" fill="#16A34A" opacity=".25" stroke="#16A34A"/><path d="M12 3v9m-3-6h6m-5 6 2 3 2-3" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v664 -->
   <button id="btnCns" title="Набор для Drilling — выбрать модули, ящики, типы деталей и передать в Drilling" aria-label="Набор для Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><path d="M4 6h10M4 12h10M4 18h7" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round"/><path d="m15 15 2.5 2.5L21 13" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v665 -->
-  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1105</span>   <!-- v615: номер — inst.sh -->
+  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1110</span>   <!-- v615: номер — inst.sh -->
   <button id="btnCfg" title="Настройки: общие, холст, проект, петли, горячие клавиши, данные" aria-label="Настройки">⚙</button>
   <button id="btnCx" title="Режим конструктора интерфейса: двигать, масштабировать, добавлять объекты, скетч">🛠</button>
   <button id="btnTheme" hidden title="Тема — светлая" aria-label="Тема">☀</button>
@@ -10537,7 +10538,7 @@ function fxHid(sk, m, side, wk, auto) {   /* наружное лицо бока 
   const o = !auto && (m.sv || {})[side]; if (o) return o === 'h';
   const X = side === 'L' ? m.x : m.x + mW(m), H = mH(m);
   if (sk.mods.some(q => q !== m && !q.k && !q.hid && Math.abs((side === 'L' ? q.x + mW(q) : q.x) - X) <= 1 && Math.min(q.y + mH(q), m.y + H) - Math.max(q.y, m.y) >= H / 2)) return true;
-  if (wlOn(sk) && wlAw(sk) != null) { const k = wk ?? wlAw(sk), Lw = wlLen(sk, k), nb = wlNb(sk, k); if (side === 'L' ? X <= 1 && wlWx(sk, nb[0]) : X >= Lw - 1 && wlWx(sk, nb[1])) return true; }
+  if (wlOn(sk) && wlAw(sk) != null) { const k = wk ?? wlCurK(sk), Lw = wlLen(sk, k), nb = wlNb(sk, k); if (side === 'L' ? X <= 1 && wlWx(sk, nb[0]) : X >= Lw - 1 && wlWx(sk, nb[1])) return true; }
   return false;
 }
 const ASM_TOP = 100, ASM_LIFT = 30, ASM_N = { lie: 'лёжа', stand: 'стоя' };
@@ -15906,9 +15907,9 @@ document.addEventListener('fullscreenchange', () => { if (!document.fullscreenEl
 
 /* ─── вид: масштаб/сдвиг ─── */
 function skCanvas() {
-  const c = $('skc'), cw = c.parentElement.clientWidth - 24, tbH = $('skMod') && $('skMod').classList.contains('sk-mod-b') ? $('skMod').offsetHeight : 0, ch = SK.full ? Math.max(320, Math.floor(window.innerHeight - c.parentElement.getBoundingClientRect().top - 12 - tbH)) : skFitOn() ? Math.max(240, Math.floor(window.innerHeight - c.parentElement.getBoundingClientRect().top - 12 - tbH - ($('tabs') ? $('tabs').offsetHeight : 0))) : cxReg().ch || Math.max(320, Math.min(window.innerHeight * 0.6, 680)), dpr = window.devicePixelRatio || 1;
-  { const tl = $('skTl'); if (tl && !matchMedia('(max-width:760px)').matches) { tl.classList.remove('tl-cmp', 'tl-cmp2'); if (tl.scrollHeight > ch + 10) tl.classList.add('tl-cmp'); if (tl.scrollHeight > ch + 10) tl.classList.add('tl-cmp2'); } }   /* v345: низкий экран — панель компактнее, нижняя панель не уходит за край */
-  const om = $('skLy'), wide = om && om.getBoundingClientRect().left > c.getBoundingClientRect().left + 20; if (om) om.style.height = wide ? (ch + 8) + 'px' : ''; const pl = $('skPal'); if (pl) pl.style.height = wide ? (ch + 8) + 'px' : '';
+  const c = $('skc'), cw = c.parentElement.clientWidth - 24, tbH = $('skMod') && $('skMod').classList.contains('sk-mod-b') ? $('skMod').getBoundingClientRect().height : 0, ch = SK.full ? Math.max(320, Math.floor(window.innerHeight - c.parentElement.getBoundingClientRect().top - 12 - tbH)) : skFitOn() ? Math.max(240, Math.floor(window.innerHeight - c.parentElement.getBoundingClientRect().top - 12 - tbH - ($('tabs') ? $('tabs').getBoundingClientRect().height : 0))) : cxReg().ch || Math.max(320, Math.min(window.innerHeight * 0.6, 680)), dpr = window.devicePixelRatio || 1;
+  { const tl = $('skTl'); if (tl && !matchMedia('(max-width:760px)').matches) { tl.classList.remove('tl-cmp', 'tl-cmp2', 'tl-cmp3', 'tl-scr'); tl.style.maxHeight = ''; const u = parseFloat(getComputedStyle(tl).zoom) || 1, H10 = (ch + 10) / u, H8 = (ch + 8) / u;   /* v1109: размеры панели — в её единицах (масштаб интерфейса) */ if (tl.scrollHeight > H10) tl.classList.add('tl-cmp'); if (tl.scrollHeight > H10) tl.classList.add('tl-cmp2'); if (tl.scrollHeight > H8) tl.classList.add('tl-cmp3'); if (tl.scrollHeight > H8) { tl.classList.add('tl-scr'); tl.style.maxHeight = H8 + 'px'; } } }   /* v1106: 3-я ступень и прокрутка — нижняя панель не уходит под вкладки */   /* v345: низкий экран — панель компактнее, нижняя панель не уходит за край */
+  const om = $('skLy'), wide = om && om.getBoundingClientRect().left > c.getBoundingClientRect().left + 20; const zz = e => parseFloat(getComputedStyle(e).zoom) || 1; if (om) om.style.height = wide ? (ch + 8) / zz(om) + 'px' : ''; const pl = $('skPal'); if (pl) pl.style.height = wide ? (ch + 8) / zz(pl) + 'px' : ''; try { winFit($('skProp')); } catch (e) {}   /* v1107 */
   if (c.width !== Math.round(cw * dpr) || c.height !== Math.round(ch * dpr)) { c.width = cw * dpr; c.height = ch * dpr; c.style.width = cw + 'px'; c.style.height = ch + 'px'; }
   return { c, cw, ch, dpr };
 }
@@ -16491,17 +16492,21 @@ function tbZoomFit(box) {   /* v346: нижняя панель (ПК) × 1.2 —
   box.style.zoom = '1'; const vis = e => e.offsetParent !== null && getComputedStyle(e).position !== 'absolute', gp = e => parseFloat(getComputedStyle(e).columnGap) || 0;
   const sumW = (el, L) => L.reduce((a, c) => a + c.offsetWidth, 0) + gp(el) * Math.max(0, L.length - 1);
   const tbN = t => t.classList.contains('tb-abs') ? Math.max(0, ...[...t.children].filter(c => !c.classList.contains('tb-fx')).map(c => c.offsetLeft + c.offsetWidth)) : sumW(t, [...t.children].filter(vis));
-  const BL = [...box.children].filter(vis), cs = getComputedStyle(box), need = BL.reduce((a, c) => a + (c.matches('.tb') ? tbN(c) : c.offsetWidth), 0) + gp(box) * Math.max(0, BL.length - 1) + (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0), av = box.clientWidth; const rm = !!box.querySelector('.tb-rm'), zH = rm ? 1.2 : 1, zL = rm ? 1 : 0.8; let z = zH; if (need > 0 && av > 0 && need * zH > av - 16) z = Math.max(zL, Math.floor((av - 16) / need * 100) / 100);   /* v410: панель полей (не помещение) — размеры Дмитрия без × 1.2, не помещается — мельче до 0,8; помещение — как v346 */   /* запас 16 px — полосы прокрутки, поздние правки ширины */
+  const BL = [...box.children].filter(vis), cs = getComputedStyle(box), need = BL.reduce((a, c) => a + (c.matches('.tb') ? tbN(c) : c.offsetWidth), 0) + gp(box) * Math.max(0, BL.length - 1) + (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0), av = box.clientWidth; const rm = !!box.querySelector('.tb-rm'), zH = (rm ? 1.2 : 1) * uiZ(), zL = Math.min(rm ? 1 : 0.8, zH);   /* v1109: × масштаб интерфейса */ let z = zH; if (need > 0 && av > 0 && need * zH > av - 16) z = Math.max(zL, Math.floor((av - 16) / need * 100) / 100);   /* v410: панель полей (не помещение) — размеры Дмитрия без × 1.2, не помещается — мельче до 0,8; помещение — как v346 */   /* запас 16 px — полосы прокрутки, поздние правки ширины */
   box.style.zoom = String(z); let k = 0; while (z > zL && box.scrollWidth > box.clientWidth + 1 && k++ < 12) { z = Math.max(zL, Math.round((z - 0.02) * 100) / 100); box.style.zoom = String(z); }   /* проверка: без прокрутки */
   { const ow = GG.open && box.querySelector(`.gg[data-gg="${GG.open}"]`); if (ow) ggPlace(ow); }   try { if (CFG.tbf) tbfApply(); } catch (e) {}   /* v463: плавающие — на место */   /* v462: масштаб панели сменился — открытый набор на место */
-  if (!box._ro && window.ResizeObserver) { let w0 = box.getBoundingClientRect().width; box._ro = new ResizeObserver(() => { const w = box.getBoundingClientRect().width; if (Math.abs(w - w0) > 1) { w0 = w; tbZoomFit(box); } }); box._ro.observe(box); }   /* ширина панели изменилась — подобрать заново */
+  if (!box._ro && window.ResizeObserver) { let w0 = box.getBoundingClientRect().width; box._ro = new ResizeObserver(() => { const w = box.getBoundingClientRect().width; if (Math.abs(w - w0) > 1) { w0 = w; { const t = box.querySelector(':scope > .tb'); if (t) tbAbs(box, t); } tbZoomFit(box); } }); box._ro.observe(box); }   /* ширина панели изменилась — подобрать заново */
   if (!tbZoomFit.raf) tbZoomFit.raf = requestAnimationFrame(() => { tbZoomFit.raf = 0; if (box.isConnected && box.scrollWidth > box.clientWidth + 1 && parseFloat(box.style.zoom) > (box.querySelector('.tb-rm') ? 1 : 0.8)) tbZoomFit(box); }); }   /* после перерисовки — ещё раз */
-addEventListener('resize', () => { const b = $('skMod'); if (b) tbZoomFit(b); });
+addEventListener('resize', () => { const b = $('skMod'); if (b) { const t = b.querySelector(':scope > .tb'); if (t) tbAbs(b, t); tbZoomFit(b); } });   /* v1108: и расстановка */
 const tbZ = box => { const z = parseFloat(getComputedStyle(box).zoom); return z > 0 ? z : 1; };   /* v346: масштаб панели (экранные px → px панели) */
 function tbAbsOn(box) { return !!CFG.tbx && box.classList.contains('sk-mod-b') && !box.querySelector('.tb-rm'); }   /* v476: панель помещения — свои блоки, без расстановки модулей */
 function tbAbs(box, tb) {   /* v342: блоки — на сохранённых X (px от левого края панели); новые (другой режим панели) — правее занятых */
-  const on = tbAbsOn(box), C = [...tb.children].filter(c => !tbfIs(c.dataset.tbk)); tb.classList.toggle('tb-abs', on);   /* v463: плавающие — не здесь */
-  if (!on) { C.forEach(c => { c.style.left = ''; }); tb.style.minHeight = ''; return; }
+  const C = [...tb.children].filter(c => !tbfIs(c.dataset.tbk)); let on = tbAbsOn(box); if (!on) delete box.dataset.tbFlow;   /* v463: плавающие — не здесь */
+  if (on) { tb.classList.add('tb-abs'); let nx0 = 0; const X0 = C.map(c => CFG.tbx[c.dataset.tbk]); C.forEach((c, i) => { if (X0[i] != null) nx0 = Math.max(nx0, X0[i] + c.offsetWidth + 10); }); let nx1 = nx0; const span = Math.max(0, ...C.map((c, i) => { let x = X0[i]; if (x == null) { x = nx1; nx1 += c.offsetWidth + 10; } return x + c.offsetWidth; }));
+    const oth = [...box.children].filter(c => c !== tb && c.offsetParent !== null && getComputedStyle(c).position !== 'absolute').reduce((a, c) => a + c.offsetWidth, 0), S = box.getBoundingClientRect().width;   /* v1108: расстановка с широкого экрана не помещается даже при 0,8 — блоки в ряд (порядок — по сохранённым X), без наложений */
+    if (S > 0 && (span + oth) * 0.8 > S - 16) { on = false; box.dataset.tbFlow = '1'; } else delete box.dataset.tbFlow; }
+  tb.classList.toggle('tb-abs', on); C.forEach((c, i) => { c.style.order = ''; });
+  if (!on) { const X = CFG.tbx; if (X && box.dataset.tbFlow) [...C].map((c, i) => [c, X[c.dataset.tbk] != null ? X[c.dataset.tbk] : 1e6 + i]).sort((a, b) => a[1] - b[1]).forEach(([c], i) => { c.style.order = String(i); }); C.forEach(c => { c.style.left = ''; }); tb.style.minHeight = ''; return; }
   tb.style.minHeight = Math.max(0, ...C.map(c => c.offsetHeight)) + 'px'; const W = tb.clientWidth; let nx = 0;
   C.forEach(c => { const x = CFG.tbx[c.dataset.tbk]; if (x != null) nx = Math.max(nx, x + c.offsetWidth + 10); });
   C.forEach(c => { let x = CFG.tbx[c.dataset.tbk]; if (x == null) { x = nx; nx += c.offsetWidth + 10; } c.style.left = Math.max(0, Math.min(Math.max(0, W - c.offsetWidth), x)) + 'px'; }); }
@@ -17171,10 +17176,10 @@ function ltDrag(box) {   /* v647: окно подсветки тянется з�
 }
 function prDrag(box) {   /* окно свойств тянется за заголовок */
   if (!SK.prXY && Array.isArray(CFG.prXY)) SK.prXY = CFG.prXY;   /* v334: место окна — запоминается */
-  const h = box.querySelector('.pr-h'); if (SK.prXY) { box.style.left = SK.prXY[0] + 'px'; box.style.top = SK.prXY[1] + 'px'; }
+  const h = box.querySelector('.pr-h'); if (SK.prXY) { box.style.left = SK.prXY[0] + 'px'; box.style.top = SK.prXY[1] + 'px'; } winFit(box);   /* v1107 */
   h.onmousedown = e => { if (e.target.closest('button, select, input')) return;   /* v516: список в шапке */ e.preventDefault(); const x0 = e.clientX - box.offsetLeft, y0 = e.clientY - box.offsetTop;
     const mv = ev => { SK.prXY = [Math.max(0, ev.clientX - x0), Math.max(0, ev.clientY - y0)]; box.style.left = SK.prXY[0] + 'px'; box.style.top = SK.prXY[1] + 'px'; };
-    const up = () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); CFG.prXY = SK.prXY; cfgSave(); }; window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up); };
+    const up = () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); CFG.prXY = SK.prXY; cfgSave(); winFit(box); }; window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up); };
 }
 /* ─── ящики в панели модуля: список (выбор), «＋ Внутр.», поля выбранного ящика ─── */
 const DW_NM = { antaro: 'Antaro', tandem: 'Tandem 560F', ball: 'Шариковые', axis: 'AXIS PRO', mbpro: 'MODERN BOX PRO' };   /* v448 */
@@ -20243,7 +20248,7 @@ function cmZnMake(sk) {   /* выделенные точки → зона по �
   wlRm(sk).els.push(z); SK.re = z.id; SK.reM = null; save(); skDraw(); skModUi(); toast(`${wlDes(z)} зона коммуникаций — по ${same.length} точкам, запас ${m} мм`); return z; }
 function cmZns(sk) { return wlEls(sk).filter(e => e.t === 'zn' && !e.pl && wlWall(sk, e.w)); }
 function cmZnR(sk, e) { const x = num(e.x), y = wlV(sk, e, 'y'); return [x, y, x + wlV(sk, e, 'W'), y + wlV(sk, e, 'H')]; }
-const cmMods = (sk, k) => String(k) === String(wlAw(sk)) ? sk.mods : (sk.wm || {})[k] || [];
+const cmMods = (sk, k) => String(k) === String(wlCurK(sk)) ? sk.mods : (sk.wm || {})[k] || [];
 const cmIx = (a, b) => { const r = [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.min(a[2], b[2]), Math.min(a[3], b[3])]; return r[2] - r[0] > 1 && r[3] - r[1] > 1 ? r : null; };
 function cmZnHits(sk) {   /* модули у стены, задняя стенка которых перекрыта зоной: [{z, m, key, B — габарит задней, I — пересечение}] */
   const out = []; if (!wlOn(sk)) return out; cmZns(sk).forEach(z => { const Z = cmZnR(sk, z);
@@ -22398,7 +22403,10 @@ function golaCfgBind(b) {
 const WIN = { obs: null, ro: null, t: null };
 function winApply(b) { const W = (CFG.win || {})[b.id]; if (!W) return; const big = b.classList.contains('sk-pd');
   if (big || W.x != null) { if (W.x != null) { b.style.left = W.x + 'px'; b.style.top = W.y + 'px'; } if (big) { b.style.right = 'auto'; b.style.bottom = 'auto'; } }
-  if (W.w) b.style.width = W.w + 'px'; if (W.h) { b.style.height = W.h + 'px'; b.style.maxHeight = 'none'; } }
+  if (W.w) b.style.width = W.w + 'px'; if (W.h) b.style.height = W.h + 'px'; winFit(b); }
+function winFit(b) {   /* v1107: окно не ниже своей области (свойства — холст, большие — экран): сохранённая высота/место с другого экрана не уводит его под нижнюю панель */
+  if (!b || b.hidden || !b.offsetParent) return; const fixed = getComputedStyle(b).position === 'fixed', H = fixed ? innerHeight : b.offsetParent.clientHeight; if (!H) return;
+  let t = b.offsetTop; if (t > H - 80) { t = Math.max(0, H - 80); b.style.top = t + 'px'; } b.style.maxHeight = Math.max(120, H - t - 10) + 'px'; }
 function winSave(b, o) { CFG.win = { ...(CFG.win || {}), [b.id]: { ...((CFG.win || {})[b.id] || {}), ...o } }; clearTimeout(WIN.t); WIN.t = setTimeout(() => { try { cfgSave(); } catch (e) {} }, 400); }
 function winInit(b) { if (!b || !b.id || b.dataset.win) return; b.dataset.win = '1'; winApply(b);
   b.addEventListener('mousedown', e => { const h = e.target.closest('.pr-h, .pd-head'); if (!h || !b.contains(h) || e.target.closest('button, input, select, textarea, label') || b.id === 'skProp') return;
@@ -22411,7 +22419,7 @@ function winInit(b) { if (!b || !b.id || b.dataset.win) return; b.dataset.win = 
     ['left', 'top', 'right', 'bottom', 'width', 'height', 'maxHeight'].forEach(k => b.style[k] = ''); if (b.id === 'skProp') { delete CFG.prXY; SK.prXY = null; } toast('Окно — размер и место по умолчанию'); }); }
 function winBoot() { if (WIN.obs) return;
   document.addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('.sk-prop[id], .sk-pd[id]'); if (!b) return; const r = b.getBoundingClientRect(); if (e.clientX > r.right - 18 && e.clientY > r.bottom - 18) { WIN.rz = b; WIN.w0 = [b.offsetWidth, b.offsetHeight]; } }, true);   /* угол — растягивание */
-  document.addEventListener('pointerup', () => { const b = WIN.rz; WIN.rz = null; if (!b || !b.offsetWidth) return; if (b.offsetWidth !== WIN.w0[0] || b.offsetHeight !== WIN.w0[1]) { if (b.classList.contains('sk-pd')) { const r = b.getBoundingClientRect(); b.style.left = r.left + 'px'; b.style.top = r.top + 'px'; b.style.right = 'auto'; b.style.bottom = 'auto'; winSave(b, { x: Math.round(r.left), y: Math.round(r.top) }); } b.style.maxHeight = 'none'; winSave(b, { w: Math.round(b.offsetWidth), h: Math.round(b.offsetHeight) }); } }, true);
+  document.addEventListener('pointerup', () => { const b = WIN.rz; WIN.rz = null; if (!b || !b.offsetWidth) return; if (b.offsetWidth !== WIN.w0[0] || b.offsetHeight !== WIN.w0[1]) { if (b.classList.contains('sk-pd')) { const r = b.getBoundingClientRect(); b.style.left = r.left + 'px'; b.style.top = r.top + 'px'; b.style.right = 'auto'; b.style.bottom = 'auto'; winSave(b, { x: Math.round(r.left), y: Math.round(r.top) }); } winSave(b, { w: Math.round(b.offsetWidth), h: Math.round(b.offsetHeight) }); winFit(b); } }, true);
   const scan = () => document.querySelectorAll('.sk-prop[id], .sk-pd[id]').forEach(winInit); scan();
   WIN.obs = new MutationObserver(scan); WIN.obs.observe(document.body, { childList: true, subtree: true }); }
 try { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', winBoot); else setTimeout(winBoot, 0); } catch (e) {}
@@ -25021,7 +25029,7 @@ window.addEventListener('keydown', e => {
   if (!mod && e.key === 'Tab' && (SK.ms.length || SK.g != null)) { e.preventDefault(); skPopFocus(); return; }
   if (!mod && e.key === 'Escape') { SK.lyHl = null; SK.cut = null; if (!SK.ms.length && SK.g == null && SK.full) { skFull(false); return; } SK.ms = []; SK.sel = null; SK.g = null; skModUi(); skDraw(); return; }
   if (!mod) return;
-  if (e.code === 'KeyA') { e.preventDefault(); SK.ms = p.sk.mods.map((_, i) => i).filter(i => lyOk(p.sk.mods[i])); SK.sel = SK.ms.length ? { m: SK.ms[SK.ms.length - 1], e: null } : null; skModUi(); skDraw(); }
+  if (e.code === 'KeyA') { e.preventDefault(); SK.ms = p.sk.mods.map((_, i) => i).filter(i => lyOk(p.sk.mods[i]) && !(SK.iso && typeof z3Hide === 'function' && z3Hide(p.sk.mods[i]))); SK.sel = SK.ms.length ? { m: SK.ms[SK.ms.length - 1], e: null } : null; skModUi(); skDraw(); }
   else if (e.code === 'KeyC') { if (SK.g != null && (p.sk.guides || [])[SK.g]) { e.preventDefault(); SK.gclip = { ...p.sk.guides[SK.g] }; toast('Скопирована направляющая'); } else if (SK.ms.length) { e.preventDefault(); SK.gclip = null; if (cpMulti() || !patCopy()) { SK.pat = null; skCopy(); }   /* v993 */ } }   /* v536: наполнение — паттерн */
   else if (e.code === 'KeyX') { const r = skSelRefs(p.sk); if (r.length) { e.preventDefault(); SK.cut = r; toast(`Вырезано: ${r.length}. Сделайте активным слой-получатель и Ctrl+V`); } }
   else if (e.code === 'KeyV') { if (SK.cut && SK.cut.length) { e.preventDefault(); const r = SK.cut; SK.cut = null; skToLayer(p.sk, p.sk.al || 'body', r); } else if (SK.gclip) { e.preventDefault(); if (lyLock('guides')) { toast('Слой «Направляющие» заблокирован'); return; } p.sk.guides = [...(p.sk.guides || []), { ...SK.gclip }]; SK.g = p.sk.guides.length - 1; SK.ms = []; SK.sel = null; skTrDone(); toast('Вставлена направляющая'); } else if (SK.pat) { e.preventDefault(); patPaste(); } else if (SK.clip) { e.preventDefault(); skPaste(); } }
@@ -28352,10 +28360,10 @@ function xcHit(a, b) {   /* оси цилиндров ближе суммы ра
 const xcSame = (a, b) => a.a === b.a && a.s === b.s && Math.abs(a.r - b.r) < 0.01 && Math.abs(a.h - b.h) < 0.01 && ['x', 'y', 'z'].every(k => Math.abs(a.c[k] - b.c[k]) < 0.05);
 const xcRank = X => [X.A, X.B].some(T => T.b && T.b.kind === 'fac' || (T.m && T.m.k === 'fac')) ? 0 : 1;   /* стык с фасадом сдвигается первым */
 function xcBase(sk) {   /* кэш: hwx-стыки (база, без ⇥16) и прочая присадка видов */
-  const key = SAVE_N + '|' + HIST.u.length + '|' + (prod() || {}).id; if (XC.k === key && XC.b) return XC.b; XC.k = key; XC.b = null;
+  const key = SAVE_N + '|' + HIST.u.length + '|' + (prod() || {}).id + '|' + wlCurK(sk); XC.m = XC.m && XC.m0 === key.replace(/\|[^|]*$/, '') ? XC.m : {}; XC.m0 = key.replace(/\|[^|]*$/, ''); if (XC.m[key]) return XC.m[key]; XC.k = key; XC.b = null;
   XC.busy++; try { const H = hwHoles(sk), XS = hwxAll(sk), J = XS.map((X, i) => { let c = []; try { c = hwxJs(sk, X).flatMap(j => xcCyl(X, j)); } catch (e) {} return { jk: X.jk, i, r: xcRank(X), c }; });
     const all = J.flatMap(z => z.c), car = H.filter(q => !all.some(o => xcSame(o, q))); XC.b = { car, J }; } catch (e) { console.error('xc', e); XC.b = { car: [], J: [] }; } finally { XC.busy--; }
-  return XC.b; }
+  XC.m[key] = XC.b; return XC.b; }
 function xcOthers(sk, X) {   /* присадка, мешающая стыку X: каркас + стыки, которые остаются на месте относительно X */
   const B = xcBase(sk), me = B.J.find(z => z.jk === X.jk) || { i: 1e9, r: xcRank(X) }, bx = [X.A, X.B].map(T => [T.lo, T.hi]), near = q => bx.some(([lo, hi]) => { const [l, h] = xcSeg(q); return [0, 1, 2].every(k => h[k] >= lo[k] - 20 && l[k] <= hi[k] + 20); });
   return [...B.car, ...B.J.filter(z => z.jk !== X.jk && !String(z.jk).startsWith(X.jk + '#') && (z.r > me.r || (z.r === me.r && z.i < me.i))).flatMap(z => z.c)].filter(near); }
@@ -29718,7 +29726,7 @@ function cfgUi() {
   const b = $('cfgBox'); if (!b || b.hidden) return; const S = P.set, ck = (k, on, n, tp) => `<label class="chk"${tp ? ` title="${esc(tp)}"` : ''}><input type="checkbox" data-cs="${k}" ${on ? 'checked' : ''}> ${n}</label>`;
   const row = (n, h, tp) => `<div class="cfg-r"><span${tp ? ` title="${esc(tp)}"` : ''}>${n}</span><div>${h}</div></div>`, ct = cutSet(), hg = CFG.hg || {};
   const T = {
-    gen: row('Масштаб колёсиком', `<input type="range" min="1" max="20" step="1" data-cg="wz" value="${cfgWz()}"> <b class="num">${cfgWz()}</b> <span class="dim">×${wzF(cfgWz()).toFixed(2)} на щелчок</span>`, 'Шаг приближения за один щелчок колёсика — во всех окнах: модель, чертёж детали, присадка, раскрой; тачпад — плавно')
+    gen: uiZRow() + row('Масштаб колёсиком', `<input type="range" min="1" max="20" step="1" data-cg="wz" value="${cfgWz()}"> <b class="num">${cfgWz()}</b> <span class="dim">×${wzF(cfgWz()).toFixed(2)} на щелчок</span>`, 'Шаг приближения за один щелчок колёсика — во всех окнах: модель, чертёж детали, присадка, раскрой; тачпад — плавно')
       + row('Предел приближения', `<select data-cg="zmax">${[5, 10, 20, 50, 100].map(v => `<option value="${v}" ${cfgZmax() === v ? 'selected' : ''}>${v} px / мм${v === 5 ? ' (как раньше)' : ''}</option>`).join('')}</select>`, 'Сколько пикселей экрана на 1 мм при самом близком приближении холста')
       + row('Уровни замера углов, мм', `низ <input data-num inputmode="decimal" data-cml="d" value="${esc((CFG.msl || {}).d ?? '')}" placeholder="100" style="width:64px"> верх <input data-num inputmode="decimal" data-cml="u" value="${esc((CFG.msl || {}).u ?? '')}" placeholder="1800" style="width:64px">`, 'Лист замера: высоты от пола, на которых снимается отклонение угла угольником (низ — план, верх − низ — наклон стены)')   /* v164 */
       + row('Уровни видимости, мм', zvCfgHtml(), 'Вид сверху: границы зон по высоте от пола (значки ▁ ▔ у вида сверху). 1300 — низ / верх; ещё уровень — ещё зона')   /* v161 */
@@ -29808,6 +29816,7 @@ function cfgBind(b) {
     if (d.cg === 'cauto') { if (t.checked) CFG.cmdAuto = true; else delete CFG.cmdAuto; cfgSave(); return; }   /* v1015 */
     if (d.cg === 'mfin') { const v = num(t.value); if (t.value.trim() !== '' && v >= 0) CFG.millFin = v; else delete CFG.millFin; cfgSave(); try { skDraw(); } catch (x) {} return; }   /* v349 */
     if (d.cg === 'chkMk') { if (t.checked) delete CFG.chkMk; else CFG.chkMk = false; cfgSave(); try { skDraw(); } catch (x) {} return; }   /* v350 */
+    if (d.cg === 'uiz') { if (t.value) CFG.uiZ = +t.value; else delete CFG.uiZ; cfgSave(); uiZApply(true); return cfgUi(); }   /* v1109 */
     if (d.cg === 'cncWin') { if (t.checked) delete CFG.cncWin; else CFG.cncWin = false; cfgSave(); return; }   /* v861 */
     if (d.cg === 'matX') { if (t.checked) CFG.matX = true; else delete CFG.matX; cfgSave(); renderBlocks(); return; }   /* v341 */
     if (d.snr) { CFG.snr = { ...(CFG.snr || {}) }; if (t.value.trim() !== '' && num(t.value) >= 0) CFG.snr[d.snr] = num(t.value); else delete CFG.snr[d.snr]; if (!Object.keys(CFG.snr).length) delete CFG.snr; cfgSave(); return; }   /* v340 */
@@ -30405,7 +30414,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) setT
    Основной: библиотеки (lib), текстуры (tex), настройки программы (cfg) — в общую папку при изменении, с временем (lib/<n>.meta.json); два основных — последнее сохранение.
    Все компьютеры: в общей папке новее — к себе (dkSync): библиотека — шаблоны / свои позиции по id (новые и правленые), удалённые — убраны; текстуры — недостающие; настройки — кроме местных (компьютер, окна, положения).
    Местные настройки не уходят: pc, prXY, ltXY, win, cncWin, cfgWin, pip, popDir. ─── */
-const FS_LOC = ['pc', 'prXY', 'ltXY', 'win', 'cncWin', 'cfgWin', 'pip', 'popDir'];
+const FS_LOC = ['pc', 'prXY', 'ltXY', 'win', 'cncWin', 'cfgWin', 'pip', 'popDir', 'uiZ'];   /* v1109: масштаб интерфейса — свой на каждом ПК */
 const fsCfgS = () => JSON.stringify(Object.fromEntries(Object.entries(CFG).filter(([k]) => !FS_LOC.includes(k)).sort(([a], [b]) => a < b ? -1 : 1)));
 const fsLibS = () => JSON.stringify({ app: 'predcalc', lbx: LBX, lib: LIB, mp: { p: MATP, t: MATT, v: MATV } });
 const FS_T = n => { try { return +localStorage.getItem('akx.fs.' + n) || 0; } catch (e) { return 0; } }, FS_TS = (n, t) => { try { localStorage.setItem('akx.fs.' + n, String(t)); } catch (e) {} };
@@ -34866,7 +34875,7 @@ const FX_HID_G = 30;
 function fxHidG(sk, m, side, wk) {   /* препятствие у наружного лица бока не дальше FX_HID_G: модуль, стена, колонна / выступ / ригель */
   const G = FX_HID_G, X = side === 'L' ? num(m.x) : num(m.x) + mW(m), H = mH(m), y0 = num(m.y), y1 = y0 + H, gap = e => side === 'L' ? X - e : e - X, near = e => gap(e) >= -1 && gap(e) <= G + 0.01;
   if (sk.mods.some(q => q !== m && !q.k && !q.hid && near(side === 'L' ? num(q.x) + mW(q) : num(q.x)) && Math.min(num(q.y) + mH(q), y1) - Math.max(num(q.y), y0) >= H / 2)) return true;
-  if (!wlOn(sk) || wlAw(sk) == null) return false; const k = wk ?? wlAw(sk), Lw = wlLen(sk, k), nb = wlNb(sk, k);
+  if (!wlOn(sk) || wlAw(sk) == null) return false; const k = wk ?? wlCurK(sk), Lw = wlLen(sk, k), nb = wlNb(sk, k);
   if (side === 'L' ? X <= G + 0.01 && wlWx(sk, nb[0]) : X >= Lw - G - 0.01 && wlWx(sk, nb[1])) return true;
   return wlEl(sk, k).some(e => { if (!/^(col|box|beam)$/.test(e.t)) return false; const r = wlRect(sk, k, e); if (!r) return false; const ov = Math.min(r[3], y1) - Math.max(r[1], y0); if (ov <= 1) return false;
     if (!(ov >= H / 2 || ov >= r[3] - r[1] - 1)) return false; return near(side === 'L' ? r[2] : r[0]); }); }
@@ -36212,6 +36221,51 @@ function ctrSet(id) { const x = (P.tVer || []).find(q => q.id === id); histCommi
 { const st = document.createElement('style'); st.textContent = '#tvCol .tv-w{display:flex;align-items:flex-start;gap:4px}#tvCol .tv-w>.tv-r{flex:1;min-width:0}#tvCol .tv-k{display:flex;padding-top:7px;cursor:pointer}#tvCol .tv-k input{margin:0;width:15px;height:15px;cursor:pointer;accent-color:#2E6B57}'
   + '#tvCol .tv-w.ctr>.tv-r{border-color:#2E6B57;border-width:2px;padding:4px 6px}#tvCol .tv-ctr{grid-column:1/-1;font-size:11px;font-weight:600;color:#2E6B57}#tvCol .tv-cd{font-size:11px;color:var(--dim,#666)}#tvCol .tv-cd.up{color:#B3261E}#tvCol .tv-cd.dn{color:#2E6B57}'; document.head.appendChild(st); }
 /* ═══ [/BLOCK] CTR v1105 ═══ */
+/* ═══ [BLOCK] UIZ — v1109: масштаб интерфейса (Настройки → Общие), как в Кореле (Дмитрий 24.11) ═══
+   CFG.uiZ: 'auto' (нет значения) | 0.8 … 1.25 — местная настройка ПК (FS_LOC). Масштабируются шапка, вкладки, левая панель, слои, палитра; нижняя панель — множитель в tbZoomFit.
+   Холст не масштабируется: координаты мыши на холсте (getBoundingClientRect / clientX) остаются точными. Авто: по размеру окна, 1 при ≥ 1600 × 880, не мельче 0,85. */
+const UIZ_V = [0.8, 0.85, 0.9, 0.95, 1, 1.1, 1.25];
+function uiZ() { const v = +CFG.uiZ; if (v >= 0.5 && v <= 2) return v; const a = Math.min(innerWidth / 1600, innerHeight / 880); return Math.max(0.85, Math.min(1, Math.floor(a * 20) / 20)); }
+function uiZApply(redraw) { const z = uiZ(), de = document.documentElement; if (de.style.getPropertyValue('--uiz') === String(z) && !redraw) return; de.style.setProperty('--uiz', String(z)); document.body.classList.toggle('uiz', z !== 1);
+  try { const b = $('skMod'); if (b) tbZoomFit(b); } catch (e) {} try { if ($('skc')) { SK.v = SK.v; skDraw(); } } catch (e) {} }
+function uiZRow() { const v = +CFG.uiZ || 0; return `<div class="cfg-r"><span title="Шапка, панели инструментов, слои, палитра, вкладки — крупнее / мельче. Холст не меняется. Только этот ПК">Масштаб интерфейса</span><div><select data-cg="uiz"><option value=""${v ? '' : ' selected'}>Авто — по экрану (сейчас ${Math.round(uiZ() * 100)} %)</option>${UIZ_V.map(q => `<option value="${q}"${v === q ? ' selected' : ''}>${Math.round(q * 100)} %</option>`).join('')}</select> <span class="dim">только этот ПК</span></div></div>`; }
+{ const st = document.createElement('style'); st.textContent = 'body.uiz header, body.uiz #tabs, body.uiz #skTl, body.uiz #skLy, body.uiz #skPal{zoom:var(--uiz,1)}'; document.head.appendChild(st); }
+addEventListener('resize', () => { if (!(+CFG.uiZ)) uiZApply(); });
+try { uiZApply(); } catch (e) {}
+/* ═══ [/BLOCK] UIZ v1109 ═══ */
+/* ═══ [BLOCK] v1110 — ошибки аудита 24.11 (calc/AUDIT_1124.md) ═══ */
+/* ─── [SUB] ALN2 — линии выравнивания v1104, исправления: только перетаскивание / растяжка (не рисование нового); равный зазор — своей стороной;
+   свой слой ближе (или так же близко) выбранной привязки — главнее, в т. ч. точек чужих слоёв; Shift — без стен и потолка; зазоры меньше 1,5 мм не образец ─── */
+const ALN_MD = /^(mod|resize|pv)$/;
+alnOwn = function (sk) { const d = SK.drag || {}, mi = d.mode === 'resize' && d.rh && d.rh.m >= 0 ? d.rh.m : SK.ms[0], m = mi != null ? sk.mods[mi] : null; if (!m) return null; const s = SK.sel || {};
+  const ly = s.dwp || s.d != null ? DWL : s.p && !m.k ? partLy(m, s.p) : lyOf(m); return { m, ly, fac: m.k === 'fac' }; };
+alnApply = function (sk, T, R, view) {
+  SK.eqC = null; SK.alnO = null; if (!SK.drag || !ALN_MD.test(SK.drag.mode)) return T; if (!alnOn()) { T.ex = []; T.ey = []; return T; }
+  const O = alnOwn(sk); if (!O) return T; const mine = R.filter(q => q.ly === O.ly), OX = [], OY = [];
+  mine.forEach(q => { OX.push(q.r[0], q.r[2]); OY.push(q.r[1], q.r[3]); });
+  if (O.fac && view === 'f') R.filter(q => q.box && !q.m.k && mDone(q.m)).forEach(q => { let F = null; try { F = faOff(q.m); } catch (e) {} if (!F) return; const m = q.m; OX.push(m.x + F.l, m.x + mW(m) - F.r); OY.push(m.y + F.b, m.y + mH(m) - F.t); });
+  const E = { x: [], y: [] }; if (eqOn()) { const top = mine.filter(q => q.box || !q.m || q.m.k || view !== 'f'); if (top.length <= 120) alnEq(top, E, alnDR(sk, view, R));
+    ['x', 'y'].forEach(a => { E[a] = E[a].filter(q => q.g >= 1.5); E[a].forEach(q => { q.s = Math.abs(q.at[2] - q.v) < 0.01 ? 0 : 1; }); }); }   /* s 0 — цель низа / левой кромки, 1 — верха / правой */
+  SK.alnO = { x: OX, y: OY, E };
+  const has = (A, v) => A.some(a => Math.abs(a - v) < 0.01);
+  if (ALN.sh) { const P9 = []; mine.forEach(q => skPts9(q.r, P9)); T.pts = (T.pts || []).filter(p => P9.some(q => Math.abs(q[0] - p[0]) < 0.01 && Math.abs(q[1] - p[1]) < 0.01));
+    T.ex = OX; T.ey = OY; delete T.wx; delete T.wy; T.ln = (T.ln || []).filter(g => !g.w); T.x = [...(T.gx || [])]; T.y = [0, ...(T.gy || [])]; return T; }   /* Shift — свой слой, направляющие, пол */
+  T.ex = [...OX, ...(T.ex || []).filter(v => !has(OX, v))]; T.ey = [...OY, ...(T.ey || []).filter(v => !has(OY, v))]; return T;
+};
+{ const f0 = skSnapBox; skSnapBox = function (r, T, gf) { const res = f0.apply(this, arguments); SK.eqW = null; try { const A = SK.alnO; if (!A || !SK.drag || !ALN_MD.test(SK.drag.mode)) return res; const tol = snTol('obj', SK.v.s) / 2;
+    [['x', 0, 'dx'], ['y', 1, 'dy']].forEach(([ax, i, k]) => { const ed = gf ? (gf[i] === 0 ? [[r[i], 0]] : gf[i] === 1 ? [[r[i + 2], 1]] : [[r[i] + gf[i] * (r[i + 2] - r[i]), -1]]) : [[r[i], 0], [r[i + 2], 1]];
+      let b = null; const tryv = (v, w, eq) => { const d = w - v; if (Math.abs(d) < tol && (!b || Math.abs(d) < Math.abs(b.d) - 1e-6)) b = { d, v: w, eq }; };
+      ed.forEach(([v, s]) => { A[ax].forEach(w => tryv(v, w, null)); if (s >= 0) A.E[ax].forEach(q => { if (q.s === s) tryv(v, q.v, q); }); });
+      if (b && (Math.abs(b.d) <= Math.abs(res[k]) + 1e-6 || !(SK.snapL && SK.snapL[ax] != null)) && Math.abs(b.d - res[k]) > 1e-6) { res[k] = b.d; SK.snapL = { ...(SK.snapL || { x: null, y: null }), [ax]: b.v }; }
+      if (b && b.eq && Math.abs(b.d - res[k]) < 1e-6) (SK.eqW = SK.eqW || {})[ax] = b.eq; }); } catch (e) { console.error('aln2', e); } return res; }; }
+const ALN_EQD0 = alnEqDraw;   /* рисование меток v1104 — по SK.eqC */
+alnEqDraw = function () { const W = SK.eqW, s = SK.snapL; if (!W || !s || !SK.drag || !eqOn()) return; SK.eqC = { x: W.x && s.x != null && Math.abs(W.x.v - s.x) < 0.01 ? [W.x] : [], y: W.y && s.y != null && Math.abs(W.y.v - s.y) < 0.01 ? [W.y] : [] };
+  if (!SK.eqC.x.length && !SK.eqC.y.length) return; return ALN_EQD0(); };
+/* ─── [SUB] VIEWH — переключатели вида вне истории Ctrl+Z: стена, зоны 3D, линии выравнивания, равные зазоры (Ctrl+Z откатывает правку, а не переключение) ─── */
+{ const z0 = z3Down; z3Down = function () { const r = z0.apply(this, arguments); if (r) { const sk = prod().sk; if (SK.sel && SK.sel.m != null && z3Hide(sk.mods[SK.sel.m])) SK.sel = null; tvHist(); } return r; }; }
+{ const w0 = wlSetWall; wlSetWall = function () { const r = w0.apply(this, arguments); tvHist(); return r; }; }
+window.addEventListener('click', e => { const t = e.target && e.target.closest && e.target.closest('#skTl [data-a=eqG], #skTl [data-a=snL]'); if (t) setTimeout(tvHist, 0); }, true);
+/* ═══ [/BLOCK] v1110 ═══ */
 /* ═══ [BLOCK] VIEW — просмотр чертежа на телефоне (Akrix Job, этап 1; Дмитрий 22.11.2026, job/PLAN_mount_view.md) ═══
    Только сборка akrix-job/view/ (view_build.py): код конструктора как есть, правка отключена.
    Проект — с сервера Job (projGet по заказу / проекту, текущая версия из akrix-projects); копия на телефоне (localStorage akxView:<ключ>) — открывается сразу и без сети.
