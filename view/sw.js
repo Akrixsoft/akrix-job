@@ -1,4 +1,4 @@
-/* Akrix view — офлайн-копия страницы просмотра (сборка 26c206a9ed): сначала сеть, нет сети — сохранённая копия. Запросы к серверу Job не кэшируются. */
+/* Akrix view — офлайн-копия страницы просмотра (сборка bb1e1d06cb): сначала сеть, нет сети — сохранённая копия. Запросы к серверу Job не кэшируются. */
 const C = 'akx-view';
 self.addEventListener('install', e => { e.waitUntil(caches.open(C).then(c => c.add('./')).catch(() => {})); self.skipWaiting(); });
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));

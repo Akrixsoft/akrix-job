@@ -1,5 +1,5 @@
 <!doctype html><html><head>
-<!-- Akrix view: конструктор v1103, сборка 2026-11-24 11:35, 26c206a9ed --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
+<!-- Akrix view: конструктор v1104, сборка 2026-11-24 12:26, bb1e1d06cb --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
 #skProp .uf-zr{flex-wrap:wrap;row-gap:4px}
 #skProp .pr-s[data-c] > b::before{display:none!important}#skProp .pr-s[data-c]:not([data-c="cost"]) > b{color:inherit!important}#skProp .uf-bt{flex-wrap:wrap;row-gap:4px}   /* v852: заголовки как в новых панелях, кнопки с переносом */
 #skProp .pr-h .nav-lk{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:var(--acc,#2E6B57)}#skProp .pr-h .nav-lk:hover{color:var(--sel,#c00)}#skProp .nav-sost .nav-b button{padding:2px 8px;font-size:12px}   /* v853 */
@@ -1079,7 +1079,7 @@ body.ms-on{overflow:hidden}
   <div class="hd-tools" id="hdTools"></div>   <!-- v138: место под кнопки и команды -->
   <button id="btnCnc" title="Akrix CNC · Drilling — присадка у станка, внутри Akrix (детали — «⇩ Drilling» в окне свойств)" aria-label="Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><rect x="3" y="15" width="18" height="5" rx="1" fill="#16A34A" opacity=".25" stroke="#16A34A"/><path d="M12 3v9m-3-6h6m-5 6 2 3 2-3" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v664 -->
   <button id="btnCns" title="Набор для Drilling — выбрать модули, ящики, типы деталей и передать в Drilling" aria-label="Набор для Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><path d="M4 6h10M4 12h10M4 18h7" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round"/><path d="m15 15 2.5 2.5L21 13" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v665 -->
-  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1103</span>   <!-- v615: номер — inst.sh -->
+  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1104</span>   <!-- v615: номер — inst.sh -->
   <button id="btnCfg" title="Настройки: общие, холст, проект, петли, горячие клавиши, данные" aria-label="Настройки">⚙</button>
   <button id="btnCx" title="Режим конструктора интерфейса: двигать, масштабировать, добавлять объекты, скетч">🛠</button>
   <button id="btnTheme" hidden title="Тема — светлая" aria-label="Тема">☀</button>
@@ -36111,6 +36111,87 @@ function z3Down(e, x, y) { if (!SK.iso || e.button !== 0 || !SK.z3R) return fals
   SK.ms = SK.ms.filter(mi => !z3Hide(prod().sk.mods[mi])); if (!SK.ms.length) SK.sel = null; save(); skDraw(); toast(`3D · ${zvNm(i, n)} (${i ? Lv[i - 1] : 0}–${i < n ? Lv[i] : '…'} мм): ${st ? 'видно' : 'скрыто'}`); return true; }
 { const f0 = isoDown; isoDown = function (e, x, y) { if (z3Down(e, x, y)) return; return f0.apply(this, arguments); }; }
 /* ═══ [/BLOCK] WTW v1103 ═══ */
+/* ═══ [BLOCK] ALN — v1104: линии выравнивания по слою (Дмитрий 24.11) ═══
+   Цели привязки по граням (T.ex / T.ey) упорядочены: сначала свой слой (слой перетаскиваемого / растягиваемого объекта) — при равном расстоянии выигрывает он;
+   Shift при перетаскивании — только свой слой (точки, грани; направляющие и пол остаются). Фасад — ещё линии «кромка корпуса − отступ фасада» (faOff каждого модуля).
+   Равные зазоры (P.set.eqG): зазоры между соседями своего слоя в одной колонке / ряду → линии того же зазора у каждого соседа; при привязке — метки «g = g».
+   Кнопки: «Линии выравнивания» (P.set.snL) — в наборе «Привязка»; «Равные зазоры» — в наборе кнопки «Зазоры» (◢ — уголок кнопки). Alt линии не выключает. */
+const ALN = { sh: false };
+const alnOn = () => P.set.snL !== false, eqOn = () => P.set.eqG !== false;
+['keydown', 'keyup'].forEach(t => window.addEventListener(t, e => { ALN.sh = !!e.shiftKey; }, true));
+['pointermove', 'pointerdown'].forEach(t => window.addEventListener(t, e => { ALN.sh = !!e.shiftKey; }, true));
+function alnOwn(sk) {   /* слой и объект, который тянут */
+  const mi = SK.ms[0], m = mi != null ? sk.mods[mi] : null; if (!m) return null; const s = SK.sel || {};
+  const ly = s.dwp || s.d != null ? DWL : s.p && !m.k ? partLy(m, s.p) : lyOf(m); return { m, ly, fac: m.k === 'fac' };
+}
+function alnRectsF(sk, exMods) {   /* главный вид: прямоугольники объектов со слоями (как цели skTargets) */
+  const R = [], exId = exMods ? new Set([...exMods].map(i => sk.mods[i] && sk.mods[i].id)) : null;
+  sk.mods.forEach((m, mi) => { if ((exMods && exMods.has(mi)) || m.hid || !lyVis(lyOf(m)) || (exId && m.src && exId.has(m.src))) return;
+    if (m.k) { if (m.k === 'ap' && m.own) return; R.push({ r: [m.x, m.y, m.x + mW(m), m.y + mH(m)], ly: lyOf(m), m }); return; }
+    R.push({ r: [m.x, m.y, m.x + mW(m), m.y + mH(m)], ly: lyOf(m), m, box: 1 });
+    try { skGeo(m).parts.forEach(pp => R.push({ r: pp.r, ly: partLy(m, pp.id), m })); } catch (e) {}
+    try { dwPartsF(m).forEach(q => R.push({ r: q.r, ly: DWL, m })); } catch (e) {} });
+  return R;
+}
+function alnEq(R, out, DR) {   /* равные зазоры: R — прямоугольники своего слоя; DR — тянущийся объект: зазоры и соседи — из его колонки / ряда (иначе — все); out.x / out.y — {v, g, ref, at} */
+  const ov = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0), inC = (q, j) => !DR || ov(q.r[j], q.r[j + 2], DR[j], DR[j + 2]) > 0.5;
+  [['y', 1, 0], ['x', 0, 1]].forEach(([ax, i, j]) => { const L = [];
+    R.forEach(A => R.forEach(B => { if (A === B) return; const g = B.r[i] - A.r[i + 2]; if (!(g > 0.4 && g <= 200)) return; const o = ov(A.r[j], A.r[j + 2], B.r[j], B.r[j + 2]); if (o < 0.5 * Math.min(A.r[j + 2] - A.r[j], B.r[j + 2] - B.r[j])) return;
+      if (R.some(C => C !== A && C !== B && C.r[i] < B.r[i] - 0.1 && C.r[i + 2] > A.r[i + 2] + 0.1 && ov(C.r[j], C.r[j + 2], A.r[j], A.r[j + 2]) > 0)) return;   /* между ними кто-то есть */
+      const c = (Math.max(A.r[j], B.r[j]) + Math.min(A.r[j + 2], B.r[j + 2])) / 2; L.push({ A, B, g: Math.round(g * 10) / 10, c }); }));
+    const LC = L.filter(q => inC(q.A, j) && inC(q.B, j)), L2 = LC.length ? LC : L; const seen = new Set(); L2.forEach(q => { const k = q.g; if (seen.has(k + ':' + q.A.r[i + 2])) return; seen.add(k + ':' + q.A.r[i + 2]);
+      R.filter(Q => inC(Q, j)).forEach(Q => { const ref = [q.c, q.A.r[i + 2], q.B.r[i]]; const cq = (Q.r[j] + Q.r[j + 2]) / 2;
+        out[ax].push({ v: Q.r[i + 2] + q.g, g: q.g, ref, at: [cq, Q.r[i + 2], Q.r[i + 2] + q.g] }, { v: Q.r[i] - q.g, g: q.g, ref, at: [cq, Q.r[i] - q.g, Q.r[i]] }); }); }); });
+}
+function alnDR(sk, view, R) {   /* прямоугольник тянущегося (выделенного) в координатах вида */
+  if (view === 'f') { const ms = SK.ms.map(i => sk.mods[i]).filter(Boolean); if (!ms.length) return null; return [Math.min(...ms.map(m => m.x)), Math.min(...ms.map(m => m.y)), Math.max(...ms.map(m => m.x + mW(m))), Math.max(...ms.map(m => m.y + mH(m)))]; }
+  try { const L = pvLay(sk), bs = pvBs(sk, view).filter(b => pvSelOn(b)).map(b => pvRect(b, view, L)); if (!bs.length) return null; return [Math.min(...bs.map(r => r[0])), Math.min(...bs.map(r => r[1])), Math.max(...bs.map(r => r[2])), Math.max(...bs.map(r => r[3]))]; } catch (e) { return null; } }
+function alnApply(sk, T, R, view) {   /* порядок / фильтр целей по слою; фасадные отступы; равные зазоры */
+  SK.eqC = null; if (!SK.drag) return T; if (!alnOn()) { T.ex = []; T.ey = []; return T; }
+  const O = alnOwn(sk); if (!O) return T; const mine = R.filter(q => q.ly === O.ly), OX = [], OY = [];
+  mine.forEach(q => { OX.push(q.r[0], q.r[2]); OY.push(q.r[1], q.r[3]); });
+  if (O.fac && view === 'f') R.filter(q => q.box && !q.m.k && mDone(q.m)).forEach(q => { let F = null; try { F = faOff(q.m); } catch (e) {} if (!F) return; const m = q.m; OX.push(m.x + F.l, m.x + mW(m) - F.r); OY.push(m.y + F.b, m.y + mH(m) - F.t); });   /* кромка корпуса − отступ фасада */
+  if (eqOn()) { const E = { x: [], y: [] }, top = mine.filter(q => q.box || !q.m || q.m.k || view !== 'f'); if (top.length <= 120) alnEq(top, E, alnDR(sk, view, R)); SK.eqC = E; E.x.forEach(q => OX.unshift(q.v)); E.y.forEach(q => OY.unshift(q.v)); }
+  const has = (A, v) => A.some(a => Math.abs(a - v) < 0.01);
+  if (ALN.sh) { const P9 = []; mine.forEach(q => skPts9(q.r, P9)); T.pts = (T.pts || []).filter(p => P9.some(q => Math.abs(q[0] - p[0]) < 0.01 && Math.abs(q[1] - p[1]) < 0.01));
+    T.ex = OX; T.ey = OY; delete T.wx; delete T.wy; T.ln = (T.ln || []).filter(g => !g.w); return T; }   /* Shift — только свой слой */
+  T.ex = [...OX, ...(T.ex || []).filter(v => !has(OX, v))]; T.ey = [...OY, ...(T.ey || []).filter(v => !has(OY, v))]; return T;
+}
+{ const f0 = skSnapBox; skSnapBox = function (r, T, gf) { const res = f0.apply(this, arguments); try { const E = SK.eqC; if (!E || !eqOn() || !SK.drag || !alnOn()) return res; const tol = snTol('obj', SK.v.s) / 2;   /* равный зазор ближе выбранной привязки — главнее (ближайшая цель) */
+    const src = gf ? [[r[0] + gf[0] * (r[2] - r[0]), r[1] + gf[1] * (r[3] - r[1])]] : null, ed = (i) => src ? [src[0][i]] : [r[i], r[i + 2]];
+    [['x', 0, 'dx'], ['y', 1, 'dy']].forEach(([ax, i, k]) => { let b = null; ed(i).forEach(v => (E[ax] || []).forEach(q => { const d = q.v - v; if (Math.abs(d) < tol && (!b || Math.abs(d) < Math.abs(b.d))) b = { d, v: q.v }; }));
+      if (b && Math.abs(b.d) < Math.abs(res[k]) - 1e-6) { res[k] = b.d; SK.snapL = { ...(SK.snapL || { x: null, y: null }), [ax]: b.v }; } else if (b && !res[k] && !(SK.snapL && SK.snapL[ax] != null)) { res[k] = b.d; SK.snapL = { ...(SK.snapL || { x: null, y: null }), [ax]: b.v }; } }); } catch (e) { console.error('alnSnap', e); } return res; }; }
+{ const f0 = skTargets; skTargets = function (exMods, ex) { const T = f0.apply(this, arguments); try { const sk = prod().sk; alnApply(sk, T, alnRectsF(sk, exMods), 'f'); } catch (e) { console.error('aln', e); } return T; }; }
+{ const f0 = pvTargets; pvTargets = function (sk, v, L) { const T = f0.apply(this, arguments); try { const selId = new Set(SK.ms.map(i => (sk.mods[i] || {}).id));
+    const R = pvCut(sk, v, pvBs(sk, v)).filter(b => lyVis(b.ly) && !pvSelOn(b) && b.mi != null && b.mi >= 0 && !((sk.mods[b.mi] || {}).src && selId.has(sk.mods[b.mi].src))).map(b => ({ r: pvRect(b, v, L), ly: b.ly, m: sk.mods[b.mi] }));
+    alnApply(sk, T, R, v); } catch (e) { console.error('alnPv', e); } return T; }; }
+/* метки равных зазоров */
+function alnEqDraw() { const E = SK.eqC, s = SK.snapL; if (!E || !s || !SK.drag || !eqOn()) return; const c = $('skc'); if (!c) return; const g = c.getContext('2d'), dpr = window.devicePixelRatio || 1, col = '#D4537E';
+  const hit = (A, v) => A.filter(q => Math.abs(q.v - v) < 0.01); const Lx = s.x != null ? hit(E.x, s.x) : [], Ly = s.y != null ? hit(E.y, s.y) : []; if (!Lx.length && !Ly.length) return;
+  g.save(); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 1.5; g.font = '600 11px system-ui'; g.textBaseline = 'middle';
+  const pill = (X, Y, t, al) => { const w = g.measureText(t).width + 8, x0 = al === 'left' ? X - 2 : X - w / 2; g.save(); g.fillStyle = '#FFFFFF'; g.strokeStyle = col; g.lineWidth = 1; g.fillRect(x0, Y - 8, w, 16); g.strokeRect(x0, Y - 8, w, 16); g.restore(); g.fillText(t, al === 'left' ? X + 2 : X, Y); };
+  const mk = (vert, c0, a, b, lbl) => { if (vert) { const X = sx(c0), A = sy(a), B = sy(b); g.beginPath(); g.moveTo(X, A); g.lineTo(X, B); g.moveTo(X - 7, A); g.lineTo(X + 7, A); g.moveTo(X - 7, B); g.lineTo(X + 7, B); g.stroke(); g.textAlign = 'left'; pill(X + 9, (A + B) / 2, lbl, 'left'); }
+    else { const Y = sy(c0), A = sx(a), B = sx(b); g.beginPath(); g.moveTo(A, Y); g.lineTo(B, Y); g.moveTo(A, Y - 5); g.lineTo(A, Y + 5); g.moveTo(B, Y - 5); g.lineTo(B, Y + 5); g.stroke(); g.textAlign = 'center'; pill((A + B) / 2, Y - 12, lbl, 'center'); } };
+  const one = (q, vert) => { const t = String(q.g).replace('.', ','); mk(vert, q.ref[0], q.ref[1], q.ref[2], t); mk(vert, q.at[0], q.at[1], q.at[2], '= ' + t); };
+  if (Ly[0]) one(Ly[0], true); if (Lx[0]) one(Lx[0], false); g.restore(); SK.eqHit = { x: Lx.length, y: Ly.length }; }
+{ const f0 = skDraw00; skDraw00 = function () { const r = f0.apply(this, arguments); SK.eqHit = null; try { if (!SK.iso) alnEqDraw(); } catch (e) { console.error('alnEq', e); } return r; }; }
+/* кнопки */
+const ALN_EQI = '<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="4.5" rx=".6"/><rect x="4" y="9.75" width="16" height="4.5" rx=".6"/><rect x="4" y="16.5" width="16" height="4.5" rx=".6"/><path d="M22 7.5v2.25M22 14.25v2.25" stroke="#D4537E" stroke-width="2"/></svg>';
+const ALN_LNI = '<svg viewBox="0 0 24 24"><rect x="3" y="9" width="7" height="9" rx=".6"/><rect x="14" y="5" width="7" height="13" rx=".6"/><path d="M1.5 9h21" stroke="#D4537E" stroke-dasharray="2 2"/></svg>';
+{ const f0 = skTlHtml; skTlHtml = function () { let h = f0.apply(this, arguments);
+  h = h.replace(/(<button[^>]*data-a="snG"[^>]*>[\s\S]*?<\/button>)/, `$1<button class="tl-it${alnOn() ? ' on' : ''}" data-a="snL" data-tip="${esc('Линии выравнивания: грани и середины объектов по осям — при равном расстоянии главнее свой слой (фасад — к фасадам и к кромке корпуса с отступом фасада); Shift при перетаскивании — только свой слой. Нажата — включены')}">${ALN_LNI}</button>`);
+  h = h.replace(/(<button class="tl-b)([^"]*)(" data-gapm[^>]*>[\s\S]*?<\/button>)/, (q, a, b, c) => `<div class="tl-g" data-g="gz">${a} gr${b}${c}<div class="tl-fly" hidden><button class="tl-it${SK.gapM ? ' on' : ''}" data-gzg="1" data-tip="${esc('Зазоры (G): зазоры и размеры фасадов на главном виде')}">${GAP_I}</button><button class="tl-it${eqOn() ? ' on' : ''}" data-a="eqG" data-tip="${esc('Равные зазоры: при перетаскивании и растяжке — привязка к тому же зазору, что между соседями своего слоя (фасады в колонке, модули в ряду); метки «g = g». Нажата — включены')}">${ALN_EQI}</button></div></div>`);
+  return h; }; }
+{ const corner = (b, e) => { const r = b.getBoundingClientRect(); return e.clientX > r.right - 11 && e.clientY > r.bottom - 11; };
+  window.addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('#skTl [data-gapm]'); if (b && corner(b, e)) e.stopImmediatePropagation(); }, true);   /* уголок — не долгое нажатие */
+  window.addEventListener('click', e => { const t = e.target.closest && e.target; if (!t) return; const b = t.closest('#skTl [data-gapm]');
+    if (b && corner(b, e)) { e.stopImmediatePropagation(); e.preventDefault(); const f = b.nextElementSibling; if (!f || !f.classList.contains('tl-fly')) return; const op = f.hidden; skTlClose(f); f.hidden = !op; b.classList.toggle('open', op); try { tipHide(); } catch (x) {} return; }
+    const g = t.closest('#skTl [data-gzg]'); if (g) { gapTog(); g.classList.toggle('on', !!SK.gapM); return; }
+    const q = t.closest('#skTl [data-a=eqG], #skTl [data-a=snL]'); if (!q) return; const k = q.dataset.a; P.set[k] = P.set[k] === false; q.classList.toggle('on', P.set[k] !== false); save();
+    toast(k === 'snL' ? (alnOn() ? 'Линии выравнивания — вкл (Shift — только свой слой)' : 'Линии выравнивания — выкл') : (eqOn() ? 'Равные зазоры — вкл' : 'Равные зазоры — выкл')); }, true); }
+{ const g0 = gapTog; gapTog = function () { const r = g0.apply(this, arguments); document.querySelectorAll('#skTl [data-gzg]').forEach(b => b.classList.toggle('on', !!SK.gapM)); return r; }; }
+{ const st = document.createElement('style'); st.textContent = '#skTl > [data-g=gz]{order:17}'; document.head.appendChild(st); }   /* место «Зазоров» в левом меню (v872) */
+/* ═══ [/BLOCK] ALN v1104 ═══ */
 /* ═══ [BLOCK] VIEW — просмотр чертежа на телефоне (Akrix Job, этап 1; Дмитрий 22.11.2026, job/PLAN_mount_view.md) ═══
    Только сборка akrix-job/view/ (view_build.py): код конструктора как есть, правка отключена.
    Проект — с сервера Job (projGet по заказу / проекту, текущая версия из akrix-projects); копия на телефоне (localStorage akxView:<ключ>) — открывается сразу и без сети.
