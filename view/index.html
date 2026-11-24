@@ -1,5 +1,5 @@
 <!doctype html><html><head>
-<!-- Akrix view: конструктор v1100, сборка 2026-11-24 10:30, 6b6606a9af --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
+<!-- Akrix view: конструктор v1101, сборка 2026-11-24 11:01, 1131db9673 --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.tb-nav .tb-nav-b button{padding:2px 8px;font-size:12px}.tb-nav .tb-nav-b button.on{background:var(--acc-soft,#dceb);border-color:var(--acc,#2a7);font-weight:600}
 #skProp .uf-zr{flex-wrap:wrap;row-gap:4px}
 #skProp .pr-s[data-c] > b::before{display:none!important}#skProp .pr-s[data-c]:not([data-c="cost"]) > b{color:inherit!important}#skProp .uf-bt{flex-wrap:wrap;row-gap:4px}   /* v852: заголовки как в новых панелях, кнопки с переносом */
 #skProp .pr-h .nav-lk{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:var(--acc,#2E6B57)}#skProp .pr-h .nav-lk:hover{color:var(--sel,#c00)}#skProp .nav-sost .nav-b button{padding:2px 8px;font-size:12px}   /* v853 */
@@ -1079,7 +1079,7 @@ body.ms-on{overflow:hidden}
   <div class="hd-tools" id="hdTools"></div>   <!-- v138: место под кнопки и команды -->
   <button id="btnCnc" title="Akrix CNC · Drilling — присадка у станка, внутри Akrix (детали — «⇩ Drilling» в окне свойств)" aria-label="Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><rect x="3" y="15" width="18" height="5" rx="1" fill="#16A34A" opacity=".25" stroke="#16A34A"/><path d="M12 3v9m-3-6h6m-5 6 2 3 2-3" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v664 -->
   <button id="btnCns" title="Набор для Drilling — выбрать модули, ящики, типы деталей и передать в Drilling" aria-label="Набор для Drilling"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><path d="M4 6h10M4 12h10M4 18h7" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round"/><path d="m15 15 2.5 2.5L21 13" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>   <!-- v665 -->
-  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1100</span>   <!-- v615: номер — inst.sh -->
+  <span id="akVer" title="Версия приложения — сверяйте с последним обновлением">v1101</span>   <!-- v615: номер — inst.sh -->
   <button id="btnCfg" title="Настройки: общие, холст, проект, петли, горячие клавиши, данные" aria-label="Настройки">⚙</button>
   <button id="btnCx" title="Режим конструктора интерфейса: двигать, масштабировать, добавлять объекты, скетч">🛠</button>
   <button id="btnTheme" hidden title="Тема — светлая" aria-label="Тема">☀</button>
@@ -35974,6 +35974,55 @@ function blkOrd(p) { if (!(P.set && P.set.mOrd) || !p || !Array.isArray(p.blocks
 { const f0 = blkSync; blkSync = function (p) { const r = f0.apply(this, arguments); try { blkOrd(p); } catch (e) { console.error('mord', e); } return r; }; }
 { const f0 = renderBlocks; renderBlocks = function () { try { blkOrd(prod()); } catch (e) {} return f0.apply(this, arguments); }; }
 /* ═══ [/BLOCK] v1100 ═══ */
+/* ═══ [BLOCK] v1101 ДЕТАЛЬ ЯЩИКА: DELETE — ТОЛЬКО ЭТА ДЕТАЛЬ (Дмитрий 24.11, шаг 1 из 3: удаление · размеры детали · линии выравнивания) ═══ */
+/* Выделена деталь короба (SK.sel.dwp: Ctrl+клик на главном / 3D, клик на разрезе) → Delete убирает только её: m.dwo[dk].dp = {F | BK | BT | L | R: 1}
+   (перед, зад, дно, бок лев., бок прав.). Детали нет в модели (3D, разрезы), деталировке, раскрое, Drilling; присадка ответных деталей под этот стык снимается
+   (короб из ЛДСП: стык перед / зад ↔ бока — ряд у торца бока, дно ↔ перед / зад — саморезы дна, дно ↔ бока — ряд у низа бока и торцы W1 / W2 переда / зада / дна; бок ↔ остальные — торцы и эксцентрики со стороны бока).
+   Вернуть — ↺ в «Удалённые детали» (свойства ящика) или Ctrl+Z. Ящик целиком — выделить ящик (без детали) → Delete, как было. */
+const DWD_NM = { F: 'перед', BK: 'зад', BT: 'дно', L: 'бок лев.', R: 'бок прав.' };
+const dwdRole = nm => { nm = String(nm || ''); return /^Перед ящика/.test(nm) ? 'F' : /^Зад ящика/.test(nm) ? 'BK' : /^Дно ящика/.test(nm) ? 'BT' : /^Бок ящика прав/.test(nm) ? 'R' : /^Бок ящика/.test(nm) ? 'L' : null; };
+function dwdOf(m, dk) { const o = (m.dwo || {})[dk]; return (o && o.dp) || null; }
+function dwdAny(m) { return Object.values(m.dwo || {}).some(o => o && o.dp && Object.keys(o.dp).length); }
+/* ключ детали → [dk, роль] (по 3D-коробам и имени детали) */
+function dwdKey(m, pk) { let dk = null; try { skDw3D(m, skGeo(m), (x0, y0, x1, y1, z0, z1, o) => { if (o && o.pk === pk && o.dk) dk = o.dk; }); } catch (e) {} if (!dk) return null;
+  let nm = null; try { const p = skModParts0(m).find(q => q.key === pk); nm = p && p.nm; } catch (e) {} if (!nm && /r$/.test(pk)) nm = 'Бок ящика прав.'; const r = dwdRole(nm); return r ? [dk, r] : null; }
+/* удалённые ключи модуля: {pk: [dk, роль]} */
+function dwdKeys(m) { if (!dwdAny(m)) return {}; const M = {}; try { skDw3D(m, skGeo(m), (x0, y0, x1, y1, z0, z1, o) => { if (!o || !o.pk || !o.dk || M[o.pk]) return; const D = dwdOf(m, o.dk); if (!D) return; M[o.pk] = [o.dk, null]; }); } catch (e) {}
+  let P = []; try { P = skModParts0(m); } catch (e) {} const out = {};
+  Object.keys(M).forEach(pk => { const p = P.find(q => q.key === pk), r = dwdRole(p ? p.nm : /r$/.test(pk) ? 'Бок ящика прав.' : ''); if (r && dwdOf(m, M[pk][0])[r]) out[pk] = [M[pk][0], r]; }); return out; }
+/* модель: 3D / разрезы */
+{ const f0 = skDw3D; skDw3D = function (m, g, b) { if (!m || !dwdAny(m)) return f0.apply(this, arguments); const K = DWDX.get(m) || dwdKeys(m); return f0.call(this, m, g, (x0, y0, x1, y1, z0, z1, o) => { if (o && o.pk && K[o.pk]) return; return b(x0, y0, x1, y1, z0, z1, o); }); }; }
+const DWDX = new WeakMap();   /* на время одного вызова dwdKeys внутри skDw3D — без рекурсии */
+{ const f0 = dwdKeys; dwdKeys = function (m) { if (DWDX.has(m)) return DWDX.get(m); DWDX.set(m, {}); try { const r = f0.apply(this, arguments); return r; } finally { DWDX.delete(m); } }; }
+/* деталировка, раскрой, Drilling */
+{ const f0 = skModParts; skModParts = function (m) { const P = f0.apply(this, arguments); try { if (m && !m.k && dwdAny(m)) { const K = dwdKeys(m); return P.filter(p => !K[p.key]); } } catch (e) { console.error('dwd parts', e); } return P; }; }
+/* присадка: своя деталь — вся; ответные — ряд под стык с удалённой */
+{ const f0 = fxOps; fxOps = function (sk, m) { const out = f0.apply(this, arguments); try { if (!out || !m || m.k || !dwdAny(m)) return out; const K = dwdKeys(m); let FS = []; try { FS = dwFx(m); } catch (e) {}
+    const near = (a, b) => Math.abs(num(a) - b) < 0.6, cut = (k, f) => { if (out[k]) out[k] = out[k].filter(o => !f(o)); };
+    FS.forEach(F => { const G = F.G, i0 = F.i0, kL = m.id + ':dw' + i0, kR = kL + 'r', kF = m.id + ':dw' + (i0 + 1), kBT = m.id + ':dw' + (i0 + 2), kBK = m.id + ':dw' + (i0 + 3), D = dwdOf(m, F.d.dk); if (!D) return;
+      const t = G.t, L = G.L, yb = G.S.bot + G.tb / 2, cam = FX_O.camX, iw = G.iw, side = [kL, kR], rest = [kF, kBK, kBT];
+      if (D.F) { side.forEach(k => cut(k, o => near(o.x, t / 2))); cut(kBT, o => o.t !== 'edge' && near(o.y, t / 2)); }
+      if (D.BK) { side.forEach(k => cut(k, o => near(o.x, L - t / 2))); cut(kBT, o => o.t !== 'edge' && near(o.y, L - t / 2)); }
+      if (D.BT) { side.forEach(k => cut(k, o => near(o.y, yb))); [kF, kBK].forEach(k => cut(k, o => o.t === 'edge' && o.e === 'L1')); }
+      if (D.L) rest.forEach(k => cut(k, o => o.t === 'edge' ? o.e === 'W1' : near(o.x, cam) && /Minifix|Шкант/.test(o.n || '')));
+      if (D.R) rest.forEach(k => cut(k, o => o.t === 'edge' ? o.e === 'W2' : near(o.x, iw - cam) && /Minifix|Шкант/.test(o.n || ''))); });
+    Object.keys(K).forEach(k => { delete out[k]; }); } catch (e) { console.error('dwd ops', e); } return out; }; }
+/* Delete: выделена деталь ящика — только она */
+{ const d0 = skDel; skDel = function () { try { const sk = prod().sk, s = SK.sel, pk = s && s.d != null ? (s.dwp || SK.dwp) : null;
+    if (pk && SK.ms.length <= 1 && sk.mods[s.m]) { const m = sk.mods[s.m], r = dwdKey(m, pk);
+      if (r) { const [dk, role] = r; m.dwo = { ...(m.dwo || {}) }; const o = m.dwo[dk] = { ...(m.dwo[dk] || {}) }; o.dp = { ...(o.dp || {}), [role]: 1 };
+        SK.sel = { ...s, dwp: null }; SK.dwp = null; skTrDone(); toast(`Удалена деталь ящика: ${DWD_NM[role]} · вернуть — «Удалённые детали» в свойствах ящика или Ctrl+Z`); return; } } } catch (e) { console.error('dwd del', e); }
+  return d0.apply(this, arguments); }; }
+/* свойства ящика: «Удалённые детали» ↺ — после поля «Тип» ящика */
+function dwdHtml(m, dk) { const D = m && dwdOf(m, dk); if (!D || !Object.keys(D).length) return '';
+  return `<div class="pr-s dwd-l" data-dwdl="${esc(dk)}"><b>Удалённые детали</b>${Object.keys(D).map(r => `<div class="dwd-r"><s>${esc(DWD_NM[r] || r)}</s><button type="button" data-dwdr="${r}" title="Вернуть деталь">↺</button></div>`).join('')}</div>`; }
+{ const f0 = skPropUi; skPropUi = function () { const r = f0.apply(this, arguments); try { const s = SK.sel, sk = prod().sk; if (!s || s.d == null || !sk.mods[s.m]) return r; const t = document.querySelector('[data-dwt]'); if (!t || document.querySelector('[data-dwdl]')) return r;
+    const h = dwdHtml(sk.mods[s.m], s.d); if (!h) return r; const sec = t.closest('.pr-s') || t.parentElement; const x = document.createElement('div'); x.innerHTML = h; sec.after(x.firstElementChild); } catch (e) { console.error('dwd ui', e); } return r; }; }
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-dwdr]'); if (!b) return; const w = b.closest('[data-dwdl]'), s = SK.sel, sk = prod().sk; if (!w || !s || !sk.mods[s.m]) return;
+  const m = sk.mods[s.m], dk = w.dataset.dwdl, o = (m.dwo || {})[dk]; if (!o || !o.dp) return; m.dwo = { ...m.dwo }; const n = m.dwo[dk] = { ...o, dp: { ...o.dp } }; delete n.dp[b.dataset.dwdr]; if (!Object.keys(n.dp).length) delete n.dp;
+  skTrDone(); toast('Деталь ящика возвращена'); }, true);
+(() => { const st = document.createElement('style'); st.textContent = '.dwd-l .dwd-r{display:flex;align-items:center;gap:6px;font-size:12px}.dwd-l button{margin-left:auto;padding:0 6px}'; document.head.appendChild(st); })();
+/* ═══ [/BLOCK] v1101 ═══ */
 /* ═══ [BLOCK] VIEW — просмотр чертежа на телефоне (Akrix Job, этап 1; Дмитрий 22.11.2026, job/PLAN_mount_view.md) ═══
    Только сборка akrix-job/view/ (view_build.py): код конструктора как есть, правка отключена.
    Проект — с сервера Job (projGet по заказу / проекту, текущая версия из akrix-projects); копия на телефоне (localStorage akxView:<ключ>) — открывается сразу и без сети.
