@@ -498,7 +498,7 @@ body{padding-top:calc(6px + var(--tg-safe-area-inset-top,0px) + var(--tg-content
 .shpre{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
 .shr{display:flex;align-items:center;gap:6px;padding:3px 0}
 .shr .tpn{flex:1;min-width:0}
-.shr b{min-width:44px;text-align:center}
+.shr b{min-width:64px;text-align:right} .shr input.shin{width:72px;flex:none;min-height:34px;text-align:right;padding:4px 8px;border:1.5px solid var(--line);border-radius:8px;background:var(--tile)} .shr input.shin:focus{border-color:var(--acc);outline:0} .shr input.shin.bad{border-color:var(--bad);color:var(--bad)} .shsw{display:inline-flex;margin-left:auto;margin-right:8px;border-radius:8px;overflow:hidden;box-shadow:0 0 0 1px var(--line)} .shsw button{min-height:26px;padding:2px 12px;border:0;background:var(--tile);font-weight:600} .shsw button.on{background:var(--acc);color:#1b1b1b} .shu{min-width:14px} .dlr .linkbtn{background:none;min-height:0;padding:0;border:0;box-shadow:none}
 .shr .btn{min-height:28px;padding:2px 8px}
 .lvl{font-size:10px;color:var(--mute);font-weight:400}
 .linkbtn{background:none;border:0;padding:0;color:var(--acc-text);text-decoration:underline;font:inherit;cursor:pointer}
@@ -581,7 +581,7 @@ details.kpk[open]>summary.ksum{margin:0 -8px;padding:0 8px}
 .nflag.yellow{background:#e3ae0b;color:#1a1400} .nflag.orange{background:#e06a00} .nflag.red{background:#d02a2a} .nflag.ok{background:var(--ok)}
 .tpadd2{padding:8px 4px 0;border-top:1px solid var(--line);margin-top:4px} .tpadd2 .cadd select{flex:1}
 .mhist{margin-top:6px} .mrow{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0;color:var(--mute)}
-.tasks[open]+.trunpin{display:none} .trunpin{margin-top:-6px;padding-top:8px;box-shadow:inset 0 0 0 1.5px var(--acc)} .trunpin .trow{border:0}
+.tasks[open]+.trunpin{display:none} .dli>summary{list-style:none;cursor:pointer} .dli>summary::-webkit-details-marker{display:none} .dli .rr{display:flex;align-items:center;gap:10px} .dcnt{min-width:26px;padding:1px 7px;border-radius:10px;background:var(--line,#eee);font-size:13px;text-align:center;color:var(--mute,#666)} .dli[open] .dcnt{background:var(--acc);color:#1b1b1b} .dlb{padding:0 0 8px} .dlj .tpop{position:static;max-width:none;max-height:none;margin:0 0 8px 12px;padding:6px 0 4px;border-radius:0;box-shadow:none;background:transparent;z-index:auto;min-width:0} .dlr{display:flex;justify-content:space-between;gap:10px;padding:6px 0 6px 10px;border-left:2px solid var(--acc);margin:4px 0} .trunpin{margin-top:-6px;padding-top:8px;box-shadow:inset 0 0 0 1.5px var(--acc)} .trunpin .trow{border:0}
 
 .nosheet{max-height:88vh;overflow-y:auto} .nosheet .cadd input,.nosheet .cadd select{min-height:42px;font-size:15px}
 .nodates{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px} .nof{font-size:12px;color:var(--mute);display:flex;flex-direction:column;gap:3px} .nof input{min-height:40px;font-size:13px;padding:4px 6px;width:100%}
@@ -921,6 +921,7 @@ function findOp(order, key){ const [cat,id]=key.split('.'); const line=order.lin
 
 /* ============ BLOCK: STATE ============ */
 const S = { segs:[], role:'emp', tab:'today', onShift:false, todayEarned:0, todayLines:[], closing:false, showPctAlt:{}, fundPer:'week' };
+try{ S.shMode=localStorage.getItem('akxShMode')||'pct'; }catch(e){ S.shMode='pct'; }
 function segsOf(r){ const L=String(r[11]||'').trim();   // колонка L «Отрезки»: 08:10–12:00, 13:00–
   if(L) return L.split(',').map(x=>{ const p=x.trim().split('–'); return {s:p[0], e:p[1]||''}; });
   return [{s:String(r[2]), e:r[3]?String(r[3]):''}]; }
@@ -1010,7 +1011,8 @@ function vToday(){
       const head = ti===0||list[ti-1].o!==o ? `<div class="tgh ${ti?'sep':''}"><span class="won">${oName(o)} ${oCode(o)}</span></div>` : '';
       return head+taskRow(o,line,op,t,false); }).join('')}</div>`:UI.note('Задач нет. Возьми работу в «Все работы».');
   const tDone=x=>{ const f=findOp(x.o,x.t.op); return !!(f.op&&(f.line.prog[f.op[0]]||0)>=100); };
-  const tasks=ORDERS.flatMap(o=>o.tasks.filter(t=>!isMountOp(t.op)).map(t=>({o,t}))).map((x,i)=>({x,i,d:tDone(x)})).sort((a,b)=>(a.d-b.d)||(a.i-b.i)).map(y=>y.x);   // выполненные — вниз
+  const isRun=x=>S.active&&S.active.order===x.o.id&&S.active.op===x.t.op;
+  const tasks=ORDERS.flatMap(o=>o.tasks.filter(t=>!isMountOp(t.op)).map(t=>({o,t}))).filter(x=>!tDone(x)||isRun(x));   // TODAY2 (25.11): выполненные — в «Сделано сегодня», здесь только открытые
   const mtasks=ORDERS.flatMap(o=>o.tasks.filter(t=>isMountOp(t.op)).map(t=>({o,t})));
   const soon=tasks.filter(x=>{ const {line,op}=findOp(x.o,x.t.op); const v=payParts(opAmount(x.o,line,op),op,prisPct(x.o,line,op)).fix/RATE_H; return v>0&&factH(x.o,x.t.op)/v>1.2; }).length;
   const actTxt=S.active?(()=>{ const o=oById(S.active.order), f=o&&findOp(o,S.active.op); return f&&f.op?'● '+f.op[1]:''; })():'';
@@ -1019,7 +1021,7 @@ function vToday(){
     html+=`<div class="tile w trunpin"><div class="small mute">${oName(x.o)} ${oCode(x.o)}</div><div class="tlist">${taskRow(x.o,line,op,x.t,false)}</div></div>`; } }
   if(mtasks.length){ const mo=mtasks.map(x=>x.o).filter((x,i,a)=>a.indexOf(x)===i);
     html+=`<button type="button" class="tile w tlink" data-tab="mount"><span class="l">Подготовка и монтаж<span class="go">›</span></span><span class="v num">${mtasks.length}</span><span class="s">${mo.map(o=>esc(o.client)+(o.mountAt?' · на монтаже':'')).join(', ')}</span></button>`; }
-  if(S.todayLines.length) html+=UI.sec('Сделано сегодня', vLines(S.todayLines), `<b class="num">${fmt0(S.todayEarned)} ₾</b>`);
+  if(S.todayLines.length) html+=UI.sec('Сделано', vLines(S.todayLines), `<b class="num">${fmt0(S.todayEarned)} ₾</b>`);
   html+=vGrowthTile();
   html+=vMoneyTile();
   const p=planParts(), pt2=planLoad(ME,p.t);
@@ -1037,7 +1039,7 @@ function taskRow(o,line,op,t,boss){
       <input type="checkbox" class="ochk tchk" aria-label="Готово" data-o="${oi}" data-op="${k}" ${boss?'data-boss="1"':''} ${done?'checked':''} ${lock?'disabled':''}>
       <div class="tmain"><span class="tn">${op[1]}</span><span class="ts">${opNums(o,line,op)}</span></div>
       <button type="button" class="tppl-btn ${ppl.length>(boss?0:0)?'grp':''} ${open?'open':''}" data-act="joinOpen" data-k="${esc(o.id+'|'+k+(boss?'|b':''))}" aria-label="Участники задачи">${ppl.length>1||(!boss&&ppl.length)?ICON.pair:ICON.person}</button>
-      <button type="button" class="tplay ${run?'on':''}" data-act="${run?'workStop':'workStart'}" data-o="${oi}" data-op="${k}" ${S.onShift&&!done?'':'disabled'} aria-label="${run?'Пауза':'Приступить'}">${run?'⏸':'▶'}</button>
+      <button type="button" class="tplay ${run?'on':''}" data-act="${run?'workStop':'workStart'}" data-o="${oi}" data-op="${k}" ${run||(S.onShift&&!done)?'':'disabled'} aria-label="${run?'Пауза':'Приступить'}">${run?'⏸':'▶'}</button>
       ${open?vJoin(o,oi,k,Object.assign({},t,{boss})):''}</div>`; }
 function vJoin(o,oi,k,t){ // всплывающий список: время и доля суммы каждого; жёлтым — кто в задаче; тап по другому — подключить / отключить
   const ppl=PART[o.id+'|'+k]||new Set(), {line,op}=findOp(o,k), sum=payParts(opAmount(o,line,op),op,prisPct(o,line,op)).fix;
@@ -1045,7 +1047,7 @@ function vJoin(o,oi,k,t){ // всплывающий список: время и 
   const man={}; TIMEJ.forEach(t=>{ if(t.manual&&t.order===o.id&&t.op===k) man[t.who]=(man[t.who]||0)+t.min/60; });
   const row=p=>{ const on=ppl.has(p)||(p===ME&&!t.boss), h=(mins[p]||0)/60, v=sum*(sh[p]||0);
     const noClock=!h&&on;
-    const body=`<span class="tpn">${esc(PEOPLE[p]||p)}${p===ME?' (я)':''}${noClock?' <span class="tpm">без счётчика</span>':''}</span><span class="tpv num">${h?fmt(h)+' ч'+(man[p]?` <span class="tpm">✎ ${fmt(man[p])} вручную</span>`:'')+' · ':''}${on?fmt0(v)+' ₾':''}</span>`;
+    const body=`<span class="tpn">${esc(PEOPLE[p]||p)}${p===ME?' (я)':''}${noClock?' <span class="tpm">без счётчика</span>':''}</span><span class="tpv num">${h?fmt(h)+' ч'+(man[p]?` <span class="tpm">✎ ${fmt(man[p])} вручную</span>`:'')+' · ':''}${on?`<span data-pamt="${esc(p)}">${fmt0(v)} ₾</span>`:''}</span>`;
     if(p===ME&&!t.boss) return `<div class="tpi on me">${body}</div>`;
     const on2=t.boss?ppl.has(p):on; return `<button class="tpi ${on2?'on':''}" data-act="join" data-o="${oi}" data-op="${k}" data-who="${p}" aria-pressed="${on2}">${body}</button>`; };
   return `<div class="tpop" role="dialog" aria-label="Участники задачи">
@@ -1054,7 +1056,7 @@ function vJoin(o,oi,k,t){ // всплывающий список: время и 
     ${t.boss?'<div class="small mute" style="padding:2px 4px">Отметь, кто делает, затем ставь галку «готово».</div>':''}
     ${vManual(o,oi,k,t,ppl)}
     ${vShareBox(o,oi,k,t,sh)}
-    ${t.self?`<button class="tpi undo" data-act="untake" data-o="${oi}" data-op="${k}">Отменить взятое</button>`:''}</div>`; }
+    ${t.self&&!t.done?`<button class="tpi undo" data-act="untake" data-o="${oi}" data-op="${k}">Отменить взятое</button>`:''}</div>`; }
 /* ===== BLOCK: ВРЕМЯ ВРУЧНУЮ — любой день, с пометкой; за себя — каждый; за других — взявший задачу или руководитель; минус — поправка ===== */
 function vManual(o,oi,k,t,ppl){ const canAll=IS_BOSS||t.self, who=[...new Set([ME,...ppl])].filter(p=>canAll||p===ME);
   const days=[]; for(let i=0;i<30;i++){ const d=addD(TODAY,-i); days.push([iso(d), i===0?'сегодня':i===1?'вчера':dShort(iso(d))]); }
@@ -1064,16 +1066,39 @@ function vManual(o,oi,k,t,ppl){ const canAll=IS_BOSS||t.self, who=[...new Set([M
     <div class="cadd"><input id="tadd" type="text" inputmode="decimal" placeholder="часы, напр. 1,5 или −0,5"><button class="btn small" data-act="timeAdd" data-o="${oi}" data-op="${k}">Записать</button></div>
     ${hist?`<div class="mhist">${hist}</div>`:''}</div>`; }
 /* ===== END BLOCK: ВРЕМЯ ВРУЧНУЮ ===== */
+/* ===== BLOCK: SHARE-IN (25.11) — доли цифрами: поля у всех участников, ввод в % или ₾ (переключатель); после ввода разницу до 100%
+   забирает поле, которое дольше всех не трогали (вдвоём — второе); дробные (33,33); хранится в % ===== */
+const shFmt=v=>String(Math.round(v*100)/100).replace('.',',');
+const SHT={};   // порядок правок по задаче: последний — самый свежий
+function shSum(o,k){ const f=findOp(o,k); return payParts(opAmount(o,f.line,f.op),f.op,prisPct(o,f.line,f.op)).fix; }
 function vShareBox(o,oi,k,t,sh){ const ppl=PART[o.id+'|'+k]||new Set(), mem=t.boss?[...ppl]:[ME,...[...ppl].filter(p=>p!==ME)];
-  const src=shareSrc(o.id,k), can=t.boss||t.self||IS_BOSS;
+  const src=shareSrc(o.id,k), can=t.boss||t.self||IS_BOSS, gel=S.shMode==='gel', sum=shSum(o,k);
   if(mem.length<2) return `<div class="small mute" style="padding:2px 4px">Сумма делится поровну между участниками. Ученику (навык 0–1) — 20%, вручную до 40%. Таймер на деньги не влияет — он раскладывает заработок по дням.</div>`;
-  const pct=p=>Math.round((sh[p]||0)*100), first=mem[0], lv=p=>{ const l=skillLv(p,k); return l==null?'':` <span class="lvl">ур. ${l}</span>`; };
-  const rows=mem.map((p,i)=>`<div class="shr"><span class="tpn">${esc(PEOPLE[p]||p)}${lv(p)}</span>${can&&i>0?`<button class="btn small ghost" data-act="shStep" data-o="${oi}" data-op="${k}" data-who="${esc(p)}" data-d="-5">−5</button>`:''}<b class="num">${pct(p)}%</b>${can&&i>0?`<button class="btn small ghost" data-act="shStep" data-o="${oi}" data-op="${k}" data-who="${esc(p)}" data-d="5">+5</button>`:''}</div>`).join('');
-  const pre=can&&mem.length===2?`<div class="shpre">${[50,60,70,80].map(v=>`<button class="btn small ${Math.max(...mem.map(pct))===v?'':'ghost'}" data-act="shPreset" data-o="${oi}" data-op="${k}" data-v="${v}">${v}/${100-v}</button>`).join('')}</div>`:'';
-  return `<div class="shbox"><div class="shh"><b>Доли</b><span class="small mute">${src}${src==='вручную'&&can?` · <button class="linkbtn" data-act="shReset" data-o="${oi}" data-op="${k}">сбросить</button>`:''}</span></div>${pre}${rows}
-    ${can?'':'<div class="small mute">Доли задаёт тот, кто взял задачу, или руководитель.</div>'}</div>`; }
+  const pct=p=>Math.round((sh[p]||0)*10000)/100, gr=v=>Math.abs(v-Math.round(v))<0.015?Math.round(v):Math.round(v*100)/100, val=p=>gel?gr(sum*pct(p)/100):pct(p), lv=p=>{ const l=skillLv(p,k); return l==null?'':` <span class="lvl">ур. ${l}</span>`; };
+  const rows=mem.map(p=>`<div class="shr"><span class="tpn">${esc(PEOPLE[p]||p)}${lv(p)}</span>${can?`<input class="shin num" type="text" inputmode="decimal" value="${shFmt(val(p))}" data-o="${oi}" data-op="${k}" data-who="${esc(p)}" aria-label="Доля ${esc(PEOPLE[p]||p)}, ${gel?'₾':'%'}">`:`<b class="num">${shFmt(val(p))}</b>`}<span class="small mute shu">${gel?'₾':'%'}</span></div>`).join('');
+  const sw=`<div class="shsw" role="group" aria-label="Ввод долей"><button class="${gel?'':'on'}" data-act="shMode" data-v="pct">%</button><button class="${gel?'on':''}" data-act="shMode" data-v="gel">₾</button></div>`;
+  return `<div class="shbox" data-shsum="${sum}" data-gel="${gel?1:''}" data-k="${esc(o.id+'|'+k)}"><div class="shh"><b>Доли</b>${sw}<span class="small mute">${src}${src==='вручную'&&can?` · <button class="linkbtn" data-act="shReset" data-o="${oi}" data-op="${k}">сбросить</button>`:''}</span></div>${rows}
+    ${can?`<div class="small mute">${gel?`Всего ${fmt0(sum)} ₾. `:''}Разницу до ${gel?fmt0(sum)+' ₾':'100%'} забирает поле, которое дольше всех не меняли.</div>`:'<div class="small mute">Доли задаёт тот, кто взял задачу, или руководитель.</div>'}</div>`; }
+/* поле → %: в режиме ₾ пересчёт от суммы задачи */
+function shPct(box,v){ const sum=+box.dataset.shsum||0; return box.dataset.gel?(sum?v/sum*100:0):v; }
+function shLive(inp){ const box=inp.closest('.shbox'), sum=+box.dataset.shsum||0, pop=box.closest('.tpop'), p=inp.dataset.who, a=pop&&pop.querySelector(`[data-pamt="${CSS.escape(p)}"]`);
+  if(a) a.textContent=fmt0(sum*Math.max(0,shPct(box,num(inp.value)||0))/100)+' ₾'; }
+function shCommit(inp){ const box=inp.closest('.shbox'), key=box.dataset.k, o=ORDERS[+inp.dataset.o], k=inp.dataset.op, me=inp.dataset.who, gel=!!box.dataset.gel, sum=+box.dataset.shsum||0;
+  const F=[...box.querySelectorAll('.shin')], mem=F.map(x=>x.dataset.who), m={}; F.forEach(x=>{ m[x.dataset.who]=shPct(box,num(x.value)||0); });
+  const T=(SHT[key]=(SHT[key]||[]).filter(x=>x!==me)); T.push(me);
+  const others=mem.filter(p=>p!==me), fresh=others.filter(p=>!T.includes(p)), abs=fresh.length?fresh[fresh.length-1]:T.find(p=>p!==me);   // нетронутые — последнее из них; иначе тронутое давнее всех
+  const rest=Math.round((100-mem.filter(p=>p!==abs).reduce((a,p)=>a+m[p],0))*100)/100;
+  F.forEach(x=>x.classList.remove('bad'));
+  if(m[me]<0||rest<0){ const fa=F.find(x=>x.dataset.who===abs); if(fa) fa.classList.add('bad'); toast(gel?`Больше ${fmt0(sum)} ₾`:'Сумма долей больше 100%'); return; }
+  m[abs]=rest; const fa=F.find(x=>x.dataset.who===abs); if(fa) fa.value=shFmt(gel?Math.round(sum*rest)/100:rest);
+  const lowBad=Object.keys(m).filter(p=>{ const l=skillLv(p,k); return l!=null&&l<=1&&m[p]>LOW_CAP*100+0.001; });
+  if(lowBad.length){ toast(`${PEOPLE[lowBad[0]]||lowBad[0]}: ученику не больше ${LOW_CAP*100}%`); return; }
+  Object.keys(m).forEach(p=>m[p]=Math.round(m[p]*100)/100);
+  const cur=SHARE[o.id+'|'+k]; if(cur&&Object.keys(m).every(p=>Math.abs((cur[p]||0)-m[p])<0.005)) return;
+  shSave(o,k,m).then(()=>wantReload()); render(); }   // «Сделано» и «Заработал» пересчитываются по новым долям
+/* ===== END BLOCK: SHARE-IN ===== */
 function shMembers(o,k){ const ppl=PART[o.id+'|'+k]||new Set(); return S.role==='boss'?[...ppl]:[ME,...[...ppl].filter(p=>p!==ME)]; }
-function shSave(o,k,m){ SHARE[o.id+'|'+k]=m; api('shareSet',{order:o.id, op:k, shares:m}).catch(fail); }
+function shSave(o,k,m){ SHARE[o.id+'|'+k]=m; const r=api('shareSet',{order:o.id, op:k, shares:m}); r.catch(fail); return r.catch(()=>{}); }
 function vTaskBody(o,oi,l,op,t){
   const k=l.cat+'.'+op[0], ppl=[...(PART[o.id+'|'+k]||[])], free=WORKERS.filter(p=>!ppl.includes(p)&&p!==ME);
   const units=l.units.length>1?vUnits(o,oi,l,op,false,true):'';
@@ -1099,10 +1124,20 @@ function vUnits(o,oi,l,op,self,bare){
   if(bare) return `${top}${pm}${rows}`;
   return `<div class="uin">${timer}<div class="ctl">${top}</div>${pm}${rows}${foot}</div>`;
 }
-function vLines(raw){ const m={}; raw.forEach(d=>{ const k=d.order+'|'+d.opName; if(!m[k]) m[k]={...d,units:[],pct:0,mine:0};
-    m[k].units.push(...d.units); m[k].pct+=d.pct; m[k].mine+=d.mine; m[k].at=d.at; });
-  return UI.list(Object.values(m).map(d=>UI.row(d.opName, `${d.at?d.at+' · ':''}${oLabel(d.order)} · ${d.units.map(esc).join(', ')} · ${fmt(d.pct)}%${d.with?` · с ${esc(PEOPLE[d.with]||d.with)}`:''}`,
-  `<b class="num">${fmt0(d.mine)} ₾</b>`)).join('')); }
+/* ===== BLOCK: TODAY2 (25.11) — «Сделано сегодня»: одна строка на операцию заказа (время · заказ · счётчик), модули — по раскрытию ===== */
+function vLines(raw){   // строка = операция (счётчик модулей · сумма); раскрыть — клиент и изделие по заказам, без списка модулей
+  const G={}; raw.forEach(d=>{ const g=G[d.opName]||(G[d.opName]={op:d.opName,ord:{}}), k=d.order, o=g.ord[k]||(g.ord[k]={order:k,units:new Set(),mine:0,own:true,ks:new Set(),with:new Set(),at:''});
+    d.units.forEach(u=>o.units.add(u)); o.mine+=d.mine; o.at=d.at||o.at; if(!d.own) o.own=false; if(d.line&&d.op) o.ks.add(d.line.cat+'.'+d.op[0]); if(d.with) o.with.add(d.with); });
+  return `<div class="list dl">${Object.values(G).map(g=>{ const O=Object.values(g.ord), n=O.reduce((a,o)=>a+o.units.size,0), sum=O.reduce((a,o)=>a+o.mine,0);
+    const rows=O.map(o=>{ const oi=ORDERS.findIndex(x=>x.id===o.order), k=[...o.ks][0];
+      const undo=o.own&&oi>=0&&k&&o.ks.size===1&&S.onShift?`<button class="linkbtn" data-act="lineUndo" data-o="${oi}" data-op="${esc(k)}">отменить отметку</button>`:'';
+      const jk=o.order+'|'+k+'|d', open=k&&o.ks.size===1&&S.joinOpen===jk, ob=oi>=0?ORDERS[oi]:null, t=ob&&k?Object.assign({},ob.tasks.find(x=>x.op===k)||{},{done:true}):null;
+      const sh=t&&k&&o.ks.size===1?`<button class="linkbtn" data-act="joinOpen" data-k="${esc(jk)}">${open?'скрыть':'статистика и доли'}</button>`:'';
+      return `<div class="dlr"><div class="dlm"><div>${oLabel(o.order)}</div><div class="small mute">${[o.at, o.with.size?'с '+[...o.with].map(p=>esc(PEOPLE[p]||p)).join(', '):'', sh, undo].filter(Boolean).join(' · ')}</div></div><b class="num">${fmt0(o.mine)} ₾</b></div>${open?`<div class="dlj">${vJoin(ob,oi,k,t)}</div>`:''}`; }).join('');
+    const isOpen=O.some(o=>S.joinOpen===o.order+'|'+[...o.ks][0]+'|d');
+    return `<details class="dli" data-op="${esc(g.op)}" ${isOpen||S.dliOpen===g.op?'open':''}><summary class="row"><div class="rm"><div class="rt">${esc(g.op)}</div></div>
+      <div class="rr"><span class="dcnt num">${n}</span><b class="num">${fmt0(sum)} ₾</b></div></summary><div class="dlb">${rows}</div></details>`; }).join('')}</div>`; }
+/* ===== END BLOCK: TODAY2 ===== */
 /* выбор своего таймера при «Приступить»: без ввода цифр — крупные кнопки */
 const PLAN_CH=[30,60,90,120,180,240,300,360,420,480];   // лента: до 2 ч — шаг 30 мин, дальше по часу до 8
 const planTxt = m => m<60?m+' мин':fmt(m/60)+' ч';
@@ -1177,9 +1212,12 @@ function bindUnits(){
   // снять отметку — двумя тапами (защита от случайного касания)
   const twoTap=(cb,key)=>{ if(cb.checked) return true; if(S.unConf===key&&Date.now()-S.unConfT<4000){ S.unConf=null; return true; }
     cb.checked=true; S.unConf=key; S.unConfT=Date.now(); toast('Снять отметку? Нажми ещё раз'); return false; };
+  document.querySelectorAll('.shin').forEach(x=>{ x.oninput=()=>shLive(x); x.onchange=()=>shCommit(x); x.onkeydown=e=>{ if(e.key==='Enter') x.blur(); }; });
   document.querySelectorAll('.tchk').forEach(cb=>cb.onchange=()=>{ const key=cb.dataset.o+'|'+cb.dataset.op; if(!twoTap(cb,key)) return;
     if(cb.dataset.boss){ if(!bossTick(+cb.dataset.o, cb.dataset.op, cb.checked)) cb.checked=!cb.checked; } else
-    tickWhole(+cb.dataset.o, cb.dataset.op, cb.checked); renderKeep(`.tchk[data-o="${cb.dataset.o}"][data-op="${cb.dataset.op}"]`, cb); });
+    { const o=ORDERS[+cb.dataset.o]; tickWhole(+cb.dataset.o, cb.dataset.op, cb.checked);
+      if(cb.checked&&(PART[o.id+'|'+cb.dataset.op]||new Set()).size>1){ S.joinOpen=o.id+'|'+cb.dataset.op+'|d'; S.dliOpen=findOp(o,cb.dataset.op).op[1]; render(); return; } }   // TODAY2: закрыл задачу с напарником — сразу доли
+    renderKeep(`.tchk[data-o="${cb.dataset.o}"][data-op="${cb.dataset.op}"]`, cb); });
   document.querySelectorAll('.ochk[data-whole]').forEach(cb=>cb.onchange=()=>{ tickWhole(+cb.dataset.o, cb.dataset.op, cb.checked); renderKeep(`.ochk[data-whole][data-op="${cb.dataset.op}"]`, cb); });
   document.querySelectorAll('.kpick').forEach(cb=>cb.onchange=()=>{ const o=ORDERS[+cb.dataset.o], sec=cb.dataset.sec, n=LIB[sec][+cb.dataset.li];
     if(o.mountAt) return;
@@ -2371,6 +2409,8 @@ document.addEventListener('click',e=>{
     const t={start:st0, who:ME, order:o.id, op:b.dataset.op, end:'', min:0}; TIMEJ.push(t); S.active={order:o.id, op:b.dataset.op, start:st0};
     api('workStart',{order:o.id, op:b.dataset.op, plan, delay:dl, ping}).catch(fail); toast((dl?'Старт в '+atTxt(dl)+(ping?' · напомню':''):'Приступил')+(plan?' · спрошу через '+planTxt(plan):'')); }
   if(a==='workStop'){ stopWork(); toast('Пауза'); }
+  if(a==='shMode'){ S.shMode=b.dataset.v; try{ localStorage.setItem('akxShMode',S.shMode); }catch(e){} }   // доли: ввод в % или ₾
+  if(a==='lineUndo'){ tickWhole(+b.dataset.o, b.dataset.op, false); render(); }   // TODAY2: снять свою отметку операции из «Сделано сегодня»
   if(a==='timeAdd'){ const o=ORDERS[+b.dataset.o], h=parseFloat(String(document.getElementById('tadd').value).replace(/[−–]/,'-').replace(',','.')); if(!h){ toast('Впиши часы, например 1,5'); return; }
     const who=(document.getElementById('tadd-w')||{}).value||ME, day=(document.getElementById('tadd-d')||{}).value||iso(TODAY), k=b.dataset.op;
     if(h<0){ const have=TIMEJ.filter(x=>x.who===who&&x.order===o.id&&x.op===k).reduce((a,x)=>a+(x.end?num(x.min):0),0)/60; if(have+h<-0.01){ toast('Нельзя убрать больше, чем есть: '+fmt(have)+' ч'); return; } }
@@ -2605,7 +2645,7 @@ function reload(){ if(PEND>0){ RELOAD_WANT=true; return Promise.resolve(); } if(
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1795601298';
+const BUILD='1795614575';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 

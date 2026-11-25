@@ -278,7 +278,7 @@ const API = {
   /* доли участников: задаёт позвавший (взявший задачу) или руководитель; 'доли S1:70,S3:30' или 'доли сброс' */
   shareSet(me, b){ const e = Object.entries(b.shares || {}).filter(x => +x[1] > 0);
     if (e.length && Math.abs(e.reduce((a, x) => a + +x[1], 0) - 100) > 0.5) throw new Error('Доли должны давать 100%');
-    append_(SH.takes, [now_(), me.id, b.order, b.op, 'доли ' + (e.length ? e.map(x => x[0] + ':' + Math.round(+x[1])).join(',') : 'сброс')]); return {}; },
+    append_(SH.takes, [now_(), me.id, b.order, b.op, 'доли ' + (e.length ? e.map(x => x[0] + ':' + Math.round(+x[1] * 100) / 100).join(',')   /* SHARE-IN 25.11: дробные доли (33,33) */ : 'сброс')]); return {}; },
   /* ученик просится на операцию: сообщение взявшему (если есть) или руководству и мастеру */
   askJoin(me, b){ const txt = me.name + ' просится помощником: ' + (b.opName || b.op) + ' · ' + b.order + '. Подключить — в списке участников задачи.';
     if (b.to) notifyOne_(String(b.to), txt, 'ask_me'); else { notifyBosses_('ask', txt); const o = read_(SH.orders, 2, 26).find(r => String(r[0]).trim() === String(b.order)); if (o && o[24]) notifyOne_(String(o[24]).trim(), txt); }
