@@ -2490,6 +2490,7 @@ document.addEventListener('click',e=>{
     const cur=r.vals[i], nx=cur===''?0:cur>=3?'':cur+1; r.vals[i]=nx;
     api('skillSet',{code:r.code, who:w, level:nx}).catch(fail); }
   if(a==='joinAdd'){ S.joinAdd = S.joinAdd===b.dataset.k ? null : b.dataset.k; }
+  if(a==='joinOpen'&&/\|d$/.test(b.dataset.k||'')){ const d=b.closest('details.dli'); if(d) S.dliOpen=d.dataset.op; }   // «скрыть» в «Сделано» — сворачивает только статистику, операция остаётся раскрытой
   if(a==='joinOpen'){ S.joinOpen = S.joinOpen===b.dataset.k ? null : b.dataset.k; }
   if(a==='shPreset'||a==='shStep'){ const o=ORDERS[+b.dataset.o], k=b.dataset.op, mem=shMembers(o,k), cur=shares(o.id,k,ME,'',S.role==='boss'?'boss':''), m={};
     mem.forEach(p=>m[p]=Math.round((cur[p]||0)*100/5)*5);
@@ -2570,6 +2571,7 @@ document.addEventListener('focusin',e=>{ if(e.target.id==='buy-n') buyDD(true); 
 document.addEventListener('input',e=>{ if(e.target.id==='buy-n') buyDD(true);
   if(e.target.id==='fx-q'){ S.fixQ=e.target.value; S.doneMOpen=true; const pos=e.target.selectionStart; render(); const el=document.getElementById('fx-q'); if(el){ el.focus(); el.setSelectionRange(pos,pos); } } });
 document.addEventListener('focusout',e=>{ if(e.target.id==='buy-n') setTimeout(()=>{ if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#buy-dd')) return; buyDD(false); },150); });
+document.addEventListener('toggle',e=>{ const d=e.target; if(d&&d.classList&&d.classList.contains('dli')){ if(d.open) S.dliOpen=d.dataset.op; else if(S.dliOpen===d.dataset.op) S.dliOpen=null; } },true);   // помнить раскрытую операцию «Сделано» между перерисовками
 document.addEventListener('pointerdown',e=>{ if(e.target.closest&&e.target.closest('#buy-dd')) e.preventDefault(); });   // не терять фокус при выборе
 /* ===== END BLOCK: BUY DROPDOWN ===== */
 /* ===== BLOCK: STICKY HEADS — заголовок открытого раздела держится наверху; вложенные — под заголовком родителя ===== */
@@ -2647,7 +2649,7 @@ function reload(){ if(PEND>0){ RELOAD_WANT=true; return Promise.resolve(); } if(
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1795617617';
+const BUILD='1795617810';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
