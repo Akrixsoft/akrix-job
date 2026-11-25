@@ -498,7 +498,7 @@ body{padding-top:calc(6px + var(--tg-safe-area-inset-top,0px) + var(--tg-content
 .shpre{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
 .shr{display:flex;align-items:center;gap:6px;padding:3px 0}
 .shr .tpn{flex:1;min-width:0}
-.shr b{min-width:64px;text-align:right} .shr input.shin{width:72px;flex:none;min-height:34px;text-align:right;padding:4px 8px;border:1.5px solid var(--line);border-radius:8px;background:var(--tile)} .shr input.shin:focus{border-color:var(--acc);outline:0} .shr input.shin.bad{border-color:var(--bad);color:var(--bad)} .shsw{display:inline-flex;margin-left:auto;margin-right:8px;border-radius:8px;overflow:hidden;box-shadow:0 0 0 1px var(--line)} .shsw button{min-height:26px;padding:2px 12px;border:0;background:var(--tile);font-weight:600} .shsw button.on{background:var(--acc);color:#1b1b1b} .shu{min-width:14px} .dlr .linkbtn{background:none;min-height:0;padding:0;border:0;box-shadow:none}
+.shr b{min-width:64px;text-align:right} .shr input.shin{width:72px;flex:none;min-height:34px;text-align:right;padding:4px 8px;border:1.5px solid var(--line);border-radius:8px;background:var(--tile)} .shr input.shin:focus{border-color:var(--acc);outline:0} .shr input.shin.bad{border-color:var(--bad);color:var(--bad)} .shsw{display:inline-flex;margin-left:auto;margin-right:8px;border-radius:8px;overflow:hidden;box-shadow:0 0 0 1px var(--line)} .shsw button{min-height:26px;padding:2px 12px;border:0;background:var(--tile);font-weight:600} .shsw button.on{background:var(--acc);color:#1b1b1b} .shu{min-width:14px} .tpadd{align-self:flex-start;margin:2px 4px 4px;background:none;border:0;padding:0;min-height:0} .dlr .linkbtn{background:none;min-height:0;padding:0;border:0;box-shadow:none}
 .shr .btn{min-height:28px;padding:2px 8px}
 .lvl{font-size:10px;color:var(--mute);font-weight:400}
 .linkbtn{background:none;border:0;padding:0;color:var(--acc-text);text-decoration:underline;font:inherit;cursor:pointer}
@@ -1052,7 +1052,8 @@ function vJoin(o,oi,k,t){ // всплывающий список: время и 
     const on2=t.boss?ppl.has(p):on; return `<button class="tpi ${on2?'on':''}" data-act="join" data-o="${oi}" data-op="${k}" data-who="${p}" aria-pressed="${on2}">${body}</button>`; };
   return `<div class="tpop" role="dialog" aria-label="Участники задачи">
     <div class="tph num">${fmt0(sum)} ₾ · время ${fmt(tot/60)} ч</div>
-    ${[ME,...WORKERS.filter(p=>p!==ME)].map(row).join('')}
+    ${(()=>{ const all=[ME,...WORKERS.filter(p=>p!==ME)], isOn=p=>t.boss?ppl.has(p):(ppl.has(p)||p===ME), on=all.filter(isOn), off=all.filter(p=>!isOn(p)), jk=o.id+'|'+k, add=S.joinAdd===jk;   // JOIN2 25.11: видны только участники; остальные — по «＋ добавить»
+      return on.map(row).join('')+(off.length?(add?off.map(row).join('')+`<button class="linkbtn tpadd" data-act="joinAdd" data-k="${esc(jk)}">скрыть остальных</button>`:`<button class="linkbtn tpadd" data-act="joinAdd" data-k="${esc(jk)}">＋ добавить участника</button>`):''); })()}
     ${t.boss?'<div class="small mute" style="padding:2px 4px">Отметь, кто делает, затем ставь галку «готово».</div>':''}
     ${vManual(o,oi,k,t,ppl)}
     ${vShareBox(o,oi,k,t,sh)}
@@ -2488,6 +2489,7 @@ document.addEventListener('click',e=>{
     if(i<0){ SKILLS.ids.push(w); i=SKILLS.ids.length-1; } while(r.vals.length<=i) r.vals.push('');
     const cur=r.vals[i], nx=cur===''?0:cur>=3?'':cur+1; r.vals[i]=nx;
     api('skillSet',{code:r.code, who:w, level:nx}).catch(fail); }
+  if(a==='joinAdd'){ S.joinAdd = S.joinAdd===b.dataset.k ? null : b.dataset.k; }
   if(a==='joinOpen'){ S.joinOpen = S.joinOpen===b.dataset.k ? null : b.dataset.k; }
   if(a==='shPreset'||a==='shStep'){ const o=ORDERS[+b.dataset.o], k=b.dataset.op, mem=shMembers(o,k), cur=shares(o.id,k,ME,'',S.role==='boss'?'boss':''), m={};
     mem.forEach(p=>m[p]=Math.round((cur[p]||0)*100/5)*5);
@@ -2645,7 +2647,7 @@ function reload(){ if(PEND>0){ RELOAD_WANT=true; return Promise.resolve(); } if(
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1795614575';
+const BUILD='1795615469';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
