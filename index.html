@@ -2191,12 +2191,17 @@ const cnName=id=>{ const s=(CN.d&&CN.d.staff||[]).find(x=>x.id===id); return s?s
 const cnOpN=e=>e.opName||cnName(e.op);
 const CN_K={drill:'присадка',mill:'фрезеровка',edge:'торцевая',mark:'разметка'}, CN_SU={normal:'обычная',flip:'переворот',pair:'пара',rot:'разворот'};
 const cnKind=k=>{ k=String(k||''); return k.startsWith('manual:')?k.slice(7):CN_K[k]||k||'—'; };
-const cnRedo=e=>e.source==='manual'||e.redo===true;
+/* v-cnc2 (25.11): «переделки» убраны — ручная присадка не переделка (Дмитрий); деталь = уникальная (проект · модуль · деталь), операции drill / mill одной детали — одна деталь */
+const cnPk=e=>(e.module||e.part)?(e.project||'')+'|'+(e.module||'')+'|'+(e.part||''):'e:'+e.eid;
+const cnX=e=>{ const x=e&&e.x; if(!x) return {}; if(typeof x==='string'){ try{ return JSON.parse(x)||{}; }catch(_){ return {}; } } return x; };
 const cnSize=e=>{ const m=Math.max(+e.L||0,+e.W||0); return !m?'':m<=600?'до 600':m<=1200?'до 1200':'больше 1200'; };
 /* разложение времени по набору событий */
 function cnTot(E){ const runs=E.filter(e=>e.t==='run'), sets=E.filter(e=>e.t==='setup'), parts=E.filter(e=>e.t==='part'), R=runs.length?runs:parts;
-  return { parts:parts.length, run:cnSum(R,'runSec'), setup:sets.length?sets.reduce((s,e)=>s+(+e.setupSec||+e.dur||0),0):cnSum(parts,'setupSec'), idle:cnSum(R,'idleSec'),
-    redo:parts.length?parts.filter(cnRedo).length/parts.length:null, faults:E.filter(e=>e.t==='fault').length, plan:cnSum(parts,'planSec'), work:cnSum(parts,'runSec')+cnSum(parts,'setupSec') }; }
+  /* перерывы (ручные и автопауза Drilling) — смены x.a 'break'; из простоя вычитается перерыв внутри переходов (gap x.brk) */
+  const brk=E.filter(e=>e.t==='shift'&&cnX(e).a==='break').reduce((s,e)=>s+(+e.dur||0),0), gb=E.filter(e=>e.t==='gap').reduce((s,e)=>s+(+cnX(e).brk||0),0);
+  const run=cnSum(R,'runSec'), setup=sets.length?sets.reduce((s,e)=>s+(+e.setupSec||+e.dur||0),0):cnSum(parts,'setupSec'), up=new Set(parts.map(cnPk)).size;
+  return { parts:up, ops:parts.length, run, setup, idle:Math.max(0,cnSum(R,'idleSec')-gb), brk,
+    avg:up?(run+setup)/up:null, faults:E.filter(e=>e.t==='fault').length, plan:cnSum(parts,'planSec'), work:cnSum(parts,'runSec')+cnSum(parts,'setupSec') }; }
 /* медиана секунд на установку: события 'setup'; нет — setupSec / m0 деталей */
 const cnSetMed=E=>{ const s=E.filter(e=>e.t==='setup').map(e=>+e.setupSec||+e.dur); return cnMed(s.length?s:E.filter(e=>e.t==='part'&&+e.m0>0).map(e=>e.setupSec/e.m0)); };
 const cnBars=(rows,max)=>rows.map(([l,v,s])=>`<div class="cnb"><span class="cnbl">${l}</span><span class="cnbt"><i style="width:${max>0?Math.max(2,Math.round(v/max*100)):0}%"></i></span><span class="cnbv num">${s}</span></div>`).join('');
@@ -2221,11 +2226,12 @@ function vCnc(){
   const sh=last('shift'), rn=last('run');
   const now=`<div class="cnnow"><div><span class="mute small">Оператор</span><b>${sh?esc(cnOpN(sh)):'—'}</b><span class="small mute">${sh?esc(rgD(sh.ts0)+' '+String(sh.ts0||'').slice(11,16))+(sh.pc?' · '+esc(sh.pc):''):''}</span></div>
     <div><span class="mute small">Программа</span><b>${rn?esc(rn.partName||rn.module||rn.part||cnKind(rn.kind)):'—'}</b><span class="small mute">${rn?esc((rn.order?rn.order+' · ':'')+'с '+rgD(rn.ts0)+' '+String(rn.ts0||'').slice(11,16))+(rn.result?' · '+esc(rn.result):' · идёт'):''}</span></div></div>`;
-  const kp=`<div class="rgk cn6">${[['Деталей',fmt0(T.parts)],['Станок',cnS(T.run)],['Установки',cnS(T.setup)],['Простой',cnS(T.idle)],['Переделки',cnP(T.redo),T.redo>0.2],['Сбоев',fmt0(T.faults),T.faults>0]].map(([l,v,w])=>`<div class="${w?'wr':''}"><span>${l}</span><b class="num">${v}</b></div>`).join('')}</div>`;
+  const kp=`<div class="rgk cn6">${[['Деталей',fmt0(T.parts)],['Ср. на деталь',cnS(T.avg)],['Станок',cnS(T.run)],['Установки',cnS(T.setup)],['Простой',cnS(T.idle)],['Перерывы',cnS(T.brk)]].map(([l,v,w])=>`<div class="${w?'wr':''}"><span>${l}</span><b class="num">${v}</b></div>`).join('')}</div>`
+    +(T.faults?`<div class="small cnfl">⚠ Сбоев: <b class="num">${fmt0(T.faults)}</b></div>`:'');
   /* операторы */
   const ops=[...new Set(E.map(e=>e.op).filter(Boolean))].map(id=>{ const X=E.filter(e=>e.op===id), t=cnTot(X); return { id, t, eff:t.work>0&&t.plan>0?t.plan/t.work:null, sm:cnSetMed(X), h:t.run+t.setup }; }).sort((a,b)=>b.h-a.h);
   const mxh=Math.max(0,...ops.map(o=>o.h));
-  const opsH=ops.length?cnBars(ops.map(o=>[esc(cnName(o.id)),o.h,cnH(o.h)]),mxh)+`<div class="cnt">${ops.map(o=>`<div class="cnr"><b>${esc(cnName(o.id))}</b><span>${fmt0(o.t.parts)} дет.</span><span class="${o.eff!=null&&o.eff<0.7?'bad':o.eff>=0.95?'ok':''}">эфф. ${cnP(o.eff)}</span><span>уст. ${cnS(o.sm)}</span><span class="${o.t.redo>0.2?'bad':''}">перед. ${cnP(o.t.redo)}</span></div>`).join('')}</div>`:UI.note('Нет данных за период');
+  const opsH=ops.length?cnBars(ops.map(o=>[esc(cnName(o.id)),o.h,cnH(o.h)]),mxh)+`<div class="cnt">${ops.map(o=>`<div class="cnr"><b>${esc(cnName(o.id))}</b><span>${fmt0(o.t.parts)} дет.</span><span class="${o.eff!=null&&o.eff<0.7?'bad':o.eff>=0.95?'ok':''}">эфф. ${cnP(o.eff)}</span><span>уст. ${cnS(o.sm)}</span><span>ср. дет. ${cnS(o.t.avg)}</span>${o.t.brk?`<span class="mute">перерыв ${cnS(o.t.brk)}</span>`:''}</div>`).join('')}</div>`:UI.note('Нет данных за период');
   /* операции: kind + setup */
   const g={}; P.forEach(e=>{ const k=(e.kind||'')+'|'+(e.setup||''); (g[k]=g[k]||[]).push(e); });
   const opRows=Object.keys(g).map(k=>{ const X=g[k], pt=X.map(cnPt); return { k, kind:X[0].kind, su:X[0].setup, n:X.length, med:cnMed(pt), avg:cnAvg(pt),
@@ -2263,7 +2269,7 @@ document.addEventListener('change',e=>{ const s=e.target.closest('[data-cf]'); i
   +'.cnnow{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px}.cnnow>div{background:var(--bg);border-radius:8px;padding:5px 8px;display:flex;flex-direction:column;min-width:0}.cnnow b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
   +'.rgk.cn6{grid-template-columns:repeat(3,1fr)}.cnb{display:grid;grid-template-columns:88px 1fr 56px;gap:6px;align-items:center;font-size:12px;margin:3px 0}.cnbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cnbt{background:var(--bg);border-radius:4px;height:12px;overflow:hidden}.cnbt i{display:block;height:100%;background:var(--acc)}.cnbv{text-align:right}'
   +'.cnt{display:flex;flex-direction:column;margin-top:4px}.cnr{display:flex;flex-wrap:wrap;gap:3px 10px;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line)}.cnr b{flex:1 1 100%;font-size:13px;font-weight:600}.cnr .ok{color:var(--ok);font-weight:600}.cnr .bad{color:var(--bad);font-weight:600}.cnh{margin-top:8px}'
-  +'.cntr{width:100%;height:120px;color:var(--mute);background:var(--bg);border-radius:8px}.cnlg{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}.cnlg i{display:inline-block;width:10px;height:3px;margin-right:4px;vertical-align:middle}';
+  +'.cnfl{color:var(--bad);margin:-2px 0 6px}.cntr{width:100%;height:120px;color:var(--mute);background:var(--bg);border-radius:8px}.cnlg{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}.cnlg i{display:inline-block;width:10px;height:3px;margin-right:4px;vertical-align:middle}';
   document.head.appendChild(st); })();
 /* ===== END BLOCK: СТАНОК ===== */
 /* ============ BLOCK: EVENTS ============ */
