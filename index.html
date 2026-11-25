@@ -581,7 +581,7 @@ details.kpk[open]>summary.ksum{margin:0 -8px;padding:0 8px}
 .nflag.yellow{background:#e3ae0b;color:#1a1400} .nflag.orange{background:#e06a00} .nflag.red{background:#d02a2a} .nflag.ok{background:var(--ok)}
 .tpadd2{padding:8px 4px 0;border-top:1px solid var(--line);margin-top:4px} .tpadd2 .cadd select{flex:1}
 .mhist{margin-top:6px} .mrow{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0;color:var(--mute)}
-.tasks[open]+.trunpin{display:none} .dli>summary{list-style:none;cursor:pointer} .dli>summary::-webkit-details-marker{display:none} .dli .rr{display:flex;align-items:center;gap:10px} .dcnt{min-width:26px;padding:1px 7px;border-radius:10px;background:var(--line,#eee);font-size:13px;text-align:center;color:var(--mute,#666)} .dli[open] .dcnt{background:var(--acc);color:#1b1b1b} .dlb{padding:0 0 8px} .dlj .tpop{position:static;max-width:none;max-height:none;margin:0 0 8px 12px;padding:6px 0 4px;border-radius:0;box-shadow:none;background:transparent;z-index:auto;min-width:0} .dlr{display:flex;justify-content:space-between;gap:10px;padding:6px 0 6px 10px;border-left:2px solid var(--acc);margin:4px 0} .trunpin{margin-top:-6px;padding-top:8px;box-shadow:inset 0 0 0 1.5px var(--acc)} .trunpin .trow{border:0}
+.tasks[open]+.trunpin{display:none} .dli>summary{list-style:none;cursor:pointer} .dli>summary::-webkit-details-marker{display:none} .dli .rr{display:flex;align-items:center;gap:10px} .dcnt{min-width:26px;padding:1px 7px;border-radius:10px;background:var(--line,#eee);font-size:13px;text-align:center;color:var(--mute,#666)} .dli[open] .dcnt{background:var(--acc);color:#1b1b1b} .dlb{padding:0 0 8px} .dlj .tpop{overflow:visible;overscroll-behavior:auto;position:static;max-width:none;max-height:none;margin:0 0 8px 12px;padding:6px 0 4px;border-radius:0;box-shadow:none;background:transparent;z-index:auto;min-width:0} .dlr{display:flex;justify-content:space-between;gap:10px;padding:6px 0 6px 10px;border-left:2px solid var(--acc);margin:4px 0} .trunpin{margin-top:-6px;padding-top:8px;box-shadow:inset 0 0 0 1.5px var(--acc)} .trunpin .trow{border:0}
 
 .nosheet{max-height:88vh;overflow-y:auto} .nosheet .cadd input,.nosheet .cadd select{min-height:42px;font-size:15px}
 .nodates{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px} .nof{font-size:12px;color:var(--mute);display:flex;flex-direction:column;gap:3px} .nof input{min-height:40px;font-size:13px;padding:4px 6px;width:100%}
@@ -1055,8 +1055,8 @@ function vJoin(o,oi,k,t){ // всплывающий список: время и 
     ${(()=>{ const all=[ME,...WORKERS.filter(p=>p!==ME)], isOn=p=>t.boss?ppl.has(p):(ppl.has(p)||p===ME), on=all.filter(isOn), off=all.filter(p=>!isOn(p)), jk=o.id+'|'+k, add=S.joinAdd===jk;   // JOIN2 25.11: видны только участники; остальные — по «＋ добавить»
       return on.map(row).join('')+(off.length?(add?off.map(row).join('')+`<button class="linkbtn tpadd" data-act="joinAdd" data-k="${esc(jk)}">скрыть остальных</button>`:`<button class="linkbtn tpadd" data-act="joinAdd" data-k="${esc(jk)}">＋ добавить участника</button>`):''); })()}
     ${t.boss?'<div class="small mute" style="padding:2px 4px">Отметь, кто делает, затем ставь галку «готово».</div>':''}
-    ${vManual(o,oi,k,t,ppl)}
     ${vShareBox(o,oi,k,t,sh)}
+    ${vManual(o,oi,k,t,ppl)}
     ${t.self&&!t.done?`<button class="tpi undo" data-act="untake" data-o="${oi}" data-op="${k}">Отменить взятое</button>`:''}</div>`; }
 /* ===== BLOCK: ВРЕМЯ ВРУЧНУЮ — любой день, с пометкой; за себя — каждый; за других — взявший задачу или руководитель; минус — поправка ===== */
 function vManual(o,oi,k,t,ppl){ const canAll=IS_BOSS||t.self, who=[...new Set([ME,...ppl])].filter(p=>canAll||p===ME);
@@ -2343,7 +2343,7 @@ function geo(){ if(AND) return Promise.resolve('');   // в Android-прилож
 document.getElementById('role-emp').onclick=()=>{S.settings=false;S.role='emp';S.tab='today';render();};
 document.getElementById('role-boss').onclick=()=>{S.settings=false;S.role='boss';S.tab='borders';render();};
 document.addEventListener('click',e=>{
-  if(S.joinOpen&&!e.target.closest('.tpop,.tppl-btn')){ S.joinOpen=null; render(); }
+  if(S.joinOpen&&!e.target.closest('.tpop,.tppl-btn,[data-act=joinOpen]')){ S.joinOpen=null; render(); }
   const t=e.target.closest('[data-tab]'); if(t){S.tab=t.dataset.tab;S.settings=false;S.person=null;S.rep=null;render();window.scrollTo(0,0);return;}
   const b=e.target.closest('[data-act]'); if(!b||b.tagName==='SELECT'||b.tagName==='INPUT') return;
   const a=b.dataset.act;
