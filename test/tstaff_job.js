@@ -7,7 +7,7 @@ const call = b => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(b
 let r = call({ action: 'staffAdd', key: KS, name: 'Х', tg: '@xx_yy' }); ck('сотрудник — отказ', !r.ok && /руководител/.test(r.error), r);
 r = call({ action: 'staffAll', key: KB }); ck('staffAll: 2 человека, me = s1, Гия «ждёт входа» (нет tgid)', r.ok && r.data.staff.length === 2 && r.data.me === 's1' && r.data.staff[1].tg === 'gia' && !r.data.staff[1].tgid, r);
 r = call({ action: 'staffAdd', key: KB, name: 'Лука', tg: 'https://t.me/Luka_M', role: 'помощник' });
-ck('staffAdd по ссылке t.me → id s3, @Luka_M, помощник, доступ «да»', r.ok && r.data.id === 's3' && st.d[3][2] === '@Luka_M' && st.d[3][4] === 'помощник' && st.d[3][6] === 'да', [r, st.d[3]]);
+ck('staffAdd по ссылке t.me → id S3 (номер по s/S, заглавная), @Luka_M, помощник, доступ «да»', r.ok && r.data.id === 'S3' && st.d[3][2] === '@Luka_M' && st.d[3][4] === 'помощник' && st.d[3][6] === 'да', [r, st.d[3]]);
 r = call({ action: 'staffAdd', key: KB, name: 'Двойник', tg: '@luka_m' }); ck('тот же ник (другой регистр) — отказ', !r.ok && /уже есть/.test(r.error), r);
 r = call({ action: 'staffAdd', key: KB, name: 'Без ника', tg: '5551234567' }); ck('числовой ID → столбец D, роль по умолчанию сборщик', r.ok && st.d[4][3] === "'5551234567" && st.d[4][2] === '' && st.d[4][4] === 'сборщик', st.d[4]);
 r = call({ action: 'staffAdd', key: KB, name: '', tg: '@abcd' }); ck('без имени — отказ', !r.ok, r);

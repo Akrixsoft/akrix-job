@@ -581,7 +581,7 @@ details.kpk[open]>summary.ksum{margin:0 -8px;padding:0 8px}
 .nflag.yellow{background:#e3ae0b;color:#1a1400} .nflag.orange{background:#e06a00} .nflag.red{background:#d02a2a} .nflag.ok{background:var(--ok)}
 .tpadd2{padding:8px 4px 0;border-top:1px solid var(--line);margin-top:4px} .tpadd2 .cadd select{flex:1}
 .mhist{margin-top:6px} .mrow{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0;color:var(--mute)}
-.trunpin{margin-top:-6px;padding-top:8px;box-shadow:inset 0 0 0 1.5px var(--acc)} .trunpin .trow{border:0}
+.tasks[open]+.trunpin{display:none} .trunpin{margin-top:-6px;padding-top:8px;box-shadow:inset 0 0 0 1.5px var(--acc)} .trunpin .trow{border:0}
 
 .nosheet{max-height:88vh;overflow-y:auto} .nosheet .cadd input,.nosheet .cadd select{min-height:42px;font-size:15px}
 .nodates{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px} .nof{font-size:12px;color:var(--mute);display:flex;flex-direction:column;gap:3px} .nof input{min-height:40px;font-size:13px;padding:4px 6px;width:100%}
@@ -682,7 +682,23 @@ const KEY = (()=>{ const q=new URLSearchParams(location.search).get('key'); try{
 
 /* ============ BLOCK: API (очередь запросов к таблице) ============ */
 let apiQ = Promise.resolve(); let VER = -1;
+/* ===== BLOCK: SYNC-W (25.11) — пока записи этого устройства в очереди, таблица не перечитывается (иначе полуготовое состояние сбрасывает галки);
+   отметки одним запросом markMany (старый сервер — по одной, с проверкой дубля) ===== */
+let PEND=0, RELOAD_WANT=false;
+function wantReload(){ if(PEND>0) RELOAD_WANT=true; else setTimeout(()=>reload(),300); }
+function apiDone(){ if(--PEND<=0){ PEND=0; if(RELOAD_WANT){ RELOAD_WANT=false; setTimeout(()=>reload(),300); } } }
+let MQ=[], MANY=true;
+function markQ(P){ return new Promise((res,rej)=>{ MQ.push({P:Object.assign({dedupe:1},P,{auto:P.auto||undefined}),res,rej}); if(MQ.length===1) Promise.resolve().then(markFlush); }); }
+function markFlush(){ const L=MQ; MQ=[]; if(!L.length) return;
+  const one=x=>api('mark',Object.assign({},x.P,{auto:true})).then(r=>{ if(r&&r.dup) wantReload(); x.res(r); },x.rej);   // старый сервер: auto — проверка дубля, исполнитель — я (who не задан)
+  if(!MANY||L.length===1){ L.forEach(one); return; }
+  api('markMany',{items:L.map(x=>x.P)}).then(d=>{ const R=(d&&d.rows)||[]; L.forEach((x,i)=>{ const r=R[i]||{}; if(r.dup) wantReload(); x.res(r); }); })
+    .catch(e=>{ if(/Нет действия/.test(e&&e.message||e)){ MANY=false; L.forEach(one); } else L.forEach(x=>x.rej(e)); }); }
+/* ===== END BLOCK: SYNC-W ===== */
 function api(action, payload={}){
+  if(action!=='boot'){ PEND++; return api0(action,payload).finally(apiDone); }
+  return api0(action,payload); }
+function api0(action, payload={}){
   if(window.MOCK_API) return Promise.resolve().then(()=>window.MOCK_API(Object.assign({ action }, payload))).then(j=>{ if(!j.ok) throw new Error(j.error); return j.data; });   // макет: встроенная копия сервера
   const run = () => fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify(Object.assign({ action, init: (TG&&TG.initData)||window.DEV_INIT||'', key: (TG&&TG.initData)?'':KEY }, payload)) })
@@ -778,7 +794,8 @@ function build(D){
     let ui=l.units.findIndex(u=>u.name===String(unit)); if(ui<0&&l.units.length===1) ui=0;
     if(ui<0&&/^Весь объём/.test(String(unit))){ l.units.forEach(u=>{ if(!u.done[opc]) u.done[opc]={who:String(who),row,partner:String(partner||''),mode:String(mode||''),whole:true}; }); ui=0; }   // отметка «весь объём», сделанная до разбивки на модули (привязка проекта), — на все модули
     if(ui<0) return;
-    if(!l.units[ui].done[opc]||l.units[ui].done[opc].whole) l.units[ui].done[opc]={who:String(who),row,partner:String(partner||''),mode:String(mode||'')};
+    if(l.units[ui].done[opc]&&!l.units[ui].done[opc].whole) return;   // дубль: модуль уже отмечен этой операцией — вторая запись не считается
+    l.units[ui].done[opc]={who:String(who),row,partner:String(partner||''),mode:String(mode||'')};
     const k=(shares(o.id, grp+'.'+opc, String(who), String(partner||''), String(mode||''))[ME])||0;
     if(d10(dt)===D.today && k>0){
       const op=opsOf(o,l).find(x=>x[0]===opc)||[opc,opc,0];
@@ -1199,7 +1216,7 @@ function bossTick(oi,key,on){ const o=ORDERS[oi], {line,op}=findOp(o,key), tot=l
   if(on){ const ppl=PART[o.id+'|'+key]; if(!ppl||!ppl.size){ toast('Сначала отметь, кто делал — нажми на человечков'); return false; }
     line.units.forEach((u,i)=>{ if(u.done[op[0]]) return; const pp=payParts(opAmount(o,line,op)*u.a/tot,op,prisPct(o,line,op));
       const d=u.done[op[0]]={who:ME, mode:'boss'};
-      d.rowP=api('mark',{order:o.id, grp:line.cat, op:op[0], unit:u.name, pct:Math.round(u.a/tot*10000)/100, amount:Math.round(pp.fix*100)/100, partner:'', mode:'boss'}).then(r=>(d.row=r.row)); d.rowP.catch(fail); });
+      d.rowP=markQ({order:o.id, grp:line.cat, op:op[0], unit:u.name, pct:Math.round(u.a/tot*10000)/100, amount:Math.round(pp.fix*100)/100, partner:'', mode:'boss'}).then(r=>(d.row=r.row)); d.rowP.catch(fail); });
     toast('Отмечено: '+op[1]+' · '+[...ppl].map(p=>PEOPLE[p]||p).join(', '));
   } else { line.units.forEach(u=>{ const d=u.done[op[0]]; if(!d) return; delete u.done[op[0]]; (d.row?Promise.resolve(d.row):d.rowP||Promise.resolve(null)).then(row=>row&&api('unmark',{row})).catch(fail); }); toast('Отметка снята'); }
   syncProg(line); return true; }
@@ -1216,7 +1233,7 @@ function autoDrill(){ if(autoBusy||!ME) return; const jobs=[];
   if(!jobs.length) return; autoBusy=true;
   Promise.all(jobs.map(({o,l,opP,u,d})=>{ const tot=l.units.reduce((s,x)=>s+x.a,0), ppct=prisPct(o,l,opP), pp=payParts(opAmount(o,l,opP)*u.a/tot,opP,ppct), who=(d.last&&d.last.op)||'';
     u.done[opP[0]]={who:who||ME, mode:'станок'}; syncProg(l);
-    return api('mark',{order:o.id, grp:l.cat, op:opP[0], unit:u.name, pct:Math.round(u.a/tot*10000)/100, amount:Math.round(pp.fix*100)/100, partner:'', mode:'станок', auto:true, who}).catch(()=>{}); }))
+    return markQ({order:o.id, grp:l.cat, op:opP[0], unit:u.name, pct:Math.round(u.a/tot*10000)/100, amount:Math.round(pp.fix*100)/100, partner:'', mode:'станок', auto:true, who}).catch(()=>{}); }))
     .then(()=>{ autoBusy=false; toast('🤖 Присадка по станку: '+jobs.length+' мод.'); if(!sheetOpen()) reload(); }); }
 /* ===== END BLOCK: СТАНОК → ПРИСАДКА ===== */
 function tickUnit(oi, key, ui, on, quiet){
@@ -1226,7 +1243,7 @@ function tickUnit(oi, key, ui, on, quiet){
     const d={o,line,op,ui,pct:u.a/tot*100,units:[u.name],with:w,mine:pp.fix*k,minePrem:0,at:hm(nowMin()),order:o.id,own:true,
       opName:op[1]};
     u.done[op[0]]={who:ME}; syncProg(line); if((line.prog[op[0]]||0)>=100&&S.active&&S.active.order===o.id&&S.active.op===key) stopWork(); S.todayLines.push(d); S.todayEarned+=d.mine; if(!quiet) toast(`Записано · +${fmt0(d.mine)} ₾`);
-    d.rowP=api('mark',{order:o.id, grp:line.cat, op:op[0], unit:u.name, pct:Math.round(d.pct*100)/100, amount:Math.round(pp.fix*100)/100, partner:w, mode})
+    d.rowP=markQ({order:o.id, grp:line.cat, op:op[0], unit:u.name, pct:Math.round(d.pct*100)/100, amount:Math.round(pp.fix*100)/100, partner:w, mode})
       .then(r=>{ d.row=r.row; u.done[op[0]].row=r.row; return r.row; });
     d.rowP.catch(fail);
   } else { const i=S.todayLines.findIndex(d=>d.own&&d.o===o&&d.line===line&&d.op[0]===op[0]&&d.ui===ui); if(i<0) return;
@@ -2578,7 +2595,7 @@ let loading=false;
 function sheetOpen(){ return !!(S.startPick||S.newOrd||S.joinOpen||S.closing||S.cf); }
 function busy(){ const a=document.activeElement; return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); }
 const GO=new URLSearchParams(location.search).get('go');   // из кнопок бота: close — закрыть смену, late — работаю дальше
-function reload(){ if(loading) return Promise.resolve(); loading=true;
+function reload(){ if(PEND>0){ RELOAD_WANT=true; return Promise.resolve(); } if(loading) return Promise.resolve(); loading=true;
   return api('boot').then(D=>{ const y=window.scrollY, first=!ORDERS.length&&!ME; build(D); lagSnap(); if(first&&!MYOFF.includes('splash')) splash(); setTimeout(autoDrill,400); if(first&&IS_BOSS&&!GO){ S.role='boss'; S.tab='borders'; }
     if(first&&GO==='buy'){ S.role=IS_BOSS?'boss':'emp'; S.tab='buy'; }
     else if(first&&GO){ S.role='emp'; S.tab='today';
@@ -2588,7 +2605,7 @@ function reload(){ if(loading) return Promise.resolve(); loading=true;
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1795275897';
+const BUILD='1795601298';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
@@ -2612,6 +2629,7 @@ function start(){
   setInterval(()=>{ if(busy()||S.closing||document.visibilityState!=='visible'||window.MOCK_API) return;
     if(sheetOpen()) return;   // открыт лист / окно — не перерисовывать под пальцем
     if(Date.now()-lastFull>300000){ lastFull=Date.now(); reload(); return; }
+    if(PEND>0) return;   // свои записи ещё идут — после них перечитается само
     fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'ver'})}).then(r=>r.json()).then(j=>{ if(j&&j.ver!=null&&j.ver!==VER&&!busy()&&!sheetOpen()){ lastFull=Date.now(); reload(); } }).catch(()=>{}); }, 12000);
   document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&!busy()&&!sheetOpen()) reload(); });
 }

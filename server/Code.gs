@@ -256,15 +256,10 @@ const API = {
     if (r) sh_(SH.shifts).getRange(r[11], 11).setValue('да'); return {};
   },
   /* ---- отметки работы: галочка = запись в расчёт ---- */
-  mark(me, b){
-    let who = me.id;
-    if (b.auto){   // автоотметка по станку: без дублей (отметка модуля уже есть — вернуть её), исполнитель — оператор станка
-      const ex = read_(SH.marks, 2, 12).find(r => r[11] !== 'да' && String(r[2]).trim() === String(b.order).trim() && String(r[3]) === String(b.grp) && String(r[4]) === String(b.op) && String(r[5]) === String(b.unit));
-      if (ex) return { row: ex[12], dup: true };
-      if (b.who && staffById_(b.who)) who = String(b.who); }
-    const row = append_(SH.marks, [now_(), who, b.order, b.grp, b.op, b.unit, b.pct, b.amount, 0, b.partner || '', b.mode || '', '']);
-    taskMsg_(me.id); return { row, at: hm_() };
-  },
+  mark(me, b){ const r = markOne_(me, b, null); if (!r.dup) taskMsg_(me.id); return r; },
+  /* SYNC-W 25.11: пачка отметок (вся операция) — один запрос, одна блокировка, одно сообщение бота; дубли (модуль уже отмечен этой операцией) не пишутся */
+  markMany(me, b){ const ex = read_(SH.marks, 2, 12).filter(r => r[11] !== 'да'), rows = (b.items || []).map(x => markOne_(me, x, ex));
+    if (rows.some(r => !r.dup)) taskMsg_(me.id); return { rows }; },
   unmark(me, b){
     const s = sh_(SH.marks), r = s.getRange(b.row, 1, 1, 12).getValues()[0];
     if (String(r[1]) !== me.id && !me.boss) throw new Error('Можно снять только свою отметку');
@@ -598,6 +593,14 @@ function handleTg_(u){
     if (bossByTg_(msg.from.id)) sendBuyList_(msg.chat.id); else tg_('sendMessage', { chat_id: msg.chat.id, text: 'Открой Akrix Job кнопкой меню внизу чата.' }); }
 }
 /* ============ BLOCK: «МОИ ЗАДАЧИ» — закреплённое сообщение бота с ▶ / ⏸ (в стиле списка закупки) ============ */
+/* отметка модуля: дубль (не снятая отметка того же заказа · группы · операции · модуля) — вернуть существующую строку; ex — прочитанные отметки (пачка) */
+function markOne_(me, b, ex){ let who = me.id;
+  if (b.auto || b.dedupe){ ex = ex || read_(SH.marks, 2, 12).filter(r => r[11] !== 'да');
+    const d = ex.find(r => String(r[2]).trim() === String(b.order).trim() && String(r[3]) === String(b.grp) && String(r[4]) === String(b.op) && String(r[5]) === String(b.unit));
+    if (d) return { row: d[12], dup: true }; }
+  if (b.auto && b.who && staffById_(b.who)) who = String(b.who);   // автоотметка по станку — исполнитель оператор станка
+  const line = [now_(), who, b.order, b.grp, b.op, b.unit, b.pct, b.amount, 0, b.partner || '', b.mode || '', ''], row = append_(SH.marks, line);
+  if (ex) ex.push(line.concat([row])); return { row, at: hm_() }; }
 function staffById_(id){ return read_(SH.staff, 2, 7).find(r => String(r[0]) === String(id)); }
 function opName_(order, key){ const p = String(key).split('.'), grp = p[0], code = p[1]; if (code === 'sborka_obj') return 'Сборка на объекте';
   if (/^x\d+$/.test(code)){ const ex = sh_(SH.extras); try { return String(ex.getRange(+code.slice(1), 3).getValue()) || code; } catch (e) { return code; } }
@@ -933,7 +936,7 @@ Object.assign(API, {
     const rows = stRows_();
     if (t.un && rows.some(r => String(r[2] || '').replace('@', '').trim().toLowerCase() === t.un.toLowerCase())) throw new Error('@' + t.un + ' уже есть в списке');
     if (t.id && rows.some(r => String(r[3] || '').trim() === t.id)) throw new Error('Telegram ID ' + t.id + ' уже есть в списке');
-    const n = Math.max(0, ...rows.map(r => { const m = String(r[0]).trim().match(/^s(\d+)$/); return m ? +m[1] : 0; })) + 1, ids = rows.map(r => String(r[0]).trim()); let k = n; while (ids.indexOf('s' + k) >= 0) k++; const id = 's' + k;
+    const n = Math.max(0, ...rows.map(r => { const m = String(r[0]).trim().match(/^s(\d+)$/i); return m ? +m[1] : 0; })) + 1, ids = rows.map(r => String(r[0]).trim().toUpperCase()); let k = n; while (ids.indexOf('S' + k) >= 0) k++; const id = 'S' + k;   // 25.11: S1 и s1 — разные ID, путались; номер — по S/s, ID с заглавной
     const s = sh_(SH.staff), row = s.getLastRow() + 1; s.getRange(row, 1, 1, 7).setValues([[id, name, t.un ? '@' + t.un : '', t.id ? "'" + t.id : '', role, '', 'да']]);
     return { id, name, role, tg: t.un || '', tgid: t.id || '' }; }),
   staffSet: bossOnly_(function(me, b){ const r = stRows_().find(x => String(x[0]).trim() === String(b.id || '').trim()); if (!r) throw new Error('Нет сотрудника'); const s = sh_(SH.staff), row = r[7];

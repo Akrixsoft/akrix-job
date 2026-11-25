@@ -1,0 +1,22 @@
+// Тест SYNC-W (сервер Job, 25.11.2026): markMany — пачка, дубли модуля не пишутся (в т. ч. внутри пачки), снятая отметка — не дубль; mark с dedupe; автоотметка станка — исполнитель оператор. node test/tmark_job.js server/Code.gs
+const { ctx, BOOK, props } = require('./mock.js'); const res = [];
+const ck = (n, c, d) => { res.push(!!c); console.log((c ? 'OK   ' : 'FAIL ') + n, c ? '' : JSON.stringify(d)); };
+Object.values(ctx.SH).forEach(n => { if (!BOOK.s[n]) BOOK.insertSheet(n).appendRow(['h']); });
+BOOK.s['Сотрудники'].d = [['id', 'имя', 'tg', 'tgid', 'роль', '', 'доступ'], ['R1', 'Дмитрий', '', '', 'руководитель', '', 'да'], ['S2', 'Гия', '', '', 'сборщик', '', 'да']];
+const KB = 'a'.repeat(48); props['AK_' + KB] = 'R1';
+const call = b => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(Object.assign({ key: KB }, b)) }, parameter: {} }).t);
+const M = BOOK.s['Отметки'], live = () => M.d.slice(1).filter(r => r[11] !== 'да');
+const it = u => ({ order: 'Т 1', grp: 'korpus', op: 'dost', unit: u, pct: 10, amount: 1, dedupe: 1 });
+let r = call({ action: 'markMany', items: [it('М1'), it('М2'), it('М1')] });
+ck('markMany: М1, М2 записаны, второй М1 в той же пачке — дубль', r.ok && live().length === 2 && r.data.rows[2].dup && r.data.rows[2].row === r.data.rows[0].row, [r, live()]);
+const v0 = r.ver; r = call({ action: 'markMany', items: [it('М1'), it('М2'), it('М3')] });
+ck('повтор пачки: только М3 новая, М1 / М2 — дубли со строкой первой отметки', r.ok && live().length === 3 && r.data.rows[0].dup && r.data.rows[1].dup && !r.data.rows[2].dup, [r.data, live()]);
+ck('счётчик изменений +1 за пачку', r.ver === v0 + 1, [v0, r.ver]);
+r = call({ action: 'mark', ...it('М3') }); ck('mark с dedupe — дубль, не записан', r.ok && r.data.dup && live().length === 3, r);
+call({ action: 'unmark', row: M.d.findIndex(x => x[5] === 'М3') + 1 }); r = call({ action: 'mark', ...it('М3') });
+ck('снятая отметка — не дубль: М3 записана заново', r.ok && !r.data.dup && live().length === 3 && M.d.length === 5, [r, M.d.length]);
+r = call({ action: 'markMany', items: [{ order: 'Т 1', grp: 'korpus', op: 'pris', unit: 'М1', pct: 10, amount: 1, auto: true, who: 'S2', mode: 'станок' }] });
+ck('автоотметка станка в пачке: исполнитель — оператор S2', r.ok && M.d[M.d.length - 1][1] === 'S2', M.d[M.d.length - 1]);
+r = call({ action: 'mark', order: 'Т 1', grp: 'korpus', op: 'dost', unit: 'М9', pct: 1, amount: 1 }); call({ action: 'mark', order: 'Т 1', grp: 'korpus', op: 'dost', unit: 'М9', pct: 1, amount: 1 });
+ck('mark без dedupe / auto — как раньше (пишет)', live().filter(x => x[5] === 'М9').length === 2);
+console.log(res.filter(Boolean).length + '/' + res.length);
