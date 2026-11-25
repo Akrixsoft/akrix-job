@@ -1096,7 +1096,7 @@ function shCommit(inp){ const box=inp.closest('.shbox'), key=box.dataset.k, o=OR
   if(lowBad.length){ toast(`${PEOPLE[lowBad[0]]||lowBad[0]}: ученику не больше ${LOW_CAP*100}%`); return; }
   Object.keys(m).forEach(p=>m[p]=Math.round(m[p]*100)/100);
   const cur=SHARE[o.id+'|'+k]; if(cur&&Object.keys(m).every(p=>Math.abs((cur[p]||0)-m[p])<0.005)) return;
-  shSave(o,k,m).then(()=>wantReload()); render(); }   // «Сделано» и «Заработал» пересчитываются по новым долям
+  shSave(o,k,m).then(()=>wantReload()); const d=box.closest('details.dli'); if(d) renderKeep(`details.dli[data-op="${CSS.escape(d.dataset.op)}"] > summary`, d.querySelector(':scope > summary')); else render(); }   // «Сделано» и «Заработал» пересчитываются по новым долям
 /* ===== END BLOCK: SHARE-IN ===== */
 function shMembers(o,k){ const ppl=PART[o.id+'|'+k]||new Set(); return S.role==='boss'?[...ppl]:[ME,...[...ppl].filter(p=>p!==ME)]; }
 function shSave(o,k,m){ SHARE[o.id+'|'+k]=m; const r=api('shareSet',{order:o.id, op:k, shares:m}); r.catch(fail); return r.catch(()=>{}); }
@@ -1207,7 +1207,10 @@ function vClosePanel(){
     <div class="grid2"><button class="btn ghost" data-act="cancelClose">Отмена</button><button class="btn" data-act="submitClose">Закрыть смену</button></div>`);
 }
 // перерисовка без прыжка экрана: элемент, по которому тапнули, остаётся на том же месте
-function renderKeep(sel, el){ const y0=el?el.getBoundingClientRect().top:null; render();
+/* TODAY2: перерисовка без прыжка — якорь на месте экрана; если страница стала короче, внизу временная пустота (до следующей перерисовки), чтобы прокрутку не обрезало */
+function renderHold(sel, el){ const h0=document.documentElement.scrollHeight; renderKeep(sel, el, h0); }
+function renderKeep(sel, el, h0){ const y0=el?el.getBoundingClientRect().top:null; render();
+  if(h0){ let sp=document.getElementById('keepsp'); if(!sp){ sp=document.createElement('div'); sp.id='keepsp'; document.body.appendChild(sp); } const d=h0-document.documentElement.scrollHeight; if(d>0) sp.style.height=d+'px'; }
   const el2=sel&&document.querySelector(sel); if(y0!=null&&el2){ const dy=el2.getBoundingClientRect().top-y0; if(Math.abs(dy)>0.5) window.scrollBy(0,dy); } }
 function bindUnits(){
   // снять отметку — двумя тапами (защита от случайного касания)
@@ -1447,6 +1450,7 @@ function badges(role){ const b={};
   return b; }
 const badgeHtml = n => n>0?`<i class="tbadge num">${n>99?'99+':n}</i>`:'';
 function render(){
+  { const sp=document.getElementById('keepsp'); if(sp) sp.style.height='0'; }
   SPREAD=null; computeAlloc();
   if(S.role==='emp'&&S.tab==='buy') seenSet('buy');
   if(S.role==='emp'&&S.tab==='today') seenSet('pay');
@@ -2346,7 +2350,7 @@ document.addEventListener('click',e=>{
   if(S.joinOpen&&!e.target.closest('.tpop,.tppl-btn,[data-act=joinOpen]')){ S.joinOpen=null; render(); }
   const t=e.target.closest('[data-tab]'); if(t){S.tab=t.dataset.tab;S.settings=false;S.person=null;S.rep=null;render();window.scrollTo(0,0);return;}
   const b=e.target.closest('[data-act]'); if(!b||b.tagName==='SELECT'||b.tagName==='INPUT') return;
-  const a=b.dataset.act;
+  const a=b.dataset.act; window.__keepDli=null;
   if(a==='shift'){
     if(!S.onShift){   // сразу: смена на экране и выбор задачи; запись на сервер — в фоне
       const at=hm(nowMin()), again=S.segs&&S.segs.length, seg={s:at,e:''}; S.segs=(S.segs||[]).concat([seg]); S.onShift=true; S.shiftDone=false; if(!again) S.startAt=at;
@@ -2490,7 +2494,12 @@ document.addEventListener('click',e=>{
     const cur=r.vals[i], nx=cur===''?0:cur>=3?'':cur+1; r.vals[i]=nx;
     api('skillSet',{code:r.code, who:w, level:nx}).catch(fail); }
   if(a==='joinAdd'){ S.joinAdd = S.joinAdd===b.dataset.k ? null : b.dataset.k; }
-  if(a==='joinOpen'&&/\|d$/.test(b.dataset.k||'')){ const d=b.closest('details.dli'); if(d) S.dliOpen=d.dataset.op; }   // «скрыть» в «Сделано» — сворачивает только статистику, операция остаётся раскрытой
+  if(a==='joinOpen'&&/\|d$/.test(b.dataset.k||'')){ const d=b.closest('details.dli'); if(d) S.dliOpen=d.dataset.op; }
+  { const d=b.closest('details.dli');   // TODAY2: действия внутри «Сделано» — экран не прыгает (держим строку операции на месте)
+    if(d&&['joinOpen','joinAdd','shMode','shReset','join','lineUndo'].includes(a)){ const jb=a==='joinOpen'?`.dlr [data-act="joinOpen"][data-k="${CSS.escape(b.dataset.k)}"]`:null, sel=jb||`details.dli[data-op="${CSS.escape(d.dataset.op)}"] > summary`, anc=jb?b:d.querySelector(':scope > summary');
+      if(a==='joinOpen'){ S.dliOpen=d.dataset.op; S.joinOpen = S.joinOpen===b.dataset.k ? null : b.dataset.k; renderHold(sel,anc); return; }
+      if(a==='shMode'){ S.shMode=b.dataset.v; try{ localStorage.setItem('akxShMode',S.shMode); }catch(e){} renderHold(sel,anc); return; }
+      window.__keepDli=[sel,anc]; } }   // «скрыть» в «Сделано» — сворачивает только статистику, операция остаётся раскрытой
   if(a==='joinOpen'){ S.joinOpen = S.joinOpen===b.dataset.k ? null : b.dataset.k; }
   if(a==='shPreset'||a==='shStep'){ const o=ORDERS[+b.dataset.o], k=b.dataset.op, mem=shMembers(o,k), cur=shares(o.id,k,ME,'',S.role==='boss'?'boss':''), m={};
     mem.forEach(p=>m[p]=Math.round((cur[p]||0)*100/5)*5);
@@ -2559,6 +2568,7 @@ document.addEventListener('click',e=>{
   if(a==='bulk'){ const at=document.getElementById('k-bulk').value; if(!at){ toast('Укажи время'); return; } const dates=[];
     for(let i=1;i<=30;i++){ const d=addD(TODAY,i), s=iso(d); if(isWorkday(d)&&!(CAL[ME]||{})[s]&&canEdit(s)){ (CAL[ME]=CAL[ME]||{})[s]={at, setAt:'заранее, '+hm(nowMin())}; dates.push(s); } }
     if(dates.length) api('planBulk',{dates, at}).catch(fail); toast(`Заполнено дней: ${dates.length}`); }
+  if(window.__keepDli){ const [sel,anc]=window.__keepDli; window.__keepDli=null; renderHold(sel,anc); return; }
   render();
 });
 /* ===== BLOCK: BUY DROPDOWN — свой выпадающий список: последние наименования сверху, фильтр по вводу ===== */
@@ -2649,7 +2659,7 @@ function reload(){ if(PEND>0){ RELOAD_WANT=true; return Promise.resolve(); } if(
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1795617810';
+const BUILD='1795627533';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
