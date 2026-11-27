@@ -684,7 +684,7 @@ const KEY = (()=>{ const q=new URLSearchParams(location.search).get('key'); try{
 let apiQ = Promise.resolve(); let VER = -1;
 /* ===== BLOCK: SYNC-W (25.11) — пока записи этого устройства в очереди, таблица не перечитывается (иначе полуготовое состояние сбрасывает галки);
    отметки одним запросом markMany (старый сервер — по одной, с проверкой дубля) ===== */
-let PEND=0, RELOAD_WANT=false;
+let PEND=0, RELOAD_WANT=false, WGEN=0;   /* WGEN — счётчик своих записей: ответ boot, начатого до записи, устарел (27.11: пауза «сбрасывалась») */
 function wantReload(){ if(PEND>0) RELOAD_WANT=true; else setTimeout(()=>reload(),300); }
 function apiDone(){ if(--PEND<=0){ PEND=0; if(RELOAD_WANT){ RELOAD_WANT=false; setTimeout(()=>reload(),300); } } }
 let MQ=[], MANY=true;
@@ -696,7 +696,7 @@ function markFlush(){ const L=MQ; MQ=[]; if(!L.length) return;
     .catch(e=>{ if(/Нет действия/.test(e&&e.message||e)){ MANY=false; L.forEach(one); } else L.forEach(x=>x.rej(e)); }); }
 /* ===== END BLOCK: SYNC-W ===== */
 function api(action, payload={}){
-  if(action!=='boot'){ PEND++; return api0(action,payload).finally(apiDone); }
+  if(action!=='boot'){ PEND++; WGEN++; return api0(action,payload).finally(apiDone); }
   return api0(action,payload); }
 function api0(action, payload={}){
   if(window.MOCK_API) return Promise.resolve().then(()=>window.MOCK_API(Object.assign({ action }, payload))).then(j=>{ if(!j.ok) throw new Error(j.error); return j.data; });   // макет: встроенная копия сервера
@@ -2650,7 +2650,9 @@ function sheetOpen(){ return !!(S.startPick||S.newOrd||S.joinOpen||S.closing||S.
 function busy(){ const a=document.activeElement; return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); }
 const GO=new URLSearchParams(location.search).get('go');   // из кнопок бота: close — закрыть смену, late — работаю дальше
 function reload(){ if(PEND>0){ RELOAD_WANT=true; return Promise.resolve(); } if(loading) return Promise.resolve(); loading=true;
-  return api('boot').then(D=>{ const y=window.scrollY, first=!ORDERS.length&&!ME; build(D); lagSnap(); if(first&&!MYOFF.includes('splash')) splash(); setTimeout(autoDrill,400); if(first&&IS_BOSS&&!GO){ S.role='boss'; S.tab='borders'; }
+  const g0=WGEN; return api('boot').then(D=>{ const y=window.scrollY, first=!ORDERS.length&&!ME;
+    if(!first&&g0!==WGEN){ RELOAD_WANT=true; if(PEND<=0){ RELOAD_WANT=false; setTimeout(()=>reload(),300); } return; }   /* пока шла перечитка, нажали ⏸/▶/галку — снимок старый: не рисуем, перечитаем после записи */
+    build(D); lagSnap(); if(first&&!MYOFF.includes('splash')) splash(); setTimeout(autoDrill,400); if(first&&IS_BOSS&&!GO){ S.role='boss'; S.tab='borders'; }
     if(first&&GO==='buy'){ S.role=IS_BOSS?'boss':'emp'; S.tab='buy'; }
     else if(first&&GO){ S.role='emp'; S.tab='today';
       if(GO==='close'&&S.onShift) S.closing=true;
@@ -2659,7 +2661,7 @@ function reload(){ if(PEND>0){ RELOAD_WANT=true; return Promise.resolve(); } if(
     .catch(e=>{ if(!ME) document.getElementById('view').innerHTML=UI.sec('Нет доступа', UI.note(esc(e.message||e))); else toast('⚠ '+(e.message||e)); })
     .finally(()=>{ loading=false; }); }
 /* ============ BLOCK: АВТООБНОВЛЕНИЕ — Telegram держит старую страницу в кэше ============ */
-const BUILD='1795627533';
+const BUILD='1795627534';
 function checkUpdate(){ if(window.MOCK_API) return; fetch(location.pathname+'?nc='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/const BUILD='(\d+)'/);
   if(m&&m[1]!==BUILD&&new URLSearchParams(location.search).get('b')!==m[1]){ const u=new URL(location.href); u.searchParams.set('b',m[1]); location.replace(u.toString()); } }).catch(()=>{}); }
 
